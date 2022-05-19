@@ -1,12 +1,6 @@
 name = "EasyABM"
 uuid = "2ab8e4d3-e1e9-4248-86a3-8419d2d242e9"
-authors = ["RenuSolanki <renusolanki2014@gmail.com>",
-"Monisha Khanna Kapur <monishaandc@gmail.com>",
-"Shailly Anand <shailly.anand@gmail.com>", 
-"Anita Gulati <a22.gulati@gmail.com>",
-"Prateek Kumar <prateek@ramjas.du.ac.in>",
-"Munendra Kumar <munendrafanswal92@gmail.com>", 
-"Dushyant Kumar <sehrawat.dushyant@gmail.com>"]
+authors = ["RenuSolanki <renusolanki2014@gmail.com>", "Monisha Khanna Kapur <monishaandc@gmail.com>", "Shailly Anand <shailly.anand@gmail.com>", "Anita Gulati <a22.gulati@gmail.com>", "Prateek Kumar <prateek@ramjas.du.ac.in>", "Munendra Kumar <munendrafanswal92@gmail.com>", "Dushyant Kumar <sehrawat.dushyant@gmail.com>"]
 version = "0.1.0"
 
 [deps]
@@ -32,6 +26,7 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
+DataFrames = "1"
 julia = "1"
 
 [extras]
