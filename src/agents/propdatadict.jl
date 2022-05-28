@@ -5,8 +5,8 @@ struct PropDataDict{K, V} <: AbstractPropDict{K, V}
     function PropDataDict(d::Dict{Symbol, Any})
         data = Dict{Symbol, Any}()
 
-        if haskey(data, :pos)
-            x,y = data[:pos]
+        if haskey(d, :pos)
+            x,y = d[:pos]
             data[:pos] = GeometryBasics.Vec(Float64(x),y)
         end
         

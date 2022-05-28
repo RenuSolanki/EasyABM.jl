@@ -11,6 +11,7 @@ $(TYPEDSIGNATURES)
 """
 function get_node_data(node::Int, model::GraphModelDynGrTop)
     if !(node in vertices(model.graph))
+        println("node ", node, " does not exist!")
         return
     end
     datadict=Dict{Symbol,Any}()
@@ -49,7 +50,7 @@ $(TYPEDSIGNATURES)
         i,j = i>j ? (j,i) : (i,j)
         condition = (i in vertices(model.graph)) && (j in model.graph.structure[i])
     else
-        condition = (i in model.graph.nodes) && (j in model.graph.out_structure[i])
+        condition = (i in vertices(model.graph)) && (j in model.graph.out_structure[i])
     end
     return i,j, condition
 end
@@ -111,6 +112,39 @@ function get_edge_data(edge, model::GraphModelFixGrTop)
 end
 
 
+# We don't do any "data exists" checks in latest_propvals but the function will just throw an error if it doesn't.
+# This is because latest_propvals is expected to be used during model run rather than after the run for getting data.
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function latest_propvals(node::Int, model::GraphModel, propname::Symbol, n::Int)
+    return latest_propvals(model.graph.nodesprops[node], propname, n)
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function latest_propvals(i::Int,j::Int, model::GraphModel, propname::Symbol, n::Int)
+    if !(is_directed(model.graph))
+        i,j = i>j ? (j,i) : (i,j)
+    end
+    return latest_propvals(model.graph.edgesprops[(i,j)], propname, n)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function latest_propvals(edge, model::GraphModel, propname::Symbol, n::Int)
+    i,j=edge
+    if !(is_directed(model.graph))
+        i,j = i>j ? (j,i) : (i,j)
+    end
+    return unwrap_data(model.graph.edgesprops[(i,j)])[propname][max(end-n,1):end]
+end
+
+
 
 
 ##############################
@@ -131,15 +165,12 @@ function get_nums_nodes(model::GraphModelDynGrTop, conditions::Function...; labe
         for tick in 1:model.tick
             num=0
             for node in vertices(model.graph)
-                temp_dict = Dict{Symbol,Any}()
                 birth_time = model.graph.nodesprops[node]._extras._birth_time
                 death_time = model.graph.nodesprops[node]._extras._death_time
                 if (tick>=birth_time)&&(tick<=death_time)
-                    for key in model.record.nprops
-                        temp_dict[key]=unwrap_data(model.graph.nodesprops[node])[key][tick-birth_time+1]
-                    end
-
-                    if condition(PropDict(temp_dict))
+                    index = tick-birth_time+1
+                    nodecp = create_temp_prop_dict(unwrap_data(model.graph.nodesprops[node]), model.record.nprops, index)
+                    if condition(nodecp)
                         num+=1
                     end
                 end
@@ -150,6 +181,52 @@ function get_nums_nodes(model::GraphModelDynGrTop, conditions::Function...; labe
     df = DataFrame(dict);
     if plot_result
         display(plot(Matrix(df), labels=permutedims(labels), xlabel="ticks", ylabel="number of nodes", legend=:topright)) #outertopright
+    end
+    return df
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function get_nodes_avg_props(model::GraphModelDynGrTop, 
+    props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
+
+    dict = Dict{Symbol, Any}()
+    verts = vertices(model.graph)
+
+    if length(verts)==0
+        return DataFrame(dict)
+    end
+
+    first_node = model.graph.nodesprops[1]
+
+    for i in 1:length(props)
+        fun = props[i]
+        name = Symbol(labels[i])
+        dict[name]=Any[]
+        for tick in 1:model.tick
+            val = fun(first_node) - fun(first_node)
+            num_alive = 0
+            for node in verts
+                birth_time = model.graph.nodesprops[node]._extras._birth_time
+                death_time = model.graph.nodesprops[node]._extras._death_time
+                if (tick>=birth_time)&&(tick<=death_time)
+                    index = tick-birth_time+1
+                    nodecp = create_temp_prop_dict(unwrap_data(model.graph.nodesprops[node]), model.record.nprops, index)
+                    val += fun(nodecp)
+                    num_alive+=1
+                end
+            end
+            if num_alive >0
+                val = val/num_alive
+            end
+            push!(dict[name], val)
+        end
+    end
+    df = DataFrame(dict);
+    if plot_result
+        display(plot(Matrix(df), labels=permutedims(labels), xlabel="ticks", ylabel="", legend=:topright)) #outertopright
     end
     return df
 end
@@ -167,12 +244,8 @@ function get_nums_nodes(model::GraphModelFixGrTop, conditions::Function...; labe
         for tick in 1:model.tick
             num=0
             for node in vertices(model.graph)
-                temp_dict = Dict{Symbol,Any}()
-                for key in model.record.nprops
-                    temp_dict[key]=unwrap_data(model.graph.nodesprops[node])[key][tick]
-                end
-
-                if condition(PropDict(temp_dict))
+                nodecp = create_temp_prop_dict(unwrap_data(model.graph.nodesprops[node]), model.record.nprops, tick)
+                if condition(nodecp)
                     num+=1
                 end
             end
@@ -186,6 +259,47 @@ function get_nums_nodes(model::GraphModelFixGrTop, conditions::Function...; labe
     return df
 end
 
+
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function get_nodes_avg_props(model::GraphModelFixGrTop, 
+    props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
+
+    dict = Dict{Symbol, Any}()
+    verts = vertices(model.graph)
+    num_alive = length(verts)
+
+    if num_alive==0
+        return DataFrame(dict)
+    end
+
+    first_node = model.graph.nodesprops[1]
+
+    for i in 1:length(props)
+        fun = props[i]
+        name = Symbol(labels[i])
+        dict[name]=Any[]
+        for tick in 1:model.tick
+            val = fun(first_node) - fun(first_node)
+            for node in verts
+                nodecp = create_temp_prop_dict(unwrap_data(model.graph.nodesprops[node]), model.record.nprops, tick)
+                val += fun(nodecp)
+            end
+            val = val/num_alive
+            push!(dict[name], val)
+        end
+    end
+    df = DataFrame(dict);
+    if plot_result
+        display(plot(Matrix(df), labels=permutedims(labels), xlabel="ticks", ylabel="", legend=:topright)) #outertopright
+    end
+    return df
+end
+
+
 """
 $(TYPEDSIGNATURES)
 """
@@ -197,16 +311,14 @@ function get_nums_edges(model::GraphModelDynGrTop, conditions::Function...; labe
         dict[name]=Int[]
         for tick in 1:model.tick
             num=0
-            for edge in model.graph.edges
-                temp_dict = Dict{Symbol,Any}()
+            for edge in edges(model.graph)
                 birth_time = model.graph.edgesprops[edge]._extras._birth_time
                 death_time = model.graph.edgesprops[edge]._extras._death_time
                 if (tick>=birth_time)&&(tick<=death_time)
-                    for key in model.record.eprops
-                        temp_dict[key]=unwrap_data(model.graph.edgesprops[edge])[key][tick-birth_time+1]
-                    end
+                    index = tick-birth_time+1
+                    edgecp = create_temp_prop_dict(unwrap_data(model.graph.edgesprops[edge]), model.record.eprops, index)
 
-                    if condition(PropDict(temp_dict))
+                    if condition(edgecp)
                         num+=1
                     end
                 end
@@ -222,6 +334,55 @@ function get_nums_edges(model::GraphModelDynGrTop, conditions::Function...; labe
 end
 
 
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function get_edges_avg_props(model::GraphModelDynGrTop, 
+    props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
+
+    dict = Dict{Symbol, Any}()
+    edges = edges(model.graph)
+
+    if length(edges)==0
+        return DataFrame(dict)
+    end
+
+    first_edge = model.graph.edgesprops[edges[1]]
+
+    for i in 1:length(props)
+        fun = props[i]
+        name = Symbol(labels[i])
+        dict[name]=Any[]
+        for tick in 1:model.tick
+            val = fun(first_edge) - fun(first_edge)
+            num_alive = 0
+            for edge in edges
+                birth_time = model.graph.edgesprops[edge]._extras._birth_time
+                death_time = model.graph.edgesprops[edge]._extras._death_time
+                if (tick>=birth_time)&&(tick<=death_time)
+                    index = tick-birth_time+1
+                    edgecp = create_temp_prop_dict(unwrap_data(model.graph.edgesprops[edge]), model.record.eprops, index)
+                    val += fun(edgecp)
+                    num_alive+=1
+                end
+            end
+            if num_alive >0
+                val = val/num_alive
+            end
+            push!(dict[name], val)
+        end
+    end
+    df = DataFrame(dict);
+    if plot_result
+        display(plot(Matrix(df), labels=permutedims(labels), xlabel="ticks", ylabel="", legend=:topright)) #outertopright
+    end
+    return df
+end
+
+
+
 """
 $(TYPEDSIGNATURES)
 """
@@ -233,13 +394,9 @@ function get_nums_edges(model::GraphModelFixGrTop, conditions::Function...;label
         dict[name]=Int[]
         for tick in 1:model.tick
             num=0
-            for edge in model.graph.edges
-                temp_dict = Dict{Symbol,Any}()
-                for key in model.record.eprops
-                    temp_dict[key]=unwrap_data(model.graph.edgesprops[edge])[key][tick]
-                end
-
-                if condition(PropDict(temp_dict))
+            for edge in edges(model.graph)
+                edgecp = create_temp_prop_dict(unwrap_data(model.graph.edgesprops[edge]), model.record.eprops, tick)
+                if condition(edgecp)
                     num+=1
                 end
             end
@@ -252,6 +409,46 @@ function get_nums_edges(model::GraphModelFixGrTop, conditions::Function...;label
     end
     return df
 end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function get_edges_avg_props(model::GraphModelFixGrTop, 
+    props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
+
+    dict = Dict{Symbol, Any}()
+    edges = edges(model.graph)
+    num_alive = length(edges)
+
+    if num_alive==0
+        return DataFrame(dict)
+    end
+
+    first_edge = model.graph.edgesprops[edges[1]]
+
+    for i in 1:length(props)
+        fun = props[i]
+        name = Symbol(labels[i])
+        dict[name]=Any[]
+        for tick in 1:model.tick
+            val = fun(first_edge) - fun(first_edge)
+            for edge in edges 
+                edgecp = create_temp_prop_dict(unwrap_data(model.graph.edgesprops[edge]), model.record.eprops, tick)
+                val += fun(edgecp)
+            end
+            val = val/num_alive
+
+            push!(dict[name], val)
+        end
+    end
+    df = DataFrame(dict);
+    if plot_result
+        display(plot(Matrix(df), labels=permutedims(labels), xlabel="ticks", ylabel="", legend=:topright)) #outertopright
+    end
+    return df
+end
+
 
 
 

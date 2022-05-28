@@ -7,11 +7,13 @@ export  StaticType, MortalType, PropDict, gparams, gparams3d,
         create_2d_model, create_graph_model, create_3d_model,
         # initialise, run, visualise
         init_model!, run_model!, animate_sim, create_interactive_app, 
+        save_model, open_saved_model,
 
         # data 
         get_agent_data, get_patch_data, get_node_data,
-        get_edge_data, get_model_data, get_nums_agents, get_nums_patches,
-        get_nums_nodes, get_nums_edges,
+        get_edge_data, get_model_data, latest_propvals, get_nums_agents, get_nums_patches,
+        get_nums_nodes, get_nums_edges, get_agents_avg_props, get_patches_avg_props,
+        get_nodes_avg_props, get_edges_avg_props,
         
         #helpers graph
         create_simple_graph, create_dir_graph, adjacency_matrix, add_node!, kill_node!, 
@@ -34,7 +36,10 @@ export  StaticType, MortalType, PropDict, gparams, gparams3d,
         #neighbor agents
         neighbors, in_neighbors, out_neighbors, 
 
-        #inbuilt
+        #misc utilities
+        dotproduct, norm, distance, calculate_direction,
+
+        #inbuilt models
         SIR   
     
         

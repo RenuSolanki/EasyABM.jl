@@ -35,11 +35,38 @@ function get_patch_data(patch, model::AbstractGridModel)
     end
     datadict=Dict{Symbol,Any}()
     for key in model.record.pprops
-        datadict[key] = unwrap_data(model.patches[patch])[key]
+        datadict[key] = unwrap_data(model.patches[patch...])[key]
     end
     df = DataFrame(datadict)
     return (record=df,)  
 end
+
+# We don't do any "data exists" checks in latest_propvals but the function will just throw an error if it doesn't.
+# This is because latest_propvals is expected to be used during model run rather than after the run for getting data.
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function latest_propvals(obj::AbstractPropDict, propname::Symbol, n::Int)
+    return unwrap_data(obj)[propname][max(end-n,1): end]
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function latest_propvals(agent::AbstractPropDict, model::Union{AbstractGridModel, AbstractGraphModel}, propname::Symbol, n::Int)
+   return latest_propvals(agent, propname, n)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function latest_propvals(patch, model::AbstractGridModel, propname::Symbol, n::Int)
+   return latest_propvals(model.patches[patch...], propname, n) 
+end
+
+
 
 
 
@@ -57,6 +84,15 @@ end
 
 
 
+######################
+@inline function create_temp_prop_dict(objdata::Dict{Symbol, Any}, record::Vector{Symbol}, index::Int)
+    temp_dict = Dict{Symbol,Any}()
+    for key in record
+        temp_dict[key] = objdata[key][index]
+    end
+    return PropDict(temp_dict)
+end
+
 """
 $(TYPEDSIGNATURES)
 """
@@ -72,13 +108,11 @@ function get_nums_agents(model::Union{AbstractGridModel{MortalType}, AbstractGra
         for tick in 1:model.tick
             num=0
             for agent in all_agents
-                temp_dict = Dict{Symbol,Any}()
                 if (tick>=agent._extras._birth_time)&&(tick<=agent._extras._death_time)
-                    for key in agent.keeps_record_of
-                        temp_dict[key]=unwrap_data(agent)[key][tick-agent._extras._birth_time+1]
-                    end
+                    index = tick-agent._extras._birth_time+1
+                    agentcp = create_temp_prop_dict(unwrap_data(agent), agent.keeps_record_of, index)
 
-                    if condition(PropDict(temp_dict))
+                    if condition(agentcp)
                         num+=1
                     end
                 end
@@ -91,6 +125,51 @@ function get_nums_agents(model::Union{AbstractGridModel{MortalType}, AbstractGra
         display(plot(Matrix(df), labels=permutedims(labels), xlabel="ticks", ylabel="number of agents", legend=:topright)) #outertopright
     end
     return df
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function get_agents_avg_props(model::Union{AbstractGridModel{MortalType}, AbstractGraphModel{T, MortalType}}, 
+    props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
+
+    dict = Dict{Symbol, Any}()
+    all_agents = vcat(model.agents, model.parameters._extras._agents_killed)
+
+    if length(all_agents)==0
+        return DataFrame(dict)
+    end
+
+    first_agent = all_agents[1]
+
+    for i in 1:length(props)
+        fun = props[i]
+        name = Symbol(labels[i])
+        dict[name]=Any[]
+        for tick in 1:model.tick
+            val = fun(first_agent) - fun(first_agent)
+            num_alive = 0
+            for agent in all_agents
+                if (tick>=agent._extras._birth_time)&&(tick<=agent._extras._death_time)
+                    index = tick-agent._extras._birth_time+1
+                    agentcp = create_temp_prop_dict(unwrap_data(agent), agent.keeps_record_of, index)
+                    val += fun(agentcp)
+                    num_alive+=1
+                end
+            end
+            if num_alive >0
+                val = val/num_alive
+            end
+            push!(dict[name], val)
+        end
+    end
+    df = DataFrame(dict);
+    if plot_result
+        display(plot(Matrix(df), labels=permutedims(labels), xlabel="ticks", ylabel="", legend=:topright)) #outertopright
+    end
+    return df
+
 end
 
 """
@@ -107,11 +186,8 @@ function get_nums_agents(model::Union{AbstractGridModel{StaticType}, AbstractGra
         for tick in 1:model.tick
             num=0
             for agent in model.agents
-                temp_dict = Dict{Symbol,Any}()
-                for key in agent.keeps_record_of
-                    temp_dict[key]=unwrap_data(agent)[key][tick-agent._extras._birth_time+1]
-                end
-                if condition(PropDict(temp_dict))
+                agentcp = create_temp_prop_dict(unwrap_data(agent), agent.keeps_record_of, tick)
+                if condition(agentcp)
                     num+=1
                 end
             end
@@ -129,6 +205,47 @@ end
 """
 $(TYPEDSIGNATURES)
 """
+function get_agents_avg_props(model::Union{AbstractGridModel{StaticType}, AbstractGraphModel{T, StaticType}}, 
+    props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
+
+    dict = Dict{Symbol, Any}()
+    all_agents = model.agents
+    num_alive = length(all_agents)
+
+    if num_alive==0
+        return DataFrame(dict)
+    end
+
+    first_agent = all_agents[1]
+
+    for i in 1:length(props)
+        fun = props[i]
+        name = Symbol(labels[i])
+        dict[name]=Any[]
+        for tick in 1:model.tick
+            val = fun(first_agent) - fun(first_agent)
+            for agent in all_agents
+                agentcp = create_temp_prop_dict(unwrap_data(agent), agent.keeps_record_of, tick)
+                val += fun(agentcp)
+            end
+
+            val = val/num_alive
+
+            push!(dict[name], val)
+        end
+    end
+    df = DataFrame(dict);
+    if plot_result
+        display(plot(Matrix(df), labels=permutedims(labels), xlabel="ticks", ylabel="", legend=:topright)) #outertopright
+    end
+    return df
+
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
 function get_nums_patches(model::AbstractGridModel, conditions::Function...; labels::Vector{String} = string.(collect(1:length(conditions))), plot_result = false )
     dict = Dict{Symbol, Vector{Int}}()
     for i in 1:length(conditions)
@@ -138,16 +255,10 @@ function get_nums_patches(model::AbstractGridModel, conditions::Function...; lab
         for tick in 1:model.tick
             num=0
             
-            for pkey in keys(model.patches)
-                if all(0 .< pkey)
-                    temp_dict = Dict{Symbol,Any}()
-                    patch_data = unwrap_data(model.patches[pkey])
-                    for key in model.record.pprops
-                        temp_dict[key]=patch_data[key][tick]
-                    end
-                    if condition(PropDict(temp_dict))
-                        num+=1
-                    end
+            for patch in model.patches
+                patchcp = create_temp_prop_dict(unwrap_data(patch), model.record.pprops, tick)
+                if condition(patchcp)
+                    num+=1
                 end
             end
             push!(dict[name], num)
@@ -159,3 +270,45 @@ function get_nums_patches(model::AbstractGridModel, conditions::Function...; lab
     end
     return df
 end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function get_patches_avg_props(model::AbstractGridModel, 
+    props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
+
+    dict = Dict{Symbol, Any}()
+
+    first_patch = model.patches[1,1]
+
+    num_patches = 1
+
+    for num in model.size
+        num_patches *= num
+    end
+
+    for i in 1:length(props)
+        fun = props[i]
+        name = Symbol(labels[i])
+        dict[name]=Any[]
+        for tick in 1:model.tick
+            val = fun(first_patch) - fun(first_patch)
+            for patch in model.patches
+                patchcp = create_temp_prop_dict(unwrap_data(patch), model.record.pprops, tick)       
+                val += fun(patchcp)                
+            end
+            val = val/num_patches
+
+            push!(dict[name], val)
+        end
+    end
+    df = DataFrame(dict);
+    if plot_result
+        display(plot(Matrix(df), labels=permutedims(labels), xlabel="ticks", ylabel="", legend=:topright)) #outertopright
+    end
+    return df
+
+end
+
+

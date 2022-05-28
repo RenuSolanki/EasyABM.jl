@@ -30,7 +30,6 @@ function manage_default_graphics_data!(agent::AgentDictGr, graphics, default_nod
 end
 
 
-
 """
 $(TYPEDSIGNATURES)
 """
@@ -125,7 +124,6 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _create_node_structure!(node, graph::DirPropGraph)
-    push!(graph.nodes, node)
     graph.in_structure[node] = Int[]
     graph.out_structure[node] = Int[]
 end
@@ -170,7 +168,6 @@ $(TYPEDSIGNATURES)
 @inline function _update_edge_structure!(i, j, graph::SimplePropGraph)
     push!(graph.structure[i],j)
     push!(graph.structure[j],i)
-    push!(graph.edges, (i,j))
 end 
 
 """
@@ -179,7 +176,6 @@ $(TYPEDSIGNATURES)
 @inline function _update_edge_structure!(i, j, graph::DirPropGraph)
     push!(graph.out_structure[i],j)
     push!(graph.in_structure[j], i)
-    push!(graph.edges, (i,j))
 end 
 
 """
@@ -382,7 +378,7 @@ _permanently_remove_inactive_nodes!(model::GraphModelFixGrTop) = nothing
 $(TYPEDSIGNATURES)
 """
 function _permanently_remove_inactive_edges!(model::GraphModelDynGrTop)
-    edges = model.graph.edges
+    edges = edges(model.graph)
     edges_to_remove = edges[[!(model.graph.edgesprops[ed]._extras._active) for ed in edges]]
     for edge in edges_to_remove
         _rem_edge!(model.graph, edge[1], edge[2])
@@ -435,7 +431,7 @@ $(TYPEDSIGNATURES)
 """
 @inline function update_edges_record!(model::GraphModelDynGrTop)
     if length(model.record.eprops)>0
-        for edge in model.edges
+        for edge in edges(model.graph)
             if model.graph.edgesprops[edge]._extras._active
                 edge_dict = unwrap(model.graph.edgesprops[edge])
                 edge_data = unwrap_data(model.graph.edgesprops[edge])
@@ -453,7 +449,7 @@ $(TYPEDSIGNATURES)
 """
 @inline function update_edges_record!(model::GraphModelFixGrTop)
     if length(model.record.eprops)>0
-        for edge in model.edges
+        for edge in edges(model.graph)
             edge_dict = unwrap(model.graph.edgesprops[edge])
             edge_data = unwrap_data(model.graph.edgesprops[edge])
             for key in model.record.eprops
@@ -493,7 +489,8 @@ $(TYPEDSIGNATURES)
 """
 function do_after_model_step!(model::GraphModelDynAgNum)
     
-    _permanently_remove_inactive_agents!(model)  # permanent removal simply means storing in a different place. We don't do that with inactive nodes and edges.
+    _permanently_remove_inactive_agents!(model)  # permanent removal simply means storing in a different place. We don't do that 
+                                                 # with inactive nodes and edges during a simulation.
 
     commit_add_agents!(model) 
 

@@ -5,12 +5,12 @@ Creates a model with
 - agents : list of agents.
 - graph  : A graph created with Graph.jl or with SimpleABM graph functionality.
 - graphics : if true properties of pos, shape, color, orientation will be assigned to each agent by default, if not already assigned by user.
-- fix_agent_num : Set it to true if agents do not die and new agents are not born during simulation. 
-- static_graph : Set it to false if graph topology needs to be changed during simulation.
-- random_positions : If this property is true, each agent, which doesn't already have a node property defined, will be given a default random node on the graph. 
+- `fix_agent_num` : Set it to true if agents do not die and new agents are not born during simulation. 
+- `static_graph` : Set it to false if graph topology needs to be changed during simulation.
+- `random_positions` : If this property is true, each agent, which doesn't already have a node property defined, will be given a default random node on the graph. 
 - kwargs : Keyword argments used as model parameters. 
 """
-function create_graph_model(agents::Vector{AgentDictGr}, 
+function create_graph_model(agents::Vector{AgentDictGr{Symbol, Any}}, 
     graph::Union{SimplePropGraph,DirPropGraph, SimpleGraph{Int64}, SimpleDiGraph{Int64}}; fix_agents_num=false, 
     static_graph = true, graphics=true, random_positions=false, kwargs...)
     
@@ -45,15 +45,6 @@ function create_graph_model(agents::Vector{AgentDictGr},
     graph.nodesprops[-1] = static_graph
     graph.nodesprops[-2] = fix_agents_num
 
-    if !is_directed(graph)
-        structure = graph.structure
-    else
-        structure = Dict{Int, Vector{Int}}()
-        for node in graph.nodes
-            structure[node] = vcat(graph.in_structure[node], graph.out_structure[node]) 
-        end
-    end
-
     if length(vertices(graph)) == 0
         _add_vertex!(graph, 1)
     end
@@ -61,11 +52,18 @@ function create_graph_model(agents::Vector{AgentDictGr},
     default_node = verts[1]
     num_verts = length(verts)
 
-
+    if !is_directed(graph)
+        structure = graph.structure
+    else
+        structure = Dict{Int, Vector{Int}}()
+        for node in verts
+            structure[node] = vcat(graph.in_structure[node], graph.out_structure[node]) 
+        end
+    end
 
     if !fix_agents_num
-        parameters._extras._agents_added =  Vector{AgentDictGr}()
-        parameters._extras._agents_killed = Vector{AgentDictGr}()
+        parameters._extras._agents_added =  Vector{AgentDictGr{Symbol, Any}}()
+        parameters._extras._agents_killed = Vector{AgentDictGr{Symbol, Any}}()
     end
 
     parameters._extras._random_positions = random_positions
@@ -103,7 +101,7 @@ function create_graph_model(agents::Vector{AgentDictGr},
         end
     end
 
-    for ed in graph.edges
+    for ed in edges(graph)
         if !(ed in keys(graph.edgesprops))
             graph.edgesprops[ed] = PropDataDict()
         end
@@ -212,7 +210,7 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _init_edge_data!(model::GraphModelDynGrTop)
-    for ed in model.graph.edges
+    for ed in edges(model.graph)
         model.graph.edgesprops[ed]._extras._birth_time = 1
         e_dict = unwrap(model.graph.edgesprops[ed])
         e_data = unwrap_data(model.graph.edgesprops[ed])
@@ -226,7 +224,7 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _init_edge_data!(model::GraphModelFixGrTop)
-    for ed in model.graph.edges
+    for ed in edges(model.graph)
         e_dict = unwrap(model.graph.edgesprops[ed])
         e_data = unwrap_data(model.graph.edgesprops[ed])
         for key in model.record.eprops
@@ -282,9 +280,22 @@ $(TYPEDSIGNATURES)
 
 Initiates the simulation with a user defined initialiser function which takes the model as its only argument. 
 Model parameters along with agent and graph properties can be set (or modified if set through the `create_graph_agents` and `create_graph_model` 
-functions) from within a user defined function and then sending it as `initialiser` argument in `init_model!`.
+functions) from within a user defined function and then sending it as `initialiser` argument in `init_model!`. The properties of 
+agents, nodes, edges and the model that are to be recorded during time evolution can be specified through the dictionary argument `props_to_record`. 
+List of agent properties to be recorded are specified with key "agents" and value the list of property names as symbols. If a nonempty list of 
+agents properties is specified, it will replace the `keeps_record_of` list of each agent. Properties of nodes, edges and model are similarly specified
+with keys "nodes", "edges" and "model" respectively.
 """
-function init_model!(model::GraphModel; initialiser::Function = null_init!)
+function init_model!(model::GraphModel; initialiser::Function = null_init!, 
+    props_to_record::Dict{String, Vector{Symbol}} = Dict{String, Vector{Symbol}}("agents"=>Symbol[], "nodes"=>Symbol[], "edges"=>Symbol[], "model"=>Symbol[]) )
+
+    aprops = get(props_to_record, "agents", Symbol[])
+    nprops = get(props_to_record, "nodes", Symbol[])
+    eprops = get(props_to_record, "edges", Symbol[])
+    mprops = get(props_to_record, "model", Symbol[])
+
+    _create_props_lists(aprops, nprops, eprops, mprops, model)
+
     initialiser(model)
 
     getfield(model, :tick)[] = 1 
@@ -302,68 +313,14 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Runs the simulation for `steps` number of model-steps. Agent properties specified in `aprops` will replace each agents `keeps_record_of` list and will be recorded during simulation. 
-The patch properties to be recorded can be specified as list of symbols `pprops`. The model properties to be recorded are specified as `mprops`. 
+Runs the simulation for `steps` number of steps.
 """
-function run_model!(model::GraphModel; steps=1,
-    step_rule::Function=model_null_step!, aprops::Vector{Symbol} = Symbol[], 
-    nprops::Vector{Symbol} = Symbol[], eprops::Vector{Symbol} = Symbol[], mprops::Vector{Symbol} = Symbol[],
-    save_to_folder = _default_folder[])
-
-
-    for sym in aprops
-        if !(sym in model.record.aprops)
-            push!(model.record.aprops, sym)
-        end
-    end
-
-    if length(model.record.aprops)>0
-        for agent in model.agents
-            unwrap(agent)[:keeps_record_of] = copy(model.record.aprops)
-        end
-    end
-
-    for sym in mprops
-        if !(sym in model.record.mprops)
-            push!(model.record.mprops, sym)
-        end
-    end
- 
-
-    for sym in nprops
-        if !(sym in model.record.nprops)
-            push!(model.record.nprops, sym)
-        end
-    end
-
-    for sym in eprops
-        if !(sym in model.record.eprops)
-            push!(model.record.eprops, sym)
-        end
-    end
-
-
-    init_model!(model)
+function run_model!(model::GraphModel; steps=1, step_rule::Function=model_null_step!)
 
     _run_sim!(model, steps, step_rule, do_after_model_step!)
 
-    filename = "rungr"*string(_jld2_count[])
-
-    _save_object_to_disk(model, "modelgr", filename = joinpath(save_to_folder, filename))
-
 end
 
-
-"""
-$(TYPEDSIGNATURES)
-"""
-function run_without_init!(model::GraphModel; steps=1, step_rule::Function=model_null_step!)
-
-
-
-    _run_sim!(model, steps, step_rule, do_after_model_step!)
-    
-end
 
 """
 $(TYPEDSIGNATURES)
@@ -383,6 +340,7 @@ function save_sim_luxor(model::GraphModel, frames::Int=model.tick, scl::Number=1
         
         function backdrop_sg(scene, frame)
             Luxor.background("black")
+            _draw_title(scene, frame)
             for vert in verts
                 vert_pos = model.graph.nodesprops[vert]._extras._pos
                 out_structure = out_links(model.graph, vert)
@@ -392,6 +350,7 @@ function save_sim_luxor(model::GraphModel, frames::Int=model.tick, scl::Number=1
         end
     
         function backdrop_g(scene, frame)
+            _draw_title(scene, frame)
             Luxor.background("black")
         end
         
@@ -429,17 +388,21 @@ function save_sim_makie(model::GraphModel, frames::Int=model.tick, scl::Number=1
 
         #[[Point2f(5*rand(),5*rand()) for i in 1:20] for j in 1:n]
         points = @lift(_get_agents_pos(model,$time))
-        markers = @lift(_get_propvals(model,$time, :shape))
+        markers = @lift(_to_makie_shapes.(_get_propvals(model,$time, :shape)))
         colors = @lift(_get_propvals(model, $time, :color))
         rotations = @lift(_get_propvals(model, $time, :orientation))
         sizes = @lift(_get_propvals(model, $time, :size))
         verts_pos = @lift(_get_graph_layout_info(model, $time)[1])
         verts_dir = @lift(_get_graph_layout_info(model, $time)[2]) 
         verts_color = @lift(_get_graph_layout_info(model, $time)[3])
+        title = @lift((t->"t = $t")($time))
+
+        fig = Figure(resolution = (gparams.height, gparams.width))
+        ax = Axis(fig[1, 1])
+        ax.title = title
 
 
-
-        fig = _create_makie_frame(model, points, markers, colors, rotations, sizes, verts_pos, verts_dir, verts_color, show_space)
+        _create_makie_frame(ax, model, points, markers, colors, rotations, sizes, verts_pos, verts_dir, verts_color, show_space)
 
         framerate = gparams.fps
         timestamps = 1:fr
@@ -503,16 +466,19 @@ function animate_sim(model::GraphModel, frames::Int=model.tick; plots::Dict{Stri
         finish()
         drawing
     end
-
+    fig = Figure(resolution = (gparams.height, gparams.width))
+    ax = Axis(fig[1, 1])
+    ax.title = " "
     function draw_frame_makie(t, scl)
+        empty!(ax)
         points = _get_agents_pos(model,t)
-        markers = _get_propvals(model,t, :shape)
+        markers = _to_makie_shapes.(_get_propvals(model,t, :shape))
         colors = _get_propvals(model, t, :color)
         rotations = _get_propvals(model, t, :orientation)
         sizes = _get_propvals(model, t, :size, scl)
         verts_pos, verts_dir, verts_color   = _get_graph_layout_info(model, t)
 
-        fig = _create_makie_frame(model, points, markers, colors, rotations, sizes, verts_pos, verts_dir, verts_color, show_graph)
+        _create_makie_frame(ax, model, points, markers, colors, rotations, sizes, verts_pos, verts_dir, verts_color, show_graph)
         return fig
     end
 
@@ -529,7 +495,7 @@ function animate_sim(model::GraphModel, frames::Int=model.tick; plots::Dict{Stri
         push!(labels, lbl)
         push!(conditions, cond)
     end
-    df = get_num_agents(model, conditions..., labels= labels)
+    df = get_agents_avg_props(model, conditions..., labels= labels)
 
     _interactive_app(model, fr,_save_sim, draw_frame, df)
 end
@@ -540,66 +506,36 @@ $(TYPEDSIGNATURES)
 
 Creates an interactive app for the model.
 """
-function create_interactive_app(model::GraphModel; initialiser::Function = null_init!, step_rule::Function=model_null_step!,
+function create_interactive_app(model::GraphModel; initialiser::Function = null_init!, 
+    props_to_record::Dict{String, Vector{Symbol}} = Dict{String, Vector{Symbol}}("agents"=>Symbol[], "nodes"=>Symbol[], "edges"=>Symbol[], "model"=>Symbol[]),
+    step_rule::Function=model_null_step!,
     agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
     model_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
     plots::Dict{String, Function} = Dict{String, Function}(),
     path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"),
     frames=200, show_graph=true, backend = :luxor) 
 
+    user_response = loss_of_data_prompt()
+
+    if user_response
+        return
+    end
+
     model.parameters._extras._show_space = show_graph
-    
-    for agent in model.agents
-        props = Symbol[]
-        for key in keys(unwrap(agent))
-            if (key != :_extras)&&(key != :keeps_record_of)
-                push!(props, key)
-            end
-        end
-        agent.keeps_record_of = props
-    end
-    
-    empty!(model.record.mprops)
-
-    for key in keys(unwrap(model.parameters))
-        if key!=:_extras 
-            push!(model.record.mprops, key)
-        end
-    end
-
-    empty!(model.record.nprops)
-
-    for key in keys(unwrap(model.graph.nodesprops[1]))
-        if key!=:_extras 
-            push!(model.record.nprops, key)
-        end
-    end
-
-    empty!(model.record.eprops)
-
-    if length(model.graph.edges)>0
-        edge = model.graph.edges[1]
-        for key in keys(unwrap(model.graph.edgesprops[edge]))
-            if key!=:_extras 
-                push!(model.record.eprops, key)
-            end
-        end
-    end
-
-    init_model!(model, initialiser=initialiser)
-    
-
 
     #copy_agents = deepcopy(model.agents)
-
-
-    function _init_interactive_model()
-        init_model!(model, initialiser=initialiser)
-    end
-
     function _run_interactive_model(t)
-        run_without_init!(model, steps=t, step_rule=step_rule)
+        run_model!(model, steps=t, step_rule=step_rule)
     end
+
+
+    function _init_interactive_model(ufun::Function = ()-> nothing)
+        init_model!(model, initialiser=initialiser, props_to_record = props_to_record)
+        ufun()
+        _run_interactive_model(frames)
+    end
+
+    _init_interactive_model()
 
     function _save_sim(scl)
         save_sim(model, frames, scl, path= path, show_space=show_graph, backend = backend)
@@ -608,9 +544,6 @@ function create_interactive_app(model::GraphModel; initialiser::Function = null_
     #_run_interactive_model()
 
     function _draw_interactive_frame_luxor(t, scl)
-        if t>model.tick
-            _run_interactive_model(t-model.tick)
-        end
         drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
         if model.graphics
             verts = vertices(model.graph)
@@ -630,19 +563,20 @@ function create_interactive_app(model::GraphModel; initialiser::Function = null_
         finish()
         drawing
     end
+    fig = Figure(resolution = (gparams.height, gparams.width))
+    ax = Axis(fig[1, 1])
+    ax.title = " "
 
     function _draw_interactive_frame_makie(t, scl)
-        if t>model.tick
-            _run_interactive_model(t-model.tick)
-        end
+        empty!(ax)
         points = _get_agents_pos(model,t)
-        markers = _get_propvals(model,t, :shape)
+        markers = _to_makie_shapes.(_get_propvals(model,t, :shape))
         colors = _get_propvals(model, t, :color)
         rotations = _get_propvals(model, t, :orientation)
         sizes = _get_propvals(model, t, :size, scl)
         verts_pos, verts_dir, verts_color  = _get_graph_layout_info(model, t)
 
-        fig = _create_makie_frame(model, points, markers, colors, rotations, sizes, verts_pos, verts_dir, verts_color, show_graph)
+        _create_makie_frame(ax, model, points, markers, colors, rotations, sizes, verts_pos, verts_dir, verts_color, show_graph)
         return fig
     end
 

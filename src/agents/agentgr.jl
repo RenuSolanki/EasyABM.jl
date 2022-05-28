@@ -4,12 +4,6 @@ struct AgentDictGr{K, V} <: AbstractPropDict{K, V}
     AgentDictGr() = new{Symbol, Any}(Dict{Symbol, Any}(:_extras => PropDict(Dict{Symbol,Any}(:_active=>true))), Dict{Symbol, Any}())
     function AgentDictGr(d::Dict{Symbol, Any})
         data = Dict{Symbol, Any}()
-
-        if !haskey(d,:_extras)
-            d[:_extras]=PropDict()
-            d[:_extras]._active = true
-        end
-
         for (key,value) in d
             if !(key == :_extras) && !(key == :keeps_record_of)
                 data[key]=typeof(value)[]
@@ -148,7 +142,7 @@ $(TYPEDSIGNATURES)
 Creates a list of n graph agents with properties specified as keyword arguments.
 """
 function create_graph_agents(n::Int; kwargs...)
-list = Vector{AgentDictGr}()
+list = Vector{AgentDictGr{Symbol, Any}}()
 for i in 1:n
     agent = create_graph_agent(;kwargs...)
     push!(list, agent)
@@ -162,9 +156,13 @@ $(TYPEDSIGNATURES)
 Returns a list of n graph agents all having same properties as `agent`.  
 """
 function create_graph_agents(n::Int, agent::AgentDictGr)
-list = Vector{AgentDictGr}()
+list = Vector{AgentDictGr{Symbol, Any}}()
+ag = deepcopy(agent)
+if haskey(ag._extras, :_id)
+    delete!(unwrap(ag._extras), :_id)
+end
 for i in 1:n
-    agent_new = deepcopy(agent)
+    agent_new = deepcopy(ag)
     push!(list, agent_new)
 end
 return list

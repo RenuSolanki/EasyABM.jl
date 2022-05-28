@@ -1,3 +1,61 @@
+"""
+$(TYPEDSIGNATURES)
+"""
+function calculate_direction(vel::GeometryBasics.Vec2{Float64}) #for 2d and graph
+    vx, vy = vel
+    if (vx ≈ 0.0)
+        return 0.0
+    end
+    if (vx > 0)
+        return 1.5*pi+atan(vy/vx)
+    end
+    if (vx<0) 
+        return 0.5*pi+atan(vy/vx)
+    end 
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function calculate_direction(vel::GeometryBasics.Vec3{Float64})
+    vx, vy, vz = vel
+    ln = sqrt(vx^2+vy^2+vz^2)
+    if (ln ≈ 0.0)
+        return 0.0
+    end
+    orientation = vel/ln
+    return orientation
+end
+
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Saves the model on disk as jld2 file. 
+"""
+function save_model(model; model_name::String = _default_modelname, save_as = _default_filename, folder = _default_folder[])
+    _save_object_to_disk(model, name = model_name, save_as = save_as, folder = folder)
+end 
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Gets the model that was saved before as jld2. 
+"""
+function open_saved_model(; model_name = _default_modelname, path = joinpath(_default_folder[], _default_filename))
+    try
+        f = jldopen(path, "r+")
+        model = f[model_name]
+        close(f)
+        return model
+    catch e
+        print("Error opening file: ", e)
+    end
+end
+
 
 @inline function _default_true(agent::AbstractPropDict)
     return true
@@ -56,7 +114,7 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function get_edges(graph::AbstractPropGraph{MortalType}, condition::Function = _default_true)
-    edges = graph.edges
+    edges = edges(graph)
     return edges[[graph.edgesprops[ed]._extras._active && condition(graph.edgesprops[ed]) for ed in edges]]
 end
 
@@ -65,7 +123,7 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function get_edges(graph::AbstractPropGraph{StaticType}, condition::Function = _default_true)
-    edges = graph.edges
+    edges = edges(graph)
     return edges[[condition(graph.edgesprops[ed]) for ed in edges]]
 end
 
@@ -105,7 +163,7 @@ $(TYPEDSIGNATURES)
 Returns true if a patch is occupied.
 """
 function is_occupied(patch, model::AbstractGridModel)
-    return length(model.patches[patch]._extras._agents) > 0 
+    return length(model.patches[patch...]._extras._agents) > 0 
 end
 
 
@@ -219,7 +277,7 @@ $(TYPEDSIGNATURES)
 Returns list of agents at a given patch.
 """
 function agents_at(patch, model::AbstractGridModel)
-    lst = model.patches[patch]._extras._agents
+    lst = model.patches[patch...]._extras._agents
     agent_lst = eltype(model.agents)[]
     for l in lst
         push!(agent_lst, agent_with_id(l, model))
@@ -274,7 +332,7 @@ $(TYPEDSIGNATURES)
 Returns value of given property of a patch. 
 """
 function get_patchprop(key, patch, model::AbstractGridModel)
-    return unwrap(model.patches[patch])[key]
+    return unwrap(model.patches[patch...])[key]
 end
 
 
@@ -285,8 +343,8 @@ Sets properties of the patch given as keyword arguments.
 """
 function set_patchprops!(patch, model::AbstractGridModel; kwargs...)
     dict = Dict{Symbol, Any}(kwargs...)
-    patch_dict = unwrap(model.patches[patch])
-    patch_data = unwrap_data(model.patches[patch])
+    patch_dict = unwrap(model.patches[patch...])
+    patch_data = unwrap_data(model.patches[patch...])
     for (key, val) in dict
         patch_dict[key] = val
         if !haskey(patch_data, key)

@@ -9,9 +9,104 @@ $(TYPEDSIGNATURES)
     return sum
 end
 
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function norm(a::GeometryBasics.Vec)
+    return sqrt(dotproduct(a,a))
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function distance(a::GeometryBasics.Vec, b::GeometryBasics.Vec)
+    return norm(a-b)
+end
+
 Base.:+(x::GeometryBasics.Vec{3,Float64},y::NTuple{3,Union{Float64,Int}} ) = GeometryBasics.Vec(x[1]+y[1], x[2]+y[2], x[3]+y[3])
 Base.:+(x::GeometryBasics.Vec{2,Float64},y::NTuple{2,Union{Float64,Int}} ) = GeometryBasics.Vec(x[1]+y[1], x[2]+y[2])
+Base.:-(x::GeometryBasics.Vec{3,Float64},y::NTuple{3,Union{Float64,Int}} ) = GeometryBasics.Vec(x[1]-y[1], x[2]-y[2], x[3]-y[3])
+Base.:-(x::GeometryBasics.Vec{2,Float64},y::NTuple{2,Union{Float64,Int}} ) = GeometryBasics.Vec(x[1]-y[1], x[2]-y[2])
+
+Base.:+(x::NTuple{3,Union{Float64,Int}},y::GeometryBasics.Vec{3,Float64}) = GeometryBasics.Vec(x[1]+y[1], x[2]+y[2], x[3]+y[3])
+Base.:+(x::NTuple{2,Union{Float64,Int}},y::GeometryBasics.Vec{2,Float64}) = GeometryBasics.Vec(x[1]+y[1], x[2]+y[2])
+Base.:-(x::NTuple{3,Union{Float64,Int}},y::GeometryBasics.Vec{3,Float64}) = GeometryBasics.Vec(x[1]-y[1], x[2]-y[2], x[3]-y[3])
+Base.:-(x::NTuple{2,Union{Float64,Int}},y::GeometryBasics.Vec{2,Float64}) = GeometryBasics.Vec(x[1]-y[1], x[2]-y[2])
 # Base.:+(x::MeshCat.Point,y::MeshCat.Point ) = MeshCat.Point(x[1]+y[1], x[2]+y[2], x[3]+y[3])
+
+
+@inline function _create_props_lists(aprops::Vector{Symbol}, pprops::Vector{Symbol}, mprops::Vector{Symbol}, model::AbstractGridModel)
+    for sym in aprops
+        if !(sym in model.record.aprops)
+            push!(model.record.aprops, sym)
+        end
+    end
+
+    if length(model.record.aprops)>0
+        for agent in model.agents
+            unwrap(agent)[:keeps_record_of] = copy(model.record.aprops)
+        end
+    end
+
+    for sym in pprops
+        if !(sym in model.record.pprops)
+            push!(model.record.pprops, sym)
+        end
+    end
+    for sym in mprops
+        if !(sym in model.record.mprops)
+            push!(model.record.mprops, sym)
+        end
+    end
+end
+
+
+
+@inline function _create_props_lists(aprops::Vector{Symbol}, nprops::Vector{Symbol}, eprops::Vector{Symbol}, mprops::Vector{Symbol}, model::AbstractGraphModel)
+
+    for sym in aprops
+        if !(sym in model.record.aprops)
+            push!(model.record.aprops, sym)
+        end
+    end
+
+    if length(model.record.aprops)>0
+        for agent in model.agents
+            unwrap(agent)[:keeps_record_of] = copy(model.record.aprops)
+        end
+    end
+
+    for sym in mprops
+        if !(sym in model.record.mprops)
+            push!(model.record.mprops, sym)
+        end
+    end
+ 
+
+    for sym in nprops
+        if !(sym in model.record.nprops)
+            push!(model.record.nprops, sym)
+        end
+    end
+
+    for sym in eprops
+        if !(sym in model.record.eprops)
+            push!(model.record.eprops, sym)
+        end
+    end
+
+end
+
+
+@inline function _get_all_agents(model::Union{AbstractGridModel{MortalType}, AbstractGraphModel{T, MortalType} }) where T<:MType
+    return vcat(model.agents, model.parameters._extras._agents_killed)
+
+end
+
+@inline function _get_all_agents(model::Union{AbstractGridModel{StaticType}, AbstractGraphModel{T, StaticType} }) where T<:MType
+    return model.agents
+end
 
 """
 $(TYPEDSIGNATURES)
@@ -172,7 +267,7 @@ function _init_agents!(model::AbstractGridModel{MortalType})
     _permanently_remove_inactive_agents!(model)
     commit_add_agents!(model)
     empty!(model.parameters._extras._agents_killed)
-    getfield(model,:max_id)[] = max([ag._extras._id for ag in model.agents]...)
+    getfield(model,:max_id)[] = length(model.agents)> 0 ? max([ag._extras._id for ag in model.agents]...) : 0
     for agent in model.agents
         agent._extras._birth_time = 1
         _recalculate_position!(agent, model.size, model.periodic)
@@ -214,7 +309,7 @@ function kill_agent!(agent::AbstractPropDict, model::AbstractGridModel{MortalTyp
     if agent._extras._active
         if haskey(agent, :pos) && (agent._extras._last_grid_loc!=Inf)
             gloc = agent._extras._last_grid_loc
-            deleteat!(model.patches[gloc]._extras._agents, findfirst(m->m==agent._extras._id, model.patches[gloc]._extras._agents))
+            deleteat!(model.patches[gloc...]._extras._agents, findfirst(m->m==agent._extras._id, model.patches[gloc...]._extras._agents))
         end
         _kill_agent!(agent, model.parameters._extras._agents_killed, model.tick)
     end
@@ -250,6 +345,18 @@ $(TYPEDSIGNATURES)
         step_rule(model)
         do_after(model)     
     end
+end
+
+
+@inline function loss_of_data_prompt()
+    println("Any data collected during previous model run will be lost.")
+    print("Want to continue ? y/n :  ")
+
+    flush(stdout)
+
+    u_res = readline()
+
+    return !(u_res in ["y", "Y"])
 end
 
 

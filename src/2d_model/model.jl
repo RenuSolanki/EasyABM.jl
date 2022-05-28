@@ -1,7 +1,7 @@
 
 struct GridModel2D{T} <:AbstractGridModel{T}
     size::NTuple{2, Int}
-    patches::Dict{Tuple{Int, Int}, Union{PropDataDict{Symbol, Any},Bool,Int}}
+    patches:: Matrix{PropDataDict{Symbol, Any}}  #Dict{Tuple{Int, Int}, Union{PropDataDict{Symbol, Any},Bool,Int}}
     agents::Vector{AgentDict2D}
     max_id::Base.RefValue{Int64}
     periodic::Bool

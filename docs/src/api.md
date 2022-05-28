@@ -1,3 +1,4 @@
+
 # API
 EasyABM provides following functions for agent based simulations. 
 
@@ -29,7 +30,7 @@ animate_sim
 create_interactive_app
 ```
 
-## Functions for accessing data.
+## Functions for accessing, saving and retrieving data.
 
 ```@docs
 get_agent_data 
@@ -37,10 +38,17 @@ get_patch_data
 get_node_data
 get_edge_data 
 get_model_data 
+latest_propvals
 get_nums_agents 
 get_nums_patches
 get_nums_nodes 
 get_nums_edges
+get_agents_avg_props
+get_patches_avg_props
+get_nodes_avg_props
+get_edges_avg_props
+save_model
+open_saved_model
 ```
 
 ## Functions for creating and modifying a graph
@@ -100,4 +108,19 @@ get_patches
 num_patches
 random_empty_node
 random_empty_patch
+```
+
+## Misc. utility functions
+
+```@docs
+dotproduct
+norm
+distance
+calculate_direction
+```
+
+
+## Index
+
+```@index
 ```

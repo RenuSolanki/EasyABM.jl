@@ -1,7 +1,7 @@
 
 struct GridModel3D{T} <:AbstractGridModel{T}
     size::NTuple{3, Int}
-    patches::Dict{Tuple{Int, Int, Int}, Union{PropDataDict{Symbol, Any},Bool,Int}}
+    patches:: Array{PropDataDict{Symbol, Any},3}  
     agents::Vector{AgentDict3D}
     max_id::Base.RefValue{Int64}
     periodic::Bool

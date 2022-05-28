@@ -226,7 +226,7 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _agents_at_nodes(nbr_nodes, model::GraphModel)
-    neighbors_list = Vector{AgentDictGr}()
+    neighbors_list = Vector{AgentDictGr{Symbol, Any}}()
     for node in nbr_nodes
         ids = model.graph.nodesprops[node]._extras._agents # all these are active for inactive ones are removed
         for id in ids
@@ -242,7 +242,7 @@ end
     ag_node = agent.node
     agents_ids = deepcopy(model.graph.nodesprops[ag_node]._extras._agents)
     deleteat!(agents_ids , findfirst(m->m==agent._extras._id, agents_ids ))
-    agents_ag_node = Vector{AgentDictGr}()
+    agents_ag_node = Vector{AgentDictGr{Symbol, Any}}()
     for id in agents_ids
         ag = agent_with_id(id, model)
         push!(agents_ag_node, ag)
@@ -261,7 +261,7 @@ Returns agents on neighboring nodes of given agent.
 """
 function neighbors(agent::AgentDictGr, model::GraphModelDynAgNum)
     if !(agent._extras._active)
-        return Vector{AgentDictGr}()
+        return Vector{AgentDictGr{Symbol, Any}}()
     end
     nbr_nodes = neighbor_nodes(agent, model)
     neighbors_list = _agents_at_nodes(nbr_nodes, model)
@@ -298,7 +298,7 @@ Returns agents on neighboring outgoing nodes of given agent.
 """
 function out_neighbors(agent::AgentDictGr, model::GraphModelDynAgNum)
     if !(agent._extras._active)
-        return Vector{AgentDictGr}()
+        return Vector{AgentDictGr{Symbol, Any}}()
     end
     nbr_nodes = out_neighbor_nodes(agent, model)
     neighbors_list = _agents_at_nodes(nbr_nodes, model)
@@ -335,7 +335,7 @@ Returns agents on neighboring incoming nodes of given agent.
 """
 function in_neighbors(agent::AgentDictGr, model::GraphModelDynAgNum)
     if !(agent._extras._active)
-        return Vector{AgentDictGr}()
+        return Vector{AgentDictGr{Symbol, Any}}()
     end
     nbr_nodes = in_neighbor_nodes(agent, model)
     neighbors_list = _agents_at_nodes(nbr_nodes, model)

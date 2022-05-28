@@ -7,10 +7,9 @@
 
 struct SimplePropGraph{T} <: AbstractPropGraph{T}
     structure::Dict{Int, Vector{Int}}
-    edges::Vector{Tuple{Int, Int}}
     nodesprops::Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}
     edgesprops::Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}
-    SimplePropGraph(w::Type{T}) where T<:MType = new{w}(Dict{Int, Vector{Int}}(), Vector{Tuple{Int, Int}}(), 
+    SimplePropGraph(w::Type{T}) where T<:MType = new{w}(Dict{Int, Vector{Int}}(), 
     Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
     function SimplePropGraph(structure::Dict{Int, Vector{Int}}, w::Type{T}) where T<:MType
         nodes = keys(structure)
@@ -20,15 +19,7 @@ struct SimplePropGraph{T} <: AbstractPropGraph{T}
                 return nothing
             end
         end
-        edges = Vector{Tuple{Int,Int}}()
-        for i in nodes
-            for j in structure[i]
-                if i<j
-                    push!(edges, (i,j))
-                end
-            end
-        end
-        new{w}(structure, edges, Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
+        new{w}(structure, Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
     end
 
     function SimplePropGraph(n::Int, w::Type{T}) where T<:MType
@@ -40,12 +31,30 @@ struct SimplePropGraph{T} <: AbstractPropGraph{T}
     end
 end
 
+vertices(g::SimplePropGraph) = collect(keys(g.structure))
+
+function edges(g::SimplePropGraph)
+    _edges = Vector{Tuple{Int, Int}}()
+    for i in vertices(g)
+        for j in g.structure[i]
+            if (i<j)
+                push!(_edges, (i,j))
+            end
+        end
+    end
+    return _edges
+end
+
+nv(g::SimplePropGraph) = length(keys(g.structure))
+
+ne(g::SimplePropGraph) = length(edges(g))
+
 
 function Base.show(io::IO, ::MIME"text/plain", g::SimplePropGraph) # works with REPL
     println(io, "SimplePropGraph")
-    println(io, "vertices: ", keys(g.structure) )
+    println(io, "vertices: ", vertices(g) )
     println(io, "edges: ")
-    for x in g.edges
+    for x in edges(g)
         println(io, x[1], "<==>", x[2])
     end
 end
@@ -54,7 +63,7 @@ function Base.show(io::IO, g::SimplePropGraph) # works with print
     println(io, "SimplePropGraph")
     println(io, "vertices: ", keys(g.structure) )
     println(io, "edges: ")
-    for x in g.edges
+    for x in edges(g)
         println(io, x[1], "<==>", x[2])
     end
 end
@@ -70,13 +79,6 @@ function out_links(g::SimplePropGraph, i)
     return out_structure
 end
 
-vertices(g::SimplePropGraph) = collect(keys(g.structure))
-
-edges(g::SimplePropGraph) = g.edges
-
-nv(g::SimplePropGraph) = length(keys(g.structure))
-
-ne(g::SimplePropGraph) = length(g.edges)
 
 @inline function has_edge(g::SimplePropGraph, i, j)
     if (i in vertices(g)) && (j in g.structure[i])
@@ -103,7 +105,6 @@ function _add_edge!(g::SimplePropGraph, i::Int, j::Int)
         if !(j in g.structure[i])
             push!(g.structure[i],j)
             push!(g.structure[j],i)
-            push!(g.edges, (i,j))
         end
     end
 end
@@ -115,7 +116,6 @@ function _add_edge_f!(g::SimplePropGraph, i::Int, j::Int) #f = checks (i in node
     if !(j in g.structure[i])
         push!(g.structure[i],j)
         push!(g.structure[j],i)
-        push!(g.edges, (i,j))
     end
 end
 
@@ -129,7 +129,6 @@ function _add_edge_with_props!(g::SimplePropGraph, i::Int, j::Int; kwargs...)
         if !(j in g.structure[i])
             push!(g.structure[i],j)
             push!(g.structure[j],i)
-            push!(g.edges, (i,j))
             g.edgesprops[(i,j)]= PropDataDict(dict)
         end
     end
@@ -144,7 +143,6 @@ function _add_edge_with_props_f!(g::SimplePropGraph, i::Int, j::Int; kwargs...)#
     if !(j in g.structure[i])
         push!(g.structure[i],j)
         push!(g.structure[j],i)
-        push!(g.edges, (i,j))
         g.edgesprops[(i,j)]= PropDataDict(dict) 
     end
     
@@ -181,7 +179,6 @@ function _rem_vertex!(g::SimplePropGraph, i::Int)
     if i in nodes
         for j in g.structure[i]
             x, y = j>i ? (i,j) : (j,i)
-            deleteat!(g.edges, findfirst(m->m==(x,y),g.edges))
             if (x,y) in keys(g.edgesprops)
                 delete!(g.edgesprops, (x,y))
             end
@@ -197,7 +194,6 @@ end
 function _rem_vertex_f!(g::SimplePropGraph, i::Int) #f = check (i in nodes) done before calling function
     for j in g.structure[i]
         x, y = j>i ? (i,j) : (j,i)
-        deleteat!(g.edges, findfirst(m->m==(x,y),g.edges))
         if (x,y) in keys(g.edgesprops)
             delete!(g.edgesprops, (x,y))
         end
@@ -214,7 +210,8 @@ function _rem_edge!(g::SimplePropGraph, i::Int, j::Int)
         i,j = j,i
     end
     if (j in keys(g.structure))&&(i in g.structure[j])
-        deleteat!(g.edges, findfirst(x->x==(i,j),g.edges))
+        deleteat!(g.structure[j], findfirst(x->x==i,g.strucrure[j]))
+        deleteat!(g.structure[i], findfirst(x->x==j,g.strucrure[i]))
         if (i,j) in keys(g.edgesprops)
             delete!(g.edgesprops, (i,j))
         end
@@ -226,7 +223,8 @@ function _rem_edge_f!(g::SimplePropGraph, i::Int, j::Int) #f = checks Set([i, j]
     if i>j
         i,j = j,i
     end
-    deleteat!(g.edges, findfirst(x->x==(i,j),g.edges))
+    deleteat!(g.structure[j], findfirst(x->x==i,g.strucrure[j]))
+    deleteat!(g.structure[i], findfirst(x->x==j,g.strucrure[i]))
     if (i,j) in keys(g.edgesprops)
         delete!(g.edgesprops, (i,j))
     end
@@ -432,13 +430,11 @@ end
 ####################################
 
 struct DirPropGraph{T}<: AbstractPropGraph{T}
-    nodes::Vector{Int}
     in_structure::Dict{Int, Vector{Int}}
     out_structure::Dict{Int, Vector{Int}}
-    edges::Vector{NTuple{2, Int64}}
     nodesprops::Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}
     edgesprops::Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}
-    DirPropGraph(w::Type{T}) where T<:MType = new{w}(Vector{Int}(),Dict{Int, Vector{Int}}(), Dict{Int, Vector{Int}}(), Vector{NTuple{2, Int64}}(), Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}())
+    DirPropGraph(w::Type{T}) where T<:MType = new{w}(Dict{Int, Vector{Int}}(), Dict{Int, Vector{Int}}(), Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}())
     function DirPropGraph(in_structure::Dict{Int, Vector{Int}},w::Type{T}) where T<:MType
         nodes = vcat(collect(keys(in_structure)), collect(Iterators.flatten(values(in_structure))))
         sort!(nodes)
@@ -452,13 +448,6 @@ struct DirPropGraph{T}<: AbstractPropGraph{T}
                 in_structure[i]=Int[]
             end
         end
-        eds = Vector{NTuple{2, Int64}}()
-
-        for i in nodes
-            for j in in_structure[i]
-                push!(eds, (j, i))
-            end
-        end
         out_structure = Dict{Int, Vector{Int}}()
         for i in nodes
             out_structure[i] = Int[]
@@ -469,7 +458,7 @@ struct DirPropGraph{T}<: AbstractPropGraph{T}
                 end
             end
         end
-        new{w}(nodes, in_structure, out_structure, eds, Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}())
+        new{w}(in_structure, out_structure, Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}())
     end
 
     function DirPropGraph(n::Int,w::Type{T}) where T <: MType
@@ -479,40 +468,49 @@ struct DirPropGraph{T}<: AbstractPropGraph{T}
             dc1[i] = Int[]
             dc2[i] = Int[]
         end
-        new{w}(collect(1:n), dc1, dc2, Vector{NTuple{2, Int64}}(), Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{Tuple{Int,Int}, PropDataDict{Symbol, Any}}())
+        new{w}(dc1, dc2, Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{Tuple{Int,Int}, PropDataDict{Symbol, Any}}())
     end
 end
 
 
+out_links(g::DirPropGraph, i) = g.out_structure[i]
+vertices(g::DirPropGraph) = collect(keys(g.in_structure))
+
+function edges(g::DirPropGraph)
+    eds = Vector{Tuple{Int, Int}}()
+    for i in vertices(g)
+        for j in in_structure[i]
+            push!(eds, (j, i))
+        end
+    end 
+    return eds 
+end
+
+nv(g::DirPropGraph) = length(vertices(g))
+
+ne(g::DirPropGraph) = length(edges(g))
+
+
 function Base.show(io::IO, ::MIME"text/plain", g::DirPropGraph) # works with REPL
     println(io, "DirPropGraph")
-    println(io, "vertices: ", g.nodes )
+    println(io, "vertices: ", vertices(g))
     println(io, "edges: ")
-    for x in g.edges
+    for x in edges(g)
         println(io, x[1], "==>", x[2])
     end
 end
 
 function Base.show(io::IO, g::DirPropGraph) # works with print
     println(io, "DirPropGraph")
-    println(io, "vertices: ", g.nodes )
+    println(io, "vertices: ", vertices(g))
     println(io, "edges: ")
-    for x in g.edges
+    for x in edges(g)
         println(io, x[1], "==>", x[2])
     end
 end
 
-out_links(g::DirPropGraph, i) = g.out_structure[i]
-vertices(g::DirPropGraph) = sort!(g.nodes)
-
-edges(g::DirPropGraph) = g.edges
-
-nv(g::DirPropGraph) = length(g.nodes)
-
-ne(g::DirPropGraph) = length(g.edges)
-
 @inline function has_edge(g::DirPropGraph, i, j)
-    if (i in g.nodes) && (j in g.out_structure[i])
+    if (i in vertices(g)) && (j in g.out_structure[i])
         return true
     end
     return false
@@ -520,19 +518,18 @@ end
 
 @inline function has_edge(g::DirPropGraph, edge)
     i,j = edge
-    if (i in g.nodes) && (j in g.out_structure[i])
+    if (i in vertices(g)) && (j in g.out_structure[i])
         return true
     end
     return false
 end
 
 function _add_edge!(g::DirPropGraph, i::Int, j::Int)
-    nodes = g.nodes
+    nodes = vertices(g)
     if (i in nodes) && (j in nodes) && (i!=j)
         if !(j in g.out_structure[i])
             push!(g.out_structure[i],j)
             push!(g.in_structure[j], i)
-            push!(g.edges, (i,j))
         end
     end
 end
@@ -541,18 +538,16 @@ function _add_edge_f!(g::DirPropGraph, i::Int, j::Int) #f = checks (i in nodes) 
     if !(j in g.out_structure[i])
         push!(g.out_structure[i],j)
         push!(g.in_structure[j], i)
-        push!(g.edges, (i,j))
     end
 end
 
 function _add_edge_with_props!(g::DirPropGraph, i::Int, j::Int; kwargs...)
     dict = Dict{Symbol, Any}(kwargs)
-    nodes = g.nodes
+    nodes = vertices(g)
     if (i in nodes) && (j in nodes) && (i!=j)
         if !(j in g.out_structure[i])
             push!(g.out_structure[i],j)
             push!(g.in_structure[j], i)
-            push!(g.edges, (i,j))
             g.edgesprops[(i,j)] = PropDataDict(dict)
         end
     end
@@ -563,7 +558,6 @@ function _add_edge_with_props_f!(g::DirPropGraph, i::Int, j::Int; kwargs...) #f=
     if !(j in g.out_structure[i])
         push!(g.out_structure[i],j)
         push!(g.in_structure[j], i)
-        push!(g.edges, (i,j))
         g.edgesprops[(i,j)] = PropDataDict(dict)
     end
 
@@ -572,25 +566,22 @@ end
 
 
 function _add_vertex!(g::DirPropGraph, i::Int)
-    nodes = g.nodes
+    nodes = vertices(g)
     if !(i in nodes)
-        push!(nodes, i)
         g.in_structure[i] = Int[]
         g.out_structure[i] = Int[]
     end
 end
 
 function _add_vertex_f!(g::DirPropGraph, i::Int) #f = checks !(i in nodes) done before
-    push!(g.nodes, i)
     g.in_structure[i] = Int[]
     g.out_structure[i] = Int[]
 end
 
 function _add_vertex_with_props!(g::DirPropGraph, i::Int; kwargs...)
     dict = Dict{Symbol, Any}(kwargs)
-    nodes = g.nodes
+    nodes = vertices(g)
     if !(i in nodes)
-        push!(nodes, i)
         g.in_structure[i] = Int[]
         g.out_structure[i] = Int[]
         g.nodesprops[i] = PropDataDict(dict)
@@ -599,23 +590,20 @@ end
 
 function _add_vertex_with_props_f!(g::DirPropGraph, i::Int; kwargs...) # f = checks !(i in nodes) done before calling function
     dict = Dict{Symbol, Any}(kwargs)
-    push!(g.nodes, i)
     g.in_structure[i] = Int[]
     g.out_structure[i] = Int[]
     g.nodesprops[i] = PropDataDict(dict)
 end
 
 function _rem_vertex!(g::DirPropGraph, i::Int)
-    nodes = g.nodes
+    nodes = vertices(g)
     if i in nodes
         for j in g.out_structure[i]
-            deleteat!(g.edges, findfirst(x->x==(i,j), g.edges))
             if (i,j) in keys(g.edgesprops)
                 delete!(g.edgesprops, (i,j))
             end
         end
         for j in g.in_structure[i]
-            deleteat!(g.edges, findfirst(x->x==(j,i), g.edges))
             if (j,i) in keys(g.edgesprops)
                 delete!(g.edgesprops, (j,i))
             end
@@ -627,20 +615,17 @@ function _rem_vertex!(g::DirPropGraph, i::Int)
         if i in keys(g.nodesprops)
             delete!(g.nodesprops, i)
         end
-        deleteat!(nodes, findfirst(m -> m==i,nodes))
     end
 end
 
 
 function _rem_vertex_f!(g::DirPropGraph, i::Int) # f = checks i in nodes done before calling function
     for j in g.out_structure[i]
-        deleteat!(g.edges, findfirst(x->x==(i,j), g.edges))
         if (i,j) in keys(g.edgesprops)
             delete!(g.edgesprops, (i,j))
         end
     end
     for j in g.in_structure[i]
-        deleteat!(g.edges, findfirst(x->x==(j,i), g.edges))
         if (j,i) in keys(g.edgesprops)
             delete!(g.edgesprops, (j,i))
         end
@@ -652,12 +637,11 @@ function _rem_vertex_f!(g::DirPropGraph, i::Int) # f = checks i in nodes done be
     if i in keys(g.nodesprops)
         delete!(g.nodesprops, i)
     end
-    deleteat!(g.nodes, findfirst(m -> m==i,g.nodes))
 end
 
 function _rem_edge!(g::DirPropGraph, i::Int, j::Int)
     if (i in keys(g.out_structure)) && (j in g.out_structure[i])
-        deleteat!(g.edges, findfirst(x->x==(i,j), g.edges))
+        deleteat!(g.out_structure[i], findfirst(x->x==j, g.out_structure[i]))
         if (i,j) in keys(g.edgesprops)
             delete!(g.edgesprops, (i,j))
         end
@@ -665,7 +649,7 @@ function _rem_edge!(g::DirPropGraph, i::Int, j::Int)
 end
 
 function _rem_edge_f!(g::DirPropGraph, i::Int, j::Int) # f = checks (i,j) in g.edges done before calling function
-    deleteat!(g.edges, findfirst(x->x==(i,j),g.edges))
+    deleteat!(g.out_structure[i], findfirst(x->x==j, g.out_structure[i]))
     if (i,j) in keys(g.edgesprops)
         delete!(g.edgesprops, (i,j))
     end
@@ -707,7 +691,7 @@ function _set_vertexprops!(g::DirPropGraph, i::Int; kwargs...)
         for (key, value) in dprop
             dc[key] = value
         end    
-    elseif i in g.nodes
+    elseif i in vertices(g)
         g.nodesprops[i]=PropDataDict(dprop)
     end
 end

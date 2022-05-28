@@ -170,21 +170,18 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _create_makie_frame(model::GraphModel, points, markers, colors, rotations, sizes, verts_pos, verts_dir, verts_color, show_space)
-    fig = Figure(resolution = (gparams.height, gparams.width))
-    ax = Axis(fig[1, 1])
-    ax.title = ""
+@inline function _create_makie_frame(ax, model::GraphModel, points, markers, colors, rotations, sizes, verts_pos, verts_dir, verts_color, show_space)
     ax.aspect = DataAspect()
     xlims!(ax, 0.0, 1)
     ylims!(ax, 0.0, 1)
     if show_space
         scatter!(ax, verts_pos, marker=:circle, color = verts_color)
-        arrowhead = is_directed(model.graph) ? '△'  :  '.'
+        arrowhead = is_directed(model.graph) ? '△'  :  '.' #\bigtriangleup<tab>
         arrows!(ax, verts_pos, verts_dir, arrowhead=arrowhead)
     end
     
     scatter!(ax, points, marker = markers, color = colors, rotations = rotations, markersize = sizes)
-    return fig
+    return 
 end
 
 """

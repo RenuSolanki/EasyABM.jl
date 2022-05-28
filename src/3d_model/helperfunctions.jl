@@ -17,7 +17,7 @@ graphics related properties are added to the agent if not already defined.
         end
 
         if !haskey(agent, :shape)
-            agent.shape = :cone
+            agent.shape = :sphere
         end
 
         if !haskey(agent, :color)
@@ -29,7 +29,7 @@ graphics related properties are added to the agent if not already defined.
         end
 
         if !haskey(agent, :orientation)
-            agent.orientation = (0.0,0.0,1.0)
+            agent.orientation = GeometryBasics.Vec(0.0,0.0,1.0)
         end
 
     end
@@ -57,7 +57,7 @@ function add_agent!(agent, model::GridModel3DDynAgNum)
                 x = mod1(Int(ceil(pos[1])), xdim)
                 y = mod1(Int(ceil(pos[2])), ydim)
                 z = mod1(Int(ceil(pos[3])), zdim)
-                push!(model.patches[(x,y,z)]._extras._agents, agent._extras._id)
+                push!(model.patches[x,y,z]._extras._agents, agent._extras._id)
                 agent._extras._last_grid_loc = (x,y,z)
             else
                 agent._extras._last_grid_loc = Inf
@@ -119,8 +119,8 @@ This function is for use from within the module and is not exported.
         for k in 1:model.size[3]
             for j in 1:model.size[2]
                 for i in 1:model.size[1]
-                    patch_dict = unwrap(model.patches[(i, j, k)])
-                    patch_data = unwrap_data(model.patches[(i,j, k)])
+                    patch_dict = unwrap(model.patches[i, j, k])
+                    patch_data = unwrap_data(model.patches[i,j, k])
                     for key in model.record.pprops
                         push!(patch_data[key], patch_dict[key])
                     end
@@ -196,23 +196,20 @@ end
 end
 
 
-
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agents_and_patches(vis, model::GridModel3DDynAgNum, frame)
-    show_grid = model.parameters._extras._show_space
-    if show_grid
-        if :color in model.record.pprops
-            draw_patches(vis, model, frame)
+@inline function _if_alive_draw_agent(vis, agent, model, frame, scl, tail_length::Int, tail_condition::Function)
+    if (agent._extras._birth_time<= frame)&&(frame<= agent._extras._death_time)
+        setvisible!(vis["agents"]["$(agent._extras._id)"], true)
+        if tail_condition(agent)
+            setvisible!(vis["tails"]["$(agent._extras._id)"], true)
         end
-    end
-    all_agents = vcat(model.agents, model.parameters._extras._agents_killed)
-    for agent in all_agents
-        if (agent._extras._birth_time<= frame)&&(frame<= agent._extras._death_time)
-            draw_agent(vis, agent, model, frame - agent._extras._birth_time +1)
-        else
-            setvisible!(vis["agents"]["$(agent._extras._id)"], false)
+        draw_agent(vis, agent, model, frame - agent._extras._birth_time +1, scl, tail_length, tail_condition)
+    else
+        setvisible!(vis["agents"]["$(agent._extras._id)"], false)
+        if tail_condition(agent)
+            setvisible!(vis["tails"]["$(agent._extras._id)"], false)
         end
     end
 end
@@ -221,7 +218,24 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agents_and_patches(vis, model::GridModel3DFixAgNum, frame)
+@inline function draw_agents_and_patches(vis, model::GridModel3DDynAgNum, frame, scl::Number=1.0, tail_length = 1, tail_condition = agent->false)
+    show_grid = model.parameters._extras._show_space
+    if show_grid
+        if :color in model.record.pprops
+            draw_patches(vis, model, frame)
+        end
+    end
+    all_agents = vcat(model.agents, model.parameters._extras._agents_killed)
+    @sync for agent in all_agents
+        @async _if_alive_draw_agent(vis, agent, model, frame, scl, tail_length, tail_condition)
+    end
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function draw_agents_and_patches(vis, model::GridModel3DFixAgNum, frame, scl::Number=1.0, tail_length = 1, tail_condition = agent->false)
     show_grid = model.parameters._extras._show_space
     if show_grid
         if :color in model.record.pprops
@@ -229,7 +243,7 @@ $(TYPEDSIGNATURES)
         end
     end
 
-    for agent in model.agents
-        draw_agent(vis, agent, model, frame)
+    @sync for agent in model.agents
+        @async draw_agent(vis, agent, model, frame, scl, tail_length, tail_condition)
     end
 end

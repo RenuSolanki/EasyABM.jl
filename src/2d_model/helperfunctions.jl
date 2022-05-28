@@ -17,7 +17,7 @@ graphics related properties are added to the agent if not already defined.
         end
 
         if !haskey(agent, :shape)
-            agent.shape = :arrow
+            agent.shape = :circle
         end
 
         if !haskey(agent, :color)
@@ -34,7 +34,6 @@ graphics related properties are added to the agent if not already defined.
 
     end
 end
-
 
 
 """
@@ -55,7 +54,7 @@ function add_agent!(agent, model::GridModel2DDynAgNum)
             if model.periodic || checkbound(pos[1],pos[2],xdim, ydim)
                 x = mod1(Int(ceil(pos[1])), xdim)
                 y = mod1(Int(ceil(pos[2])), ydim)
-                push!(model.patches[(x,y)]._extras._agents, agent._extras._id)
+                push!(model.patches[x,y]._extras._agents, agent._extras._id)
                 agent._extras._last_grid_loc = (x,y)
             else
                 agent._extras._last_grid_loc = Inf
@@ -117,8 +116,8 @@ This function is for use from within the module and is not exported.
     if length(model.record.pprops)>0 
         for j in 1:model.size[2]
             for i in 1:model.size[1]
-                patch_dict = unwrap(model.patches[(i, j)])
-                patch_data = unwrap_data(model.patches[(i,j)])
+                patch_dict = unwrap(model.patches[i, j])
+                patch_data = unwrap_data(model.patches[i,j])
                 for key in model.record.pprops
                     push!(patch_data[key], patch_dict[key])
                 end
@@ -206,7 +205,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agents_and_patches(model::GridModel2DDynAgNum, frame, scl)
+@inline function draw_agents_and_patches(model::GridModel2DDynAgNum, frame, scl, tail_length = 1, tail_condition = agent-> false)
     xdim = model.size[1]
     ydim = model.size[2]
     show_grid = model.parameters._extras._show_space
@@ -218,7 +217,7 @@ $(TYPEDSIGNATURES)
     all_agents = vcat(model.agents, model.parameters._extras._agents_killed)
     @sync for agent in all_agents
         if (agent._extras._birth_time<= frame)&&(frame<= agent._extras._death_time)
-            @async draw_agent(agent, model, xdim, ydim, scl, frame - agent._extras._birth_time +1)
+            @async draw_agent(agent, model, xdim, ydim, scl, frame - agent._extras._birth_time +1, tail_length, tail_condition)
         end
     end
 end
@@ -227,7 +226,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agents_and_patches(model::GridModel2DFixAgNum, frame, scl)
+@inline function draw_agents_and_patches(model::GridModel2DFixAgNum, frame, scl, tail_length = 1, tail_condition = agent-> false)
     xdim = model.size[1]
     ydim = model.size[2]
     show_grid = model.parameters._extras._show_space
@@ -238,7 +237,7 @@ $(TYPEDSIGNATURES)
     end
 
    @sync for agent in model.agents
-        @async draw_agent(agent, model, xdim, ydim, scl, frame)
+        @async draw_agent(agent, model, xdim, ydim, scl, frame, tail_length, tail_condition)
     end
 end
 

@@ -68,13 +68,13 @@ end
         z=h*k
         for j in 0:model.size[2]
             y =  l*j
-            setobject!(vis["line_segments"]["yz($j,$k)"], MeshCat.LineSegments([MeshCat.Point(0.0, y, z),MeshCat.Point(xlen, y, z)], blackl))
+            #setobject!(vis["line_segments"]["yz($j,$k)"], MeshCat.LineSegments([MeshCat.Point(0.0, y, z),MeshCat.Point(xlen, y, z)], blackl))
             for i in 0:model.size[1]
                 x =  w*i
-                setobject!(vis["line_segments"]["zx($k,$i)"], MeshCat.LineSegments([MeshCat.Point(x, 0.0, z),MeshCat.Point(x, ylen, z)], blackl))
-                setobject!(vis["line_segments"]["xy($i,$j)"], MeshCat.LineSegments([MeshCat.Point(x, y, 0.0),MeshCat.Point(x, y, zlen)], blackl))
+                #setobject!(vis["line_segments"]["zx($k,$i)"], MeshCat.LineSegments([MeshCat.Point(x, 0.0, z),MeshCat.Point(x, ylen, z)], blackl))
+                #setobject!(vis["line_segments"]["xy($i,$j)"], MeshCat.LineSegments([MeshCat.Point(x, y, 0.0),MeshCat.Point(x, y, zlen)], blackl))
                 if (i>0)&&(j>0)&&(k>0)
-                    patch = model.patches[(i,j,k)]
+                    patch = model.patches[i,j,k]
                     patch_data = unwrap_data(patch)
                     clrs = (:color in record) ? unique(patch_data[:color]) : [patch.color]
                     patch._extras._colors = clrs
@@ -96,13 +96,21 @@ end
 
 end
 
-@inline function draw_agents_static(vis, model::GridModel3D)
-    index = 1
-    if haskey(model.parameters._extras, :_agents_killed)
-        all_agents = vcat(model.agents, model.parameters._extras._agents_killed)
-    else
-        all_agents = model.agents
+function draw_tail(vis, agent, tail_length)
+    for i in 1:tail_length
+        bluel = LineBasicMaterial(color=RGBA(0,0,1,tail_opacity(i, tail_length)))
+        setobject!(vis["tails"]["$(agent._extras._id)"]["$i"],MeshCat.LineSegments([MeshCat.Point(0.0, 0, 0),MeshCat.Point(0, 0, 1.0)], bluel)) 
+        setvisible!(vis["tails"]["$(agent._extras._id)"]["$i"], false)
     end
+end
+
+@inline function draw_agents_static(vis, model::GridModel3D, all_agents, tail_length = 1,  tail_condition = agent -> false)
+    
+    if length(all_agents)==0
+        return
+    end
+
+    index=1
 
     periodic = model.periodic
     xlen = gparams3d.xlen+0.0
@@ -120,7 +128,6 @@ end
     for agent in all_agents
         record = agent.keeps_record_of
         agent_data = unwrap_data(agent)
-
         pos = (:pos in record) ? agent_data[:pos][index] : agent.pos
         orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
         pclr = (:color in record) ? agent_data[:color][index] : agent.color
@@ -164,9 +171,13 @@ end
             setvisible!(vis["agents"]["$(agent._extras._id)"][cl], false)
         end
 
-        settransform!(vis["agents"]["$(agent._extras._id)"], LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1), MeshCat.Vec(ao,bo,co+0.0))))
-        setprop!(vis["agents"]["$(agent._extras._id)"], "position", MeshCat.Vec(x,y,z))
+        trans = Translation(x, y, z) ∘ LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1), MeshCat.Vec(ao,bo,co+0.0)))
+        settransform!(vis["agents"]["$(agent._extras._id)"], trans)
         setvisible!(vis["agents"]["$(agent._extras._id)"][pclr], true)
+
+        if tail_condition(agent)
+            draw_tail(vis, agent, tail_length)
+        end
 
     end
 
@@ -179,8 +190,8 @@ end
     for k in 1:model.size[3]            
         for j in 1:model.size[2]
             for i in 1:model.size[1]
-                clrs = model.patches[(i,j,k)]._extras._colors
-                pclr = unwrap_data(model.patches[(i,j,k)])[:color][frame]
+                clrs = model.patches[i,j,k]._extras._colors
+                pclr = unwrap_data(model.patches[i,j,k])[:color][frame]
                 for cl in clrs
                     setvisible!(vis["patches"]["($i,$j,$k)"][cl], false) 
                 end
@@ -191,7 +202,7 @@ end
 end
 
 
-@inline function draw_agent(vis, agent::AgentDict3D, model::GridModel3D, index::Int)
+@inline function draw_agent(vis, agent::AgentDict3D, model::GridModel3D, index::Int, scl::Number=1.0, tail_length = 1, tail_condition= agent-> false)
         record = agent.keeps_record_of
         periodic = model.periodic
         agent_data = unwrap_data(agent)
@@ -214,6 +225,8 @@ end
         
         sc = (:size in record) ? agent_data[:size][index]/(agent_data[:size][1])  : 1.0
 
+        sc = sc*scl
+
         ao,bo,co = orientation
 
 
@@ -227,7 +240,7 @@ end
             posy0 = mod1(posy0, ydim)
             posz0 = mod1(posz0, zdim)
             distsq = (posx-posx0)^2+(posy-posy0)^2+(posz-posz0)^2 
-            condition = distsq> 0.5*min(xdim, ydim, zdim)^2 # hack for proper periodic case visualization
+            condition = distsq > 0.5*min(xdim, ydim, zdim)^2 # hack for proper periodic case visualization
         end
         
         x =  w*posx 
@@ -238,15 +251,34 @@ end
         for cl in clrs
             setvisible!(vis["agents"]["$(agent._extras._id)"][cl], false)
         end
-        settransform!(vis["agents"]["$(agent._extras._id)"], LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1), MeshCat.Vec(ao,bo,co+0.0))))
+        
+        trans = Translation(x, y, z) ∘ LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1), MeshCat.Vec(ao,bo,co+0.0)))
+        settransform!(vis["agents"]["$(agent._extras._id)"], trans)
         setprop!(vis["agents"]["$(agent._extras._id)"], "scale", MeshCat.Vec(sc, sc, sc))
         #settransform!(vis["agents"]["$(agent._extras._id)"], Translation(x, y, z))
-        setprop!(vis["agents"]["$(agent._extras._id)"], "position", MeshCat.Vec(x,y,z))
-        # if !make_invisible
+        #setprop!(vis["agents"]["$(agent._extras._id)"], "position", MeshCat.Vec(x,y,z))
         if !(periodic && condition)
             setvisible!(vis["agents"]["$(agent._extras._id)"][pclr], true)
         end
-        # end
+
+        if tail_condition(agent) && index>2
+            for i in 1:min(tail_length, index-2)
+                x,y,z = agent_data[:pos][index-i]
+                a,b,c = agent_data[:pos][index-i+1]
+                sca = sqrt((x-a)^2+(y-b)^2+(z-c)^2)
+                if (x,y,z)==(a,b,c)
+                    c = 1.0+c
+                end
+                trans = Translation(x, y, z) ∘ LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1.0), MeshCat.Vec(a-x,b-y,c-z)))
+                settransform!(vis["tails"]["$(agent._extras._id)"]["$i"], trans)
+                setprop!(vis["tails"]["$(agent._extras._id)"]["$i"], "scale", MeshCat.Vec(sca, sca, sca))
+                if !(periodic && (sca > 0.5*min(xdim, ydim, zdim)))
+                    setvisible!(vis["tails"]["$(agent._extras._id)"]["$i"], true)
+                else
+                    setvisible!(vis["tails"]["$(agent._extras._id)"]["$i"], false)
+                end
+            end
+        end
         
 end
 
@@ -275,7 +307,7 @@ end
                 setobject!(vis["line_segments"]["zx($k,$i)"], MeshCat.LineSegments([MeshCat.Point(x, 0.0, z),MeshCat.Point(x, ylen, z)], blackl))
                 setobject!(vis["line_segments"]["xy($i,$j)"], MeshCat.LineSegments([MeshCat.Point(x, y, 0.0),MeshCat.Point(x, y, zlen)], blackl))
                 if (i>0)&&(j>0)&&(k>0)
-                    patch = model.patches[(i,j,k)]
+                    patch = model.patches[i,j,k]
                     patch_data = unwrap_data(patch)
                     cl = (:color in record) ? patch_data[:color][frame] : patch.color
                     cl_rgb = eval(Symbol("patch"*string(cl)))

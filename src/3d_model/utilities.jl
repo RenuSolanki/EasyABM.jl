@@ -51,7 +51,7 @@ $(TYPEDSIGNATURES)
 
 Returning patches neighboring given patch.
 """
-function neighbor_patches(patch::Tuple{Int, Int}, model::GridModel3D, dist::Int)
+function neighbor_patches(patch::Tuple{Int, Int, Int}, model::GridModel3D, dist::Int)
     x,y,z = patch
     lst = NTuple{3, Int}[]
     if model.periodic
@@ -92,16 +92,16 @@ $(TYPEDSIGNATURES)
     xdim = model.size[1]
     ydim = model.size[2]
     zdim = model.size[3]
-    neighbors_list = Vector{AgentDict3D}()
+    neighbors_list = Vector{AgentDict3D{Symbol, Any}}()
     id_list = Int[]
     if model.periodic
-        for i in -dist:dist
+        for k in -dist:dist
             for j in -dist:dist
-                for k in -dist:dist
+                for i in -dist:dist
                     x_n = mod1(Int(ceil(x+i)), xdim)
                     y_n = mod1(Int(ceil(y+j)), ydim)
                     z_n = mod1(Int(ceil(z+k)), zdim)
-                    ags = model.patches[(x_n, y_n, z_n)]._extras._agents # all these agents are active for any inactive agent is removed from its container
+                    ags = model.patches[x_n, y_n, z_n]._extras._agents # all these agents are active for any inactive agent is removed from its container
                     for l in ags
                         if l !=agent._extras._id
                             push!(id_list, l)
@@ -111,11 +111,11 @@ $(TYPEDSIGNATURES)
             end
         end
     elseif agent._extras._last_grid_loc !=Inf
-        for i in -dist:dist
+        for k in -dist:dist
             for j in -dist:dist
-                for k in -dist:dist
+                for i in -dist:dist
                     if checkbound(x+i, y+j, z+k, xdim, ydim, zdim)
-                        ags = model.patches[(Int(ceil(x+i)), Int(ceil(y+j)), Int(ceil(z+k)))]._extras._agents
+                        ags = model.patches[Int(ceil(x+i)), Int(ceil(y+j)), Int(ceil(z+k))]._extras._agents
                         for l in ags
                             if l != agent._extras._id
                                 push!(id_list, l)
@@ -159,12 +159,12 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _find_eu_neighbors(agent, neighbors_list::Vector{AgentDict3D},model::GridModel3D,dist )
+function _find_eu_neighbors(agent, neighbors_list::Vector{AgentDict3D{Symbol, Any}},model::GridModel3D,dist )
         distsq = dist^2
         xdim = model.size[1]
         ydim = model.size[2]
         zdim = model.size[3]
-        eu_neighbors_list = Vector{AgentDict3D}()
+        eu_neighbors_list = Vector{AgentDict3D{Symbol, Any}}()
         if !model.periodic
             for ag in neighbors_list
                 vec = ag.pos - agent.pos
@@ -196,7 +196,7 @@ so on. With metric = `:euclidean` the agents within Euclidean distance `dist` ar
 """
 @inline function neighbors(agent::AgentDict3D, model::GridModel3DDynAgNum, dist::Number=1.0; metric::Symbol =:chessboard)
     if !(agent._extras._active)
-        return Vector{AgentDict3D}()
+        return Vector{AgentDict3D{Symbol, Any}}()
     end
     distint = Int(ceil(dist))
     neighbors_list = _get_neighbors(agent, model, distint)
@@ -245,7 +245,7 @@ Returns a random patch where no agents are present. Returns missing if there is 
 """
 function random_empty_patch(model::GridModel3D)
     patches = [(i,j, k) for i in 1:model.size[1] for j in 1:model.size[2] for k in 1:model.size[3]]
-    empty_patches = patches[[length(model.patches[patch]._extras._agents)==0 for patch in patches]]
+    empty_patches = patches[[length(model.patches[patch...]._extras._agents)==0 for patch in patches]]
     n = length(empty_patches)
     if n>0
         m = rand(1:n)
@@ -263,7 +263,7 @@ Returns patches satisfying given condition.
 """
 function get_patches(model::GridModel3D, condition::Function=_default_true)
     patches = [(i,j, k) for i in 1:model.size[1] for j in 1:model.size[2] for k in 1:model.size[3]]
-    req_patches = patches[[ condition(model.patches[pt]) for pt in patches]]
+    req_patches = patches[[ condition(model.patches[pt...]) for pt in patches]]
     return req_patches
 end
 

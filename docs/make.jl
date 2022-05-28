@@ -4,13 +4,29 @@ makedocs(
          sitename = "EasyABM.jl",
          modules  = [EasyABM],
          format = Documenter.HTML(),
-         pages = ["Home" => "index.md",
+         pages = ["Introduction" => "index.md",
+         "Tutorial" => "tutorial.md",
          "Examples" => [
-            "2d model" => "2d_model_example1.md",
+            "2D Examples" => [
+                "Schellings Segregation model" => "schelling.md",
+                "Flocking" => "boids.md",
+                "Rock-Paper-Scissor" => "stone_paper_scissor.md",
+
+                ],
+                
+            "3D Examples" => [
+                "Schellings Segregation model" => "schelling3d.md",
+                "Flocking" => "boids3d.md",
+                ],
+
+            "Graph Space Examples" => [
+
+                ],
+            
             ],
          "API" => "api.md",
         ]
          )
 deploydocs(;
-    repo="github.com/RenuSolanki/EasyABM.jl",
+    repo="github.com/RenuSolanki/EasyABM.jl.git",
 )

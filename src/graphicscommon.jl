@@ -16,6 +16,12 @@ end
 const gparams = GrParams(width=400,height=400,border=10, fps=12) # graphics parameters
 const gparams3d = GrParams3D(xlen=10, ylen=10, zlen=10)
 const type_dict = Dict(:color => Symbol, :shape => Symbol, :pos => GeometryBasics.Vec2{Float64}, :orientation => Float64, :size => Union{Int, Float64})
+const makie_shape_dict = Dict(:circle => :circle, :star=>:star5, :arrow=>:utriangle, :diamond => :diamond, :square=>:rect, :box => 'B')
+
+
+@inline function _draw_title(scene, frame)
+    Luxor.text(string("frame $frame of $(scene.framerange.stop)"),  Luxor.Point(O.x, O.y-gparams.height/2+20),halign=:center)
+end
 
 
 """
@@ -53,51 +59,55 @@ $(TYPEDSIGNATURES)
     return propvals
 end
 
+@inline function _to_makie_shapes(shape::Symbol)
+    makie_shape_dict[shape]
+end
+
 
 
 @inline function _create_circle(size)
-    circle(Luxor.Point(0,0), size, :fill)
+    Luxor.circle(Luxor.Point(0,0), size, :fill)
 end
 
 @inline function _create_star(size)
-    star(Luxor.Point(0,0), size, 6, 0.5,0, :fill)
+    Luxor.star(Luxor.Point(0,0), size, 6, 0.5,0, :fill)
 end
 
 @inline function _create_diamond(size)
-    ngon(Luxor.Point(0,0), size, 4, 0, :fill)
+    Luxor.ngon(Luxor.Point(0,0), size, 4, 0, :fill)
 end
 
 @inline function _create_box(size)
-    box(Luxor.Point(0, 0), size, size, 5, :fill)
+    Luxor.box(Luxor.Point(0, 0), size, size, 5, :fill)
 end
 
 @inline function _create_square(size)
-    box(Luxor.Point(0, 0), size, size, 0.0001, :fill)
+    Luxor.box(Luxor.Point(0, 0), size, size, 0.0001, :fill)
 end
 
 @inline function _create_arrow(size)
     points  = [Luxor.Point(0,size*0.8),Luxor.Point(-size*0.5,-size*0.8),Luxor.Point(size*0.5,-size*0.8)]
-    poly(points, :fill)
+    Luxor.poly(points, :fill)
 end
 
 @inline function _create_circle_line(size)
-    circle(Luxor.Point(0,0), size, :stroke)
+    Luxor.circle(Luxor.Point(0,0), size, :stroke)
 end
 
 @inline function _create_star_line(size)
-    star(Luxor.Point(0,0), size, 6, 0.5,0, :stroke)
+    Luxor.star(Luxor.Point(0,0), size, 6, 0.5,0, :stroke)
 end
 
 @inline function _create_diamond_line(size)
-    ngon(Luxor.Point(0,0), size, 4, 0, :stroke)
+    Luxor.ngon(Luxor.Point(0,0), size, 4, 0, :stroke)
 end
 
 @inline function _create_box_line(size)
-    box(Luxor.Point(0, 0), size, size, 5, :stroke)
+    Luxor.box(Luxor.Point(0, 0), size, size, 5, :stroke)
 end
 
 @inline function _create_square_line(size)
-    box(Luxor.Point(0, 0), size, size, 0.0001, :stroke)
+    Luxor.box(Luxor.Point(0, 0), size, size, 0.0001, :stroke)
 end
 
 
@@ -120,6 +130,10 @@ end
 
 @inline function _create_cylinder(size)
     Cylinder(MeshCat.Point(0,0,-size/2), MeshCat.Point(0,0,size/2), size/2)
+end
+
+@inline function tail_opacity(i::Int, tail_length::Int)
+    1- (i/tail_length)^2
 end
 
 const shapefunctions3d = Dict{Symbol, Function}(:sphere => _create_sphere, :box => _create_3Dbox, :cone => _create_cone, :cylinder => _create_cylinder)
@@ -193,16 +207,15 @@ function _interactive_app(model::Union{AbstractGridModel, AbstractGraphModel}, f
         @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, hbox(spc, :run, spc, :stop, spc, :sv)), spc, animlux, spc, vbox(plots...) ) )  
 end
 
-function trivial_func()
-    nothing
-end
+###########
 
 """
 $(TYPEDSIGNATURES)
 """
-function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphModel}, fr,_save_sim::Function, _init_interactive_model::Function, _run_interactive_model::Function, 
+function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphModel}, fr,_save_sim::Function, 
+    _init_interactive_model::Function, _run_interactive_model::Function, 
     _draw_interactive_frame::Function, agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
-    model_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), plots::Dict{String, Function} = Dict{String, Function}(), render_trivial = trivial_func)
+    model_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), plots::Dict{String, Function} = Dict{String, Function}(), render_trivial = ()->nothing)
 
     timeS = slider(1:fr, label = "time")
     scaleS = slider(0.1:0.1:5, label = "scale")
@@ -214,11 +227,17 @@ function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphMode
             s = slider(lst, label = string(a))
             push!(ag_controls, s)
         elseif b==:d
+            dic = Dict{eltype(lst), eltype(lst)}()
+            for _i in 1:length(lst)
+                dic[lst[_i]] =lst[_i]
+            end
+            dr = dropdown(dic, label = string(a))
+            push!(ag_controls, dr)
         end
         lis = on(ag_controls[end]) do val
             for agent in model.agents
                 if agent._extras._active
-                    unwrap(agent)[a] = val
+                    setproperty!(agent, a, val)
                 end
             end
         end
@@ -232,9 +251,15 @@ function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphMode
             s = slider(lst, label = string(a))
             push!(md_controls, s)
         elseif b==:d
+            dic = Dict{eltype(lst), eltype(lst)}()
+            for _i in 1:length(lst)
+                dic[lst[_i]] =lst[_i]
+            end
+            dr = dropdown(dic, label = string(a))
+            push!(md_controls, dr)
         end
         lis = on(md_controls[end]) do val
-            unwrap(model.parameters)[a]=val
+            setproperty!(model.parameters, a, val)
         end
         push!(md_listeners, lis)
     end
@@ -254,7 +279,7 @@ function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphMode
         if check[] ==0 
             check[] = 1
         end
-        sleep(0.03)#yield()
+        sleep(0.05)#yield()
     end
 
     donecessarystuff() = begin
@@ -265,11 +290,11 @@ function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphMode
     end
 
     gfun() = begin
-        @sync donecessarystuff()
-        sleep(0.03)#yield()
         #timeS[]+=1
         if (timeS[]<fr)&&(check[]==0)
-            run[]+=1
+            @sync donecessarystuff()
+            sleep(0.05)
+            run[] = run[]
         elseif check[] ==1
             check[] = 0
         end
@@ -286,9 +311,7 @@ function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphMode
     rfun() = begin 
         check[] = 1
         timeS[]=1
-        _init_interactive_model()
-        ufun()
-        _run_interactive_model(1)
+        _init_interactive_model(ufun)
         check[] = 0
     end
 
@@ -322,11 +345,16 @@ function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphMode
         sfun()
     end
 
+    function _draw_a_frame(t, scl)
+        _draw_interactive_frame(t, scl)
+    end
+
     function draw_plot(t, nm,con)
+
         if t>model.tick
             _run_interactive_model(t-model.tick)
         end
-        df = get_num_agents(model, con, labels= [nm]);
+        df = get_agents_avg_props(model, con, labels= [nm]);
 
         plot(df[:,nm][1:t], legend=false, xlabel = "time", ylabel= nm, size=(300,150) )
 
@@ -338,11 +366,12 @@ function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphMode
     num_plots = length(plots)
     for (nm, con) in plots
         height =Int(ceil((gparams.height+gparams.border)/num_plots))
-        pl = Interact.@map draw_plot(&timeS, nm,con);
+        pl = Interact.@map draw_plot(&timeS, nm, con);
         push!(pls, pl)
     end
 
-    animlux = Interact.@map _draw_interactive_frame(&timeS, &scaleS)#&output)
+    animlux = Interact.@map _draw_a_frame(&timeS, &scaleS)#&output)
+
     
     spc = Widgets.latex("\\;"^2) #smallspace
     spclarge = Widgets.latex("\\;"^45) #largespace
@@ -352,8 +381,8 @@ function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphMode
         return @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, vbox(ag_controls...), vbox(md_controls...), hbox(spc, :run, spc, :stop, spc, :rst, spc, :sv)), spc, animlux, spc, vbox(pls...) ) )  
     else
         render3d = Interact.@map render_trivial(&emptyS)
-        wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop, "rst"=>rst, "sv"=>sv])
-        return @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, vbox(ag_controls...), vbox(md_controls...), hbox(spc, :run, spc, :stop, spc, :rst, spc, :sv)), spc, render3d, spc, vbox(pls...) ) )  
+        wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop, "rst"=>rst])
+        return @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, vbox(ag_controls...), vbox(md_controls...), hbox(spc, :run, spc, :stop, spc, :rst)), render3d, spc, vbox(pls...) ) )  
     end
 
 end

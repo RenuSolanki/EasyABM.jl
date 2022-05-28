@@ -4,12 +4,6 @@ struct AgentDict2D{K, V} <: AbstractPropDict{K, V}
     AgentDict2D() = new{Symbol, Any}(Dict{Symbol, Any}(:_extras => PropDict(Dict{Symbol,Any}(:_active=>true))), Dict{Symbol, Any}())
     function AgentDict2D(d::Dict{Symbol, Any})
         data = Dict{Symbol, Any}()
-        
-        if !haskey(d, :_extras)
-            d[:_extras] = PropDict()
-            d[:_extras]._active = true
-        end
-
         for (key,value) in d
             if !(key == :_extras) && !(key == :keeps_record_of)
                 data[key]=typeof(value)[]
@@ -23,24 +17,24 @@ Base.IteratorSize(::Type{AgentDict2D{T}}) where T = IteratorSize(T)
 Base.IteratorEltype(::Type{AgentDict2D{T}}) where T = IteratorEltype(T)
 
 
-function update_grid!(agent::AgentDict2D, grid::Nothing)
+function update_grid!(agent::AgentDict2D, patches::Nothing)
     nothing
 end
-function update_grid!(agent::AgentDict2D, patches::Dict{Tuple{Int, Int},Union{PropDataDict{Symbol, Any},Bool,Int}})
+function update_grid!(agent::AgentDict2D, patches::Matrix{PropDataDict{Symbol, Any}} )
     x,y = agent.pos
     i = agent._extras._id
-    xdim = patches[(-1,0)]
-    ydim = patches[(0,-1)]
-    periodic = patches[(-1,-1)]
+    xdim = patches[1,1]._extras._xdim
+    ydim = patches[1,1]._extras._ydim
+    periodic = patches[1,1]._extras._periodic
     last_grid_loc = agent._extras._last_grid_loc
 
     if agent._extras._last_grid_loc != Inf
-        deleteat!(patches[last_grid_loc]._extras._agents, findfirst(m->m==i, patches[last_grid_loc]._extras._agents))
+        deleteat!(patches[last_grid_loc...]._extras._agents, findfirst(m->m==i, patches[last_grid_loc...]._extras._agents))
     end
     if periodic || (x>0)&&(x<=xdim)&&(y>0)&&(y<=ydim)
         p2 = mod1(Int(ceil(x)), xdim)
         q2 = mod1(Int(ceil(y)), ydim)
-        push!(patches[(p2,q2)]._extras._agents, i)
+        push!(patches[p2,q2]._extras._agents, i)
         agent._extras._last_grid_loc = (p2, q2)
     else
         agent._extras._last_grid_loc= Inf
@@ -142,7 +136,7 @@ $(TYPEDSIGNATURES)
 Creates a list of n 2d agents with properties specified as keyword arguments.
 """
 function create_2d_agents(n::Int; kwargs...)
-list = Vector{AgentDict2D}()
+list = Vector{AgentDict2D{Symbol, Any}}()
 for i in 1:n
     agent = create_2d_agent(;kwargs...)
     push!(list, agent)
@@ -156,9 +150,13 @@ $(TYPEDSIGNATURES)
 Returns a list of n 2d agents all having same properties as `agent`.  
 """
 function create_2d_agents(n::Int, agent::AgentDict2D)
-list = Vector{AgentDict2D}()
+list = Vector{AgentDict2D{Symbol, Any}}()
+ag = deepcopy(agent)
+if haskey(ag._extras, :_id)
+    delete!(unwrap(ag._extras), :_id)
+end
 for i in 1:n
-    agent_new = deepcopy(agent)
+    agent_new = deepcopy(ag)
     push!(list, agent_new)
 end
 return list
