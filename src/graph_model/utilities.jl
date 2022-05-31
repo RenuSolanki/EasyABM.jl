@@ -451,3 +451,262 @@ function set_edgeprops!(edge, model::GraphModel; kwargs...)
         end
     end
 end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function square_grid(n, k; periodic = false)
+    m = n*k
+    nodenum(i,j) = (j-1)*k+i
+    gr = create_simple_graph(m)
+    if n>=2
+        _add_edge_f!(gr,nodenum(1,1),nodenum(1,2))
+        _add_edge_f!(gr,nodenum(k,1),nodenum(k,2))
+        _add_edge_f!(gr,nodenum(1,n),nodenum(1,n-1))
+        _add_edge_f!(gr,nodenum(k,n),nodenum(k,n-1))
+    end
+    if k>=2
+        _add_edge_f!(gr,nodenum(1,1),nodenum(2,1))
+        _add_edge_f!(gr,nodenum(1,n),nodenum(2,n))
+        _add_edge_f!(gr,nodenum(k,1),nodenum(k-1,1))
+        _add_edge_f!(gr,nodenum(k,n),nodenum(k-1,n))
+    end
+    
+    
+    if k==2
+        for j in 2:(n-1)
+            _add_edge_f!(gr, nodenum(1,j),nodenum(2,j))
+        end
+    end
+
+    if n==2
+        for i in 2:(k-1)
+            _add_edge_f!(gr, nodenum(i,1),nodenum(i,2))
+        end
+    end
+
+    for i in 1:k
+        for j in 1:n
+            node = nodenum(i,j)
+            gr.nodesprops[node] = PropDataDict()
+            gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
+            if (i <k)&&(i>1)&&(j<n)&&(j>1)
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i+1,j))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i-1,j))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i,j+1))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i,j-1))
+            elseif ((i==1)||(i==k))&&(j>1)&&(j<n)
+                _add_edge_f!(gr,nodenum(i,j),nodenum(i,j-1))
+                _add_edge_f!(gr, nodenum(i,j), nodenum(i,j+1))
+            elseif ((j==1)||(j==n))&&(i>1)&&(i<k)
+                _add_edge_f!(gr,nodenum(i,j),nodenum(i-1,j))
+                _add_edge_f!(gr, nodenum(i,j), nodenum(i+1,j))
+            end
+            if i==1 && periodic
+                _add_edge_f!(gr, nodenum(1,j), nodenum(k,j))
+            end
+            if j==1 && periodic
+                _add_edge_f!(gr, nodenum(i,1), nodenum(i,n))
+            end
+        end
+    end
+    return gr
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function hex_grid(n, k)
+    n = n%2==0 ? n : n+1 # n must be even
+    k = 2k+1 # this k will count number of verts along x axis
+    m = n*k
+    nodenum(i,j) = (j-1)*k+i
+    gr = create_simple_graph(m)
+    _add_edge_f!(gr,nodenum(1,1),nodenum(1,2))
+    _add_edge_f!(gr,nodenum(1,1),nodenum(2,1))
+    _add_edge_f!(gr,nodenum(1,n),nodenum(1,n-1))
+    _add_edge_f!(gr,nodenum(1,n),nodenum(2,n))
+    _add_edge_f!(gr,nodenum(k,1),nodenum(k,2))
+    _add_edge_f!(gr,nodenum(k,1),nodenum(k-1,1))
+    _add_edge_f!(gr,nodenum(k,n),nodenum(k-1,n))
+    _add_edge_f!(gr,nodenum(k,n),nodenum(k,n-1))
+
+    if n==2
+        for i in 2:(k-1)
+            if i%2==1
+                _add_edge_f!(gr, nodenum(i,1),nodenum(i,2))
+            end
+        end
+    end
+
+    for i in 1:k
+        for j in 1:n
+            if (i <k)&&(i>1)&&(j<n)&&(j>1)
+                if i%2 == j%2
+                    _add_edge_f!(gr, nodenum(i,j),nodenum(i,j+1))
+                end
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i+1,j))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i-1,j))
+            elseif ((i==1)||(i==k))&&(j>1)&&(j<n)
+                if j%2 == 1
+                _add_edge_f!(gr, nodenum(i,j), nodenum(i,j+1))
+                end
+            elseif ((j==1)||(j==n))&&(i>1)&&(i<k)
+                _add_edge_f!(gr,nodenum(i,j),nodenum(i-1,j))
+                _add_edge_f!(gr, nodenum(i,j), nodenum(i+1,j))
+                if (i%2 == 1)&&(j==1)
+                    _add_edge_f!(gr, nodenum(i,1),nodenum(i,2))
+                end
+            end
+            node = nodenum(i,j)
+            gr.nodesprops[node] = PropDataDict()
+            gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
+            if nodenum(i,j+1) in gr.structure[nodenum(i,j)] || ((j==n)&&(i%2==0))
+                gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n + (gsize/n)*0.17)
+            elseif (nodenum(i,j-1) in gr.structure[nodenum(i,j)]) || ((j==1)&&(i%2==0))
+                gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n - (gsize/n)*0.17)
+            else
+                gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
+            end
+        end
+    end
+    return gr
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function triangular_grid(n, k)
+    m = n*k
+    nodenum(i,j) = (j-1)*k+i
+    gr = create_simple_graph(m)
+    if n>=2
+        _add_edge_f!(gr,nodenum(1,1),nodenum(1,2))
+        _add_edge_f!(gr,nodenum(k,1),nodenum(k,2))
+        _add_edge_f!(gr,nodenum(1,n),nodenum(1,n-1))
+        _add_edge_f!(gr,nodenum(k,n),nodenum(k,n-1))
+    end
+    if k>=2
+        _add_edge_f!(gr,nodenum(1,1),nodenum(2,1))
+        _add_edge_f!(gr,nodenum(1,n),nodenum(2,n))
+        _add_edge_f!(gr,nodenum(k,1),nodenum(k-1,1))
+        _add_edge_f!(gr,nodenum(k,n),nodenum(k-1,n))
+    end
+    if (k==2)&&(n>=2)
+        for j in 2:(n-1)
+            _add_edge_f!(gr, nodenum(1,j),nodenum(2,j))
+        end
+        _add_edge_f!(gr,nodenum(1,1),nodenum(2,2))
+    end
+
+    if (n==2)&&(k>=2)
+        for i in 2:(k-1)
+            _add_edge_f!(gr, nodenum(i,1),nodenum(i,2))
+        end
+        _add_edge_f!(gr,nodenum(1,1),nodenum(2,2))
+    end
+
+    for i in 1:k
+        for j in 1:n
+            node = nodenum(i,j)
+            gr.nodesprops[node] = PropDataDict()
+            gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
+            if (i <k)&&(i>1)&&(j<n)&&(j>1)
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i+1,j))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i-1,j))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i,j+1))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i,j-1))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i+1,j+1))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i-1,j-1))
+            elseif ((i==1)||(i==k))&&(j>1)&&(j<n)
+                _add_edge_f!(gr,nodenum(i,j),nodenum(i,j-1))
+                _add_edge_f!(gr, nodenum(i,j), nodenum(i,j+1))
+                if (i==1)&&(k>=2)
+                    _add_edge_f!(gr, nodenum(1,j), nodenum(2,j+1))
+                end
+            elseif ((j==1)||(j==n))&&(i>1)&&(i<k)
+                _add_edge_f!(gr,nodenum(i,j),nodenum(i-1,j))
+                _add_edge_f!(gr, nodenum(i,j), nodenum(i+1,j))
+                if (j==1)&&(n>=2)
+                    _add_edge_f!(gr, nodenum(i,j), nodenum(i+1,j+1))
+                end
+            end
+        end
+    end
+    return gr
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function double_triangular_grid(n, k)
+    m = n*k
+    nodenum(i,j) = (j-1)*k+i
+    gr = create_simple_graph(m)
+    if n>=2
+        _add_edge_f!(gr,nodenum(1,1),nodenum(1,2))
+        _add_edge_f!(gr,nodenum(k,1),nodenum(k,2))
+        _add_edge_f!(gr,nodenum(1,n),nodenum(1,n-1))
+        _add_edge_f!(gr,nodenum(k,n),nodenum(k,n-1))
+    end
+    if k>=2
+        _add_edge_f!(gr,nodenum(1,1),nodenum(2,1))
+        _add_edge_f!(gr,nodenum(1,n),nodenum(2,n))
+        _add_edge_f!(gr,nodenum(k,1),nodenum(k-1,1))
+        _add_edge_f!(gr,nodenum(k,n),nodenum(k-1,n))
+    end
+    if (k==2)&&(n>=2)
+        for j in 2:(n-1)
+            _add_edge_f!(gr, nodenum(1,j),nodenum(2,j))
+        end
+        _add_edge_f!(gr,nodenum(1,1),nodenum(2,2))
+        _add_edge_f!(gr,nodenum(2,1),nodenum(1,2))
+    end
+
+    if (n==2)&&(k>=2)
+        for i in 2:(k-1)
+            _add_edge_f!(gr, nodenum(i,1),nodenum(i,2))
+        end
+        _add_edge_f!(gr,nodenum(1,1),nodenum(2,2))
+        _add_edge_f!(gr,nodenum(2,1),nodenum(1,2))
+    end
+
+    for i in 1:k
+        for j in 1:n
+            node = nodenum(i,j)
+            gr.nodesprops[node] = PropDataDict()
+            gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
+            if (i <k)&&(i>1)&&(j<n)&&(j>1)
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i+1,j))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i-1,j))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i,j+1))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i,j-1))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i+1,j+1))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i-1,j-1))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i-1,j+1))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i+1,j-1))
+            elseif ((i==1)||(i==k))&&(j>1)&&(j<n)
+                _add_edge_f!(gr,nodenum(i,j),nodenum(i,j-1))
+                _add_edge_f!(gr, nodenum(i,j), nodenum(i,j+1))
+                if (i==1)&&(k>=2)
+                    _add_edge_f!(gr, nodenum(1,j), nodenum(2,j+1))
+                    _add_edge_f!(gr, nodenum(1,j+1), nodenum(2,j))
+                end
+            elseif ((j==1)||(j==n))&&(i>1)&&(i<k)
+                _add_edge_f!(gr,nodenum(i,j),nodenum(i-1,j))
+                _add_edge_f!(gr, nodenum(i,j), nodenum(i+1,j))
+                if (j==1)&&(n>=2)
+                    _add_edge_f!(gr, nodenum(i,j), nodenum(i+1,j+1))
+                    _add_edge_f!(gr, nodenum(i,j), nodenum(i-1,j+1))
+                end
+            end
+        end
+    end
+    return gr
+end
+
+

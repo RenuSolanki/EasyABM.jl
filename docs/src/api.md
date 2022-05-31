@@ -26,6 +26,7 @@ create_graph_model
 ```@docs
 init_model!
 run_model!
+run_model_epochs!
 animate_sim
 create_interactive_app
 ```
@@ -56,10 +57,17 @@ open_saved_model
 ```@docs
 create_simple_graph
 create_dir_graph
+hex_grid
+square_grid
+triangular_grid
+double_triangular_grid
+draw_graph
 add_node!
 kill_node!
 create_edge! 
 kill_edge!
+is_digraph
+is_static
 ```
 
 ## Helper functions for agents

@@ -36,7 +36,7 @@ $(TYPEDSIGNATURES)
         if (agent._extras._birth_time<= t)&&(t<= agent._extras._death_time)
             index = t - agent._extras._birth_time +1
             propval = (prop in agent.keeps_record_of) ? agent_data[prop][index] : agent_dict[prop]
-            propval = (prop == :size) ? propval*scl : propval
+            propval = (prop == :size) ? propval*scl*gparams.width/model.size[1] : propval
             push!(propvals, propval)
         end
     end
@@ -65,56 +65,60 @@ end
 
 
 
-@inline function _create_circle(size)
+@inline function _create_circle(size, index=1)
     Luxor.circle(Luxor.Point(0,0), size, :fill)
 end
 
-@inline function _create_star(size)
+@inline function _create_star(size,index=1)
     Luxor.star(Luxor.Point(0,0), size, 6, 0.5,0, :fill)
 end
 
-@inline function _create_diamond(size)
+@inline function _create_diamond(size,index=1)
     Luxor.ngon(Luxor.Point(0,0), size, 4, 0, :fill)
 end
 
-@inline function _create_box(size)
+@inline function _create_box(size,index=1)
     Luxor.box(Luxor.Point(0, 0), size, size, 5, :fill)
 end
 
-@inline function _create_square(size)
+@inline function _create_square(size,index=1)
     Luxor.box(Luxor.Point(0, 0), size, size, 0.0001, :fill)
 end
 
-@inline function _create_arrow(size)
+@inline function _create_arrow(size,index=1)
     points  = [Luxor.Point(0,size*0.8),Luxor.Point(-size*0.5,-size*0.8),Luxor.Point(size*0.5,-size*0.8)]
     Luxor.poly(points, :fill)
 end
 
-@inline function _create_circle_line(size)
+@inline function _create_circle_line(size,index=1)
     Luxor.circle(Luxor.Point(0,0), size, :stroke)
 end
 
-@inline function _create_star_line(size)
+@inline function _create_star_line(size,index=1)
     Luxor.star(Luxor.Point(0,0), size, 6, 0.5,0, :stroke)
 end
 
-@inline function _create_diamond_line(size)
+@inline function _create_diamond_line(size,index=1)
     Luxor.ngon(Luxor.Point(0,0), size, 4, 0, :stroke)
 end
 
-@inline function _create_box_line(size)
+@inline function _create_box_line(size,index=1)
     Luxor.box(Luxor.Point(0, 0), size, size, 5, :stroke)
 end
 
-@inline function _create_square_line(size)
+@inline function _create_square_line(size,index=1)
     Luxor.box(Luxor.Point(0, 0), size, size, 0.0001, :stroke)
+end
+
+@inline function _create_line(size,index=1)
+    Luxor.box(Luxor.Point(0, -size/2), Luxor.Point(0, size/2), :stroke)
 end
 
 
 
 const shapefunctions2d = Dict{Symbol, Function}(:circle => _create_circle, :star => _create_star, :diamond => _create_diamond, :square=>_create_square, 
                         :box=> _create_box, :arrow=>_create_arrow, :circle_line => _create_circle_line, :star_line => _create_star_line, :diamond_line => _create_diamond_line,
-                        :box_line => _create_box_line, :square_line => _create_square_line)
+                        :box_line => _create_box_line, :square_line => _create_square_line, :line => _create_line)
 
 @inline function _create_sphere(size)
     HyperSphere(MeshCat.Point(0,0,0.0), size)

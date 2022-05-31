@@ -185,6 +185,27 @@ end
 
 """
 $(TYPEDSIGNATURES)
+
+Runs the simulation for `num_epochs` number of epochs where each epoch consists of `steps_per_epoch` number of steps.
+The model is saved as .jld2 file and the model.tick is reset to 1 at the end of each epoch.
+"""
+function run_model_epochs!(model::GridModel2D; steps_per_epoch = 1, num_epochs=1, 
+    step_rule::Function=model_null_step!, save_to_folder=_default_folder[])
+    
+    for epoch in num_epochs
+        run_model!(model, steps=steps_per_epoch, step_rule = step_rule)
+        save_model(model, model_name = "model", save_as = "run"*string(epoch)*".jld2", folder = save_to_folder)
+        getfield(model, :tick)[] = 1
+        _init_agents!(model)
+        _init_patches!(model)
+        _init_model_record!(model)
+    end
+
+end
+
+
+"""
+$(TYPEDSIGNATURES)
 """
 function save_sim_luxor(model::GridModel2D, frames::Int=model.tick, scl::Number=1.0; path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"), 
     show_space=true, tail = (1, agent->false))

@@ -6,8 +6,8 @@ export  StaticType, MortalType, PropDict, gparams, gparams3d,
         create_graph_agents, create_3d_agent, create_3d_agents,
         create_2d_model, create_graph_model, create_3d_model,
         # initialise, run, visualise
-        init_model!, run_model!, animate_sim, create_interactive_app, 
-        save_model, open_saved_model,
+        init_model!, run_model!, run_model_epochs!, animate_sim, 
+        create_interactive_app, save_model, open_saved_model,
 
         # data 
         get_agent_data, get_patch_data, get_node_data,
@@ -16,8 +16,12 @@ export  StaticType, MortalType, PropDict, gparams, gparams3d,
         get_nodes_avg_props, get_edges_avg_props,
         
         #helpers graph
-        create_simple_graph, create_dir_graph, adjacency_matrix, add_node!, kill_node!, 
-        create_edge!, kill_edge!,
+        create_simple_graph, create_dir_graph, 
+        hex_grid, square_grid, triangular_grid, 
+        double_triangular_grid, draw_graph,
+        adjacency_matrix, add_node!, kill_node!, 
+        create_edge!, kill_edge!, is_digraph, is_static,
+
 
         #helpers 2d/3D
 

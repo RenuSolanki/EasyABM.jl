@@ -135,7 +135,7 @@ Adds a node with properties specified in `kwargs` to the model's graph.
 """
 function add_node!(node, model::GraphModelDynGrTop; kwargs...)
     if node<0
-        println("Only positive number nodes are allowed!")
+        println("Only positive numbered nodes are allowed!")
         return
     end
     nodes = vertices(model.graph)
@@ -148,7 +148,7 @@ function add_node!(node, model::GraphModelDynGrTop; kwargs...)
         madict._extras._death_time=Inf
         model.graph.nodesprops[node] = madict
         model.parameters._extras._num_verts +=1
-        if model.graphics && !haskey(model.graph.nodesprops[node]._extras, :_pos)
+        if model.graphics && !haskey(model.graph.nodesprops[node], :pos) && !haskey(model.graph.nodesprops[node]._extras, :_pos)
             model.graph.nodesprops[node]._extras._pos = (rand()*_scale_graph+_boundary_frame, rand()*_scale_graph+_boundary_frame)
         end
         if length(model.record.nprops)>0
@@ -535,10 +535,19 @@ $(TYPEDSIGNATURES)
 """
 @inline function _draw_da_vert(graph::AbstractPropGraph{MortalType}, vert, node_size, frame, nprops)
     vert_pos = _get_vert_pos(graph, vert, frame, nprops)
+    vert_col = _get_vert_col(graph, vert, frame, nprops)
     out_structure = out_links(graph, vert)
     active_out_structure = out_structure[[(graph.edgesprops[(vert, nd)]._extras._birth_time <= frame)&&(frame<=graph.edgesprops[(vert, nd)]._extras._death_time) for nd in out_structure]]
     neighs_pos = [_get_vert_pos(graph, nd, frame, nprops) for nd in active_out_structure]
-    draw_vert(vert_pos, node_size, neighs_pos, is_directed(graph))
+    draw_vert(vert_pos, vert_col, node_size, neighs_pos, is_digraph(graph))
+end
+
+@inline function _draw_da_vert(graph::AbstractPropGraph{StaticType}, vert, node_size, frame, nprops)
+    vert_pos = _get_vert_pos(graph, vert, frame, nprops)
+    vert_col = _get_vert_col(graph, vert, frame, nprops)
+    out_structure = out_links(graph, vert)
+    neighs_pos = [_get_vert_pos(graph, nd, frame, nprops) for nd in out_structure]
+    draw_vert(vert_pos, vert_col, node_size, neighs_pos, is_digraph(graph))
 end
 
 """
@@ -571,7 +580,7 @@ $(TYPEDSIGNATURES)
 
     @sync for agent in all_agents
         if (agent._extras._birth_time <= frame)&&(frame<= agent._extras._death_time)
-            @async draw_agent(agent, model, node_size, scl, frame - agent._extras._birth_time + 1)
+            @async draw_agent(agent, model, node_size, scl, frame - agent._extras._birth_time + 1, frame)
         end
     end
 end
@@ -586,9 +595,11 @@ $(TYPEDSIGNATURES)
     end
 
     @sync for agent in model.agents
-       @async draw_agent(agent, model, node_size, scl, frame)
+       @async draw_agent(agent, model, node_size, scl, frame, frame)
     end
 end
+
+
 
 
 

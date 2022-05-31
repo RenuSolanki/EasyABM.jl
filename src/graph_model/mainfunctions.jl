@@ -7,12 +7,13 @@ Creates a model with
 - graphics : if true properties of pos, shape, color, orientation will be assigned to each agent by default, if not already assigned by user.
 - `fix_agent_num` : Set it to true if agents do not die and new agents are not born during simulation. 
 - `static_graph` : Set it to false if graph topology needs to be changed during simulation.
+- `decorated_edges` : Set it to true if edges are to be assigned weights or any other properties.
 - `random_positions` : If this property is true, each agent, which doesn't already have a node property defined, will be given a default random node on the graph. 
 - kwargs : Keyword argments used as model parameters. 
 """
 function create_graph_model(agents::Vector{AgentDictGr{Symbol, Any}}, 
     graph::Union{SimplePropGraph,DirPropGraph, SimpleGraph{Int64}, SimpleDiGraph{Int64}}; fix_agents_num=false, 
-    static_graph = true, graphics=true, random_positions=false, kwargs...)
+    static_graph = true, decorated_edges = false, graphics=true, random_positions=false, kwargs...)
     
     n = length(agents)
 
@@ -24,7 +25,7 @@ function create_graph_model(agents::Vector{AgentDictGr{Symbol, Any}},
     end
 
     if (typeof(graph)<:AbstractPropGraph{StaticType}) && !(static_graph) # if user sends a (default) statictype graph but deliberately sets static_graph to false then change graph type to dynamic
-        if !is_directed(graph)
+        if !is_digraph(graph)
             graph = create_simple_graph(graph.structure, gtype = MortalType)
         else
             graph = create_dir_graph(graph.in_structure, gtype = MortalType)
@@ -48,11 +49,11 @@ function create_graph_model(agents::Vector{AgentDictGr{Symbol, Any}},
     if length(vertices(graph)) == 0
         _add_vertex!(graph, 1)
     end
-    verts = vertices(graph)
+    verts = sort!(vertices(graph))
     default_node = verts[1]
     num_verts = length(verts)
 
-    if !is_directed(graph)
+    if !is_digraph(graph)
         structure = graph.structure
     else
         structure = Dict{Int, Vector{Int}}()
@@ -83,7 +84,7 @@ function create_graph_model(agents::Vector{AgentDictGr{Symbol, Any}},
             graph.nodesprops[vt]._extras._agents = Int[]
         end
 
-        if graphics && !haskey(graph.nodesprops[vt]._extras, :_pos)
+        if graphics && !haskey(graph.nodesprops[vt], :pos) && !haskey(graph.nodesprops[vt]._extras, :_pos)
             graph.nodesprops[vt]._extras._pos = (locs_x[i], locs_y[i])
         end
 
@@ -101,20 +102,22 @@ function create_graph_model(agents::Vector{AgentDictGr{Symbol, Any}},
         end
     end
 
-    for ed in edges(graph)
-        if !(ed in keys(graph.edgesprops))
-            graph.edgesprops[ed] = PropDataDict()
-        end
-        if !is_static(graph)
-            graph.edgesprops[ed]._extras._active = true
-            graph.edgesprops[ed]._extras._birth_time = 1
-            graph.edgesprops[ed]._extras._death_time = Inf
-        end
-        e_dict = unwrap(graph.edgesprops[ed])
-        e_data = unwrap_data(graph.edgesprops[ed])
-        for (key, value) in e_dict
-            if !(key == :_extras)
-                e_data[key] = [value]
+    if !(static_graph) || decorated_edges
+        for ed in edges(graph)
+            if !(ed in keys(graph.edgesprops))
+                graph.edgesprops[ed] = PropDataDict()
+            end
+            if !is_static(graph)
+                graph.edgesprops[ed]._extras._active = true
+                graph.edgesprops[ed]._extras._birth_time = 1
+                graph.edgesprops[ed]._extras._death_time = Inf
+            end
+            e_dict = unwrap(graph.edgesprops[ed])
+            e_data = unwrap_data(graph.edgesprops[ed])
+            for (key, value) in e_dict
+                if !(key == :_extras)
+                    e_data[key] = [value]
+                end
             end
         end
     end
@@ -185,10 +188,12 @@ $(TYPEDSIGNATURES)
 @inline function _init_vertex_data!(model::GraphModelDynGrTop)
     for vt in vertices(model.graph)
         model.graph.nodesprops[vt]._extras._birth_time = 1
-        v_dict = unwrap(model.graph.nodesprops[vt])
-        v_data = unwrap_data(model.graph.nodesprops[vt])
-        for key in model.record.nprops
-            v_data[key] = [v_dict[key]]
+        if length(model.record.nprops)>0
+            v_dict = unwrap(model.graph.nodesprops[vt])
+            v_data = unwrap_data(model.graph.nodesprops[vt])
+            for key in model.record.nprops
+                v_data[key] = [v_dict[key]]
+            end
         end
     end
 end
@@ -197,11 +202,13 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _init_vertex_data!(model::GraphModelFixGrTop)
-    for vt in vertices(model.graph)
-        v_dict = unwrap(model.graph.nodesprops[vt])
-        v_data = unwrap_data(model.graph.nodesprops[vt])
-        for key in model.record.nprops
-            v_data[key] = [v_dict[key]]
+    if length(model.record.nprops)>0
+        for vt in vertices(model.graph)
+            v_dict = unwrap(model.graph.nodesprops[vt])
+            v_data = unwrap_data(model.graph.nodesprops[vt])
+            for key in model.record.nprops
+                v_data[key] = [v_dict[key]]
+            end
         end
     end
 end
@@ -212,10 +219,12 @@ $(TYPEDSIGNATURES)
 @inline function _init_edge_data!(model::GraphModelDynGrTop)
     for ed in edges(model.graph)
         model.graph.edgesprops[ed]._extras._birth_time = 1
-        e_dict = unwrap(model.graph.edgesprops[ed])
-        e_data = unwrap_data(model.graph.edgesprops[ed])
-        for key in model.record.eprops
-            e_data[key] = [e_dict[key]]
+        if length(model.record.eprops)>0
+            e_dict = unwrap(model.graph.edgesprops[ed])
+            e_data = unwrap_data(model.graph.edgesprops[ed])
+            for key in model.record.eprops
+                e_data[key] = [e_dict[key]]
+            end
         end
     end
 end
@@ -224,11 +233,13 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _init_edge_data!(model::GraphModelFixGrTop)
-    for ed in edges(model.graph)
-        e_dict = unwrap(model.graph.edgesprops[ed])
-        e_data = unwrap_data(model.graph.edgesprops[ed])
-        for key in model.record.eprops
-            e_data[key] = [e_dict[key]]
+    if length(model.record.eprops)>0
+        for ed in edges(model.graph)
+            e_dict = unwrap(model.graph.edgesprops[ed])
+            e_data = unwrap_data(model.graph.edgesprops[ed])
+            for key in model.record.eprops
+                e_data[key] = [e_dict[key]]
+            end
         end
     end
 end
@@ -325,6 +336,27 @@ end
 """
 $(TYPEDSIGNATURES)
 
+Runs the simulation for `num_epochs` number of epochs where each epoch consists of `steps_per_epoch` number of steps.
+The model is saved as .jld2 file and the model.tick is reset to 1 at the end of each epoch.
+"""
+function run_model_epochs!(model::GraphModel; steps_per_epoch = 1, num_epochs=1, 
+    step_rule::Function=model_null_step!, save_to_folder=_default_folder[])
+    
+    for epoch in num_epochs
+        run_model!(model, steps=steps_per_epoch, step_rule = step_rule)
+        save_model(model, model_name = "model", save_as = "run"*string(epoch)*".jld2", folder = save_to_folder)
+        getfield(model, :tick)[] = 1 
+        _init_agents!(model)
+        _init_graph!(model)
+        _init_model_record!(model)
+    end
+
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
 Returns an animated simulation created from data collected during the run. Unless a path is specified
 the gif file of the simulation is saved as `anim_graph.gif` inside `your_home/.julia/dev/SimpleABM/gifs/`.
 """
@@ -339,19 +371,16 @@ function save_sim_luxor(model::GraphModel, frames::Int=model.tick, scl::Number=1
         node_size = _get_node_size(length(verts))
         
         function backdrop_sg(scene, frame)
-            Luxor.background("black")
+            Luxor.background("white")
             _draw_title(scene, frame)
             for vert in verts
-                vert_pos = model.graph.nodesprops[vert]._extras._pos
-                out_structure = out_links(model.graph, vert)
-                neighs_pos = [model.graph.nodesprops[nd]._extras._pos for nd in out_structure]
-                draw_vert(vert_pos, node_size, neighs_pos, is_directed(model.graph)) 
+                _draw_da_vert(model.graph, vert, node_size, frame, model.record.nprops)
             end
         end
     
         function backdrop_g(scene, frame)
             _draw_title(scene, frame)
-            Luxor.background("black")
+            Luxor.background("white")
         end
         
         use_backdrop = (is_static(model.graph) && show_space) ? backdrop_sg : backdrop_g
@@ -452,13 +481,10 @@ function animate_sim(model::GraphModel, frames::Int=model.tick; plots::Dict{Stri
         drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
         if model.graphics
             Luxor.origin()
-            Luxor.background("black")
+            Luxor.background("white")
             if is_static(model.graph) && show_graph
                 for vert in verts
-                    vert_pos = model.graph.nodesprops[vert]._extras._pos
-                    out_structure = out_links(model.graph, vert)
-                    neighs_pos = [model.graph.nodesprops[nd]._extras._pos for nd in out_structure]
-                    draw_vert(vert_pos, node_size, neighs_pos, is_directed(model.graph)) 
+                    _draw_da_vert(model.graph, vert, node_size, t, model.record.nprops)
                 end
             end
             draw_agents_and_graph(model, verts, node_size, t, scl)
@@ -544,18 +570,15 @@ function create_interactive_app(model::GraphModel; initialiser::Function = null_
     #_run_interactive_model()
 
     function _draw_interactive_frame_luxor(t, scl)
-        drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
+        drawing = Drawing(gparams.width, gparams.height, :png)
         if model.graphics
             verts = vertices(model.graph)
             node_size = _get_node_size(length(verts))
             Luxor.origin()
-            Luxor.background("black")
+            Luxor.background("white")
             if is_static(model.graph) && show_graph
                 for vert in verts
-                    vert_pos = model.graph.nodesprops[vert]._extras._pos
-                    out_structure = out_links(model.graph, vert)
-                    neighs_pos = [model.graph.nodesprops[nd]._extras._pos for nd in out_structure]
-                    draw_vert(vert_pos, node_size, neighs_pos, is_directed(model.graph)) 
+                    _draw_da_vert(model.graph, vert, node_size, t, model.record.nprops)
                 end
             end
             draw_agents_and_graph(model, verts, node_size, t, scl)

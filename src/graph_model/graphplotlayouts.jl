@@ -10,15 +10,18 @@ $(TYPEDSIGNATURES)
 This function is copied, with some modifications, from 
 https://github.com/JuliaGraphs/GraphPlot.jl/blob/master/src/layout.jl
 """
-function spring_layout(structure,
-    locs_x=rand(length(keys(structure))),
-    locs_y=rand(length(keys(structure)));
-    C=2.0,
-    REPEL_NUM = 20,
-    MAXITER=100,
+function spring_layout(structure;
+    C=3.5,
+    REPEL_NUM = 25,
+    MAXITER=200,
     INITTEMP=2.0)
 
-    nvg = length(keys(structure))
+    rng= Random.MersenneTwister(123)
+    locs_x=rand(rng, length(keys(structure)))
+    locs_y=rand(rng, length(keys(structure)))
+
+    verts = sort!(collect(keys(structure)))
+    nvg = length(verts)
     if nvg ==1
         return [0.5], [0.5]
     end
@@ -28,17 +31,18 @@ function spring_layout(structure,
     if nvg==3
         return [0.5,0.3,0.7], [0.7,0.3,0.3]
     end
-    k = C * sqrt(4.0 / nvg)
+    k = C * sqrt(1.0 / nvg)
     k² = k * k
 
     for iter = 1:MAXITER
-        for i = 1:nvg
+        for (node,l) in enumerate(verts)
             force_vec_x = 0.0
             force_vec_y = 0.0
 
-            for j in structure[i]
-                d_x = locs_x[j] - locs_x[i]
-                d_y = locs_y[j] - locs_y[i]
+            for vt in structure[node]
+                ind = findfirst(s->s==vt, verts)
+                d_x = locs_x[ind] - locs_x[l]
+                d_y = locs_y[ind] - locs_y[l]
                 dist²  = (d_x * d_x) + (d_y * d_y)
                 dist = sqrt(dist²)
                 F_d = dist / k - k² / dist²
@@ -48,10 +52,11 @@ function spring_layout(structure,
 
             num = min(REPEL_NUM, nvg)
             for _ in 1:num
-                j = rand(1:nvg)
-                if (j!=i) && !(j in structure[i])
-                    d_x = locs_x[j] - locs_x[i]
-                    d_y = locs_y[j] - locs_y[i]
+                vt = verts[rand(1:nvg)]
+                if (vt!=node) && !(vt in structure[node])
+                    ind = findfirst(s->s==vt, verts)
+                    d_x = locs_x[ind] - locs_x[l]
+                    d_y = locs_y[ind] - locs_y[l]
                     dist²  = (d_x * d_x) + (d_y * d_y)
                     dist = sqrt(dist²)
                     F_d =  - k² / dist²
@@ -65,8 +70,8 @@ function spring_layout(structure,
             fy = force_vec_y
             force_mag  = sqrt((fx * fx) + (fy * fy))
             scale      = min(force_mag, temp) / force_mag
-            locs_x[i] += fx*scale 
-            locs_y[i] += fy*scale
+            locs_x[l] += fx*scale 
+            locs_y[l] += fy*scale
         end
 
     end
@@ -77,8 +82,8 @@ function spring_layout(structure,
     function scaler(z, a, b)
         ((z - a)/(b - a))*_scale_graph+_boundary_frame
     end
-    map!(z -> scaler(z, min_x, max_x), locs_x, locs_x)
-    map!(z -> scaler(z, min_y, max_y), locs_y, locs_y)
+    map!(z -> gsize*scaler(z, min_x, max_x), locs_x, locs_x)
+    map!(z -> gsize*scaler(z, min_y, max_y), locs_y, locs_y)
 
     return locs_x, locs_y
 end

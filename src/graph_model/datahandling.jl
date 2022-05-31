@@ -46,7 +46,7 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _get_edge_data_condition(i,j,model::GraphModel)
-    if !(is_directed(model.graph))
+    if !(is_digraph(model.graph))
         i,j = i>j ? (j,i) : (i,j)
         condition = (i in vertices(model.graph)) && (j in model.graph.structure[i])
     else
@@ -126,7 +126,7 @@ end
 $(TYPEDSIGNATURES)
 """
 function latest_propvals(i::Int,j::Int, model::GraphModel, propname::Symbol, n::Int)
-    if !(is_directed(model.graph))
+    if !(is_digraph(model.graph))
         i,j = i>j ? (j,i) : (i,j)
     end
     return latest_propvals(model.graph.edgesprops[(i,j)], propname, n)
@@ -138,7 +138,7 @@ $(TYPEDSIGNATURES)
 """
 function latest_propvals(edge, model::GraphModel, propname::Symbol, n::Int)
     i,j=edge
-    if !(is_directed(model.graph))
+    if !(is_digraph(model.graph))
         i,j = i>j ? (j,i) : (i,j)
     end
     return unwrap_data(model.graph.edgesprops[(i,j)])[propname][max(end-n,1):end]

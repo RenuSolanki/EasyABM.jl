@@ -315,7 +315,14 @@ function _get_vertexprop_f(g::SimplePropGraph, i::Int, key::Symbol) #f = checks 
     return unwrap(g.nodesprops[i])[key]
 end
 
-is_directed(g::SimplePropGraph) = false
+"""
+$(TYPEDSIGNATURES)
+"""
+is_digraph(g::SimplePropGraph) = false
+
+"""
+$(TYPEDSIGNATURES)
+"""
 is_static(g::SimplePropGraph) = typeof(g) <: SimplePropGraph{StaticType}
 
 
@@ -393,7 +400,7 @@ $(TYPEDSIGNATURES)
 Creates a simple prop graph from a given simple graph created with Graphs.jl. 
 """
 function create_simple_graph(g::SimpleGraph{Int64}; gtype::Type{T}=StaticType) where T<:MType
-    ad_mat = adjacency_matrix(g)
+    ad_mat = Graphs.adjacency_matrix(g)
     create_simple_graph(ad_mat, gtype=gtype)
 end
 
@@ -728,8 +735,14 @@ function _get_vertexprop_f(g::DirPropGraph, i::Int, key::Symbol) #f = checks i i
     return unwrap(g.nodesprops[i])[key]
 end
 
+"""
+$(TYPEDSIGNATURES)
+"""
+is_digraph(g::DirPropGraph) = true
 
-is_directed(g::DirPropGraph) = true
+"""
+$(TYPEDSIGNATURES)
+"""
 is_static(g::DirPropGraph) = typeof(g) <: DirPropGraph{StaticType}
 
 """
@@ -806,7 +819,7 @@ $(TYPEDSIGNATURES)
 Creates a directed prop graph for a given directed graph created with Graphs.jl. 
 """
 function create_dir_graph(g::SimpleDiGraph{Int64}; gtype::Type{T}=StaticType) where T <: MType
-    ad_mat = adjacency_matrix(g)
+    ad_mat = Graphs.adjacency_matrix(g)
     create_dir_graph(ad_mat, gtype = gtype)
 end
 

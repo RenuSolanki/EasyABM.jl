@@ -128,13 +128,13 @@ $(TYPEDSIGNATURES)
     shape_color = (:color in record) ? agent_data[:color][index] : agent.color
 
 
-    size = max(4, w/2)
+    size = xdim/50
 
     if haskey(agent_data, :size)
         size = (:size in record) ? agent_data[:size][index] : agent.size
     end
    
-    size = size*scl
+    size = size*scl*w
 
     posx,posy = pos
     if periodic
@@ -159,8 +159,24 @@ $(TYPEDSIGNATURES)
     translate(x,y)  
     rotate(orientation)                        
     sethue(String(shape_color))             
-    setline(1)                              
-    shapefunctions2d[shape](size)  
+    setline(1)   
+    if shape==:bug
+        gsave()
+        b1 = cos(pi * (index+agent._extras._id)/10) - 1
+        a1 = (0.4 - 0.08* b1)*size
+        a2 =  (0.9 + 0.18* b1)*size
+        blnd = blend(Luxor.Point(0, 0), size/18, Luxor.Point(0, 0), size/4, "white", String(shape_color))
+        setblend(blnd)
+        Luxor.ellipse(Luxor.Point(0,0), a1, a2, action=:fill)
+        sethue("black") 
+        Luxor.circle(Luxor.Point(-0.125*size,0.2*size), 0.08*size, :fill)
+        Luxor.circle(Luxor.Point(0.125*size,0.2*size), 0.08*size, :fill)
+        Luxor.line(Luxor.Point(-0.1*size,0.2*size), Luxor.Point(-0.2*size,0.6*size), :stroke)
+        Luxor.line(Luxor.Point(0.1*size,0.2*size), Luxor.Point(0.2*size,0.6*size), :stroke)
+        grestore()   
+    else                           
+        shapefunctions2d[shape](size, index)  
+    end
     grestore()   
 
     
@@ -186,21 +202,5 @@ $(TYPEDSIGNATURES)
         end
         grestore()
     end
-    
-    
-    #uncomment this to mark each agent with its id
-    # gsave()
-    # translate(-(width/2), (height/2))
-    # Luxor.transform([1 0 0 -1 0 0]) 
-    # translate(x,y)
-    # if shape_color != :white
-    #     sethue("white")
-    # else
-    #     sethue("black")
-    # end
-    # fontface("Arial-Black")
-    # fontsize(10)
-    # text("$(agent._extras._id)", halign = :center, valign = :middle)
-    # grestore()
 
 end
