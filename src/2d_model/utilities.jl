@@ -164,7 +164,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Returns active neighboring agents to given agent. If the metric is `:chessboard`, then with dist =0 only agents present in the current 
+Returns active neighboring agents to given agent. If the metric is `:grid`, then with dist =0 only agents present in the current 
 block of the given agent are returned; with dist=1, agents in the current block of the given agent along with agents in the neighbouring 
 8 blocks are returned; with dist=2 agents in the current block of given agent, along with agents in 24 nearest blocks are returned, and 
 so on. With metric = `:euclidean` the agents within Euclidean distance `dist` are returned.
@@ -176,7 +176,7 @@ function neighbors(agent::AgentDict2D, model::GridModel2DDynAgNum, dist::Number=
     distint = Int(ceil(dist))
     neighbors_list = _get_neighbors(agent, model, distint)
 
-    if metric == :chessboard
+    if metric == :grid
         return neighbors_list
     end
 
@@ -191,7 +191,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Returns active neighboring agents to given agent. If the metric is `:chessboard`, then with dist =0 only agents present in the current 
+Returns active neighboring agents to given agent. If the metric is `:grid`, then with dist =0 only agents present in the current 
 block of the given agent are returned; with dist=1, agents in the current block of the given agent along with agents in the neighbouring 
 8 blocks are returned; with dist=2 agents in the current block of given agent, along with agents in 24 nearest blocks are returned, and 
 so on. With metric = `:euclidean` the agents within Euclidean distance `dist` are returned.
@@ -200,7 +200,7 @@ function neighbors(agent::AgentDict2D, model::GridModel2DFixAgNum, dist::Number=
     distint = Int(ceil(dist))
     neighbors_list = _get_neighbors(agent, model, distint)
 
-    if metric == :chessboard
+    if metric == :grid
         return neighbors_list
     end
 
@@ -237,6 +237,9 @@ Returns patches satisfying the given condition.
 """
 function get_patches(model::GridModel2D, condition::Function = _default_true )
     patches =  [(i,j) for i in 1:model.size[1] for j in 1:model.size[2]]
+    if condition == _default_true
+        return patches
+    end
     req_patches = patches[[ condition(model.patches[pt...]) for pt in patches]]
     return req_patches
 end

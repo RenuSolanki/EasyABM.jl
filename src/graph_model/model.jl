@@ -19,8 +19,8 @@ const GraphModelDynGrTop = Union{GraphModel{ MortalType, StaticType }, GraphMode
 
 
 function Base.getproperty(d::AbstractGraphModel, n::Symbol) 
-    if n == :tick
-       return getfield(d, :tick)[]
+    if (n == :tick) || (n==:max_id)
+       return getfield(d, n)[]
     else
        return getfield(d, n)
     end

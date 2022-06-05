@@ -99,6 +99,13 @@ In this simple model, the only data we have collected is the position of the pla
 df = get_agent_data(model.agents[2], model).record
 ```
 
+The following line of code returns the data of (half of the) speed of the planet during time evolution.
+
+```julia 
+df = get_agents_avg_props(model, agent -> agent.color == :blue ? norm(agent.vel) : 0.0, labels = ["Planet Speed/2"], plot_result = true)   
+```
+
+![png](assets/StarPlanetSystem/SPSPlot1.png)
 
 
 

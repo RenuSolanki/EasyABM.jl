@@ -11,6 +11,7 @@ create_3d_agent
 create_3d_agents
 create_graph_agent
 create_graph_agents
+create_similar
 ```
 
 ## Functions for defining model

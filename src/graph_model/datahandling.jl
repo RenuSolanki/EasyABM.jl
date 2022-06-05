@@ -10,7 +10,7 @@
 $(TYPEDSIGNATURES)
 """
 function get_node_data(node::Int, model::GraphModelDynGrTop)
-    if !(node in vertices(model.graph))
+    if !(node in getfield(model.graph, :_nodes))
         println("node ", node, " does not exist!")
         return
     end
@@ -30,7 +30,7 @@ end
 $(TYPEDSIGNATURES)
 """
 function get_node_data(node::Int, model::GraphModelFixGrTop)
-    if !(node in vertices(model.graph))
+    if !(node in getfield(model.graph, :_nodes))
         println("node ", node, " does not exist!")
         return
     end
@@ -48,9 +48,9 @@ $(TYPEDSIGNATURES)
 @inline function _get_edge_data_condition(i,j,model::GraphModel)
     if !(is_digraph(model.graph))
         i,j = i>j ? (j,i) : (i,j)
-        condition = (i in vertices(model.graph)) && (j in model.graph.structure[i])
+        condition = (i in getfield(model.graph, :_nodes)) && (j in model.graph.structure[i])
     else
-        condition = (i in vertices(model.graph)) && (j in model.graph.out_structure[i])
+        condition = (i in getfield(model.graph, :_nodes)) && (j in model.graph.out_structure[i])
     end
     return i,j, condition
 end
@@ -164,12 +164,12 @@ function get_nums_nodes(model::GraphModelDynGrTop, conditions::Function...; labe
         dict[name]=Int[]
         for tick in 1:model.tick
             num=0
-            for node in vertices(model.graph)
+            for node in getfield(model.graph, :_nodes)
                 birth_time = model.graph.nodesprops[node]._extras._birth_time
                 death_time = model.graph.nodesprops[node]._extras._death_time
                 if (tick>=birth_time)&&(tick<=death_time)
                     index = tick-birth_time+1
-                    nodecp = create_temp_prop_dict(unwrap_data(model.graph.nodesprops[node]), model.record.nprops, index)
+                    nodecp = create_temp_prop_dict(unwrap(model.graph.nodesprops[node]), unwrap_data(model.graph.nodesprops[node]), model.record.nprops, index)
                     if condition(nodecp)
                         num+=1
                     end
@@ -180,7 +180,7 @@ function get_nums_nodes(model::GraphModelDynGrTop, conditions::Function...; labe
     end
     df = DataFrame(dict);
     if plot_result
-        display(plot(Matrix(df), labels=permutedims(labels), xlabel="ticks", ylabel="number of nodes", legend=:topright)) #outertopright
+        display(plot(Matrix(df), labels=permutedims(names(df)), xlabel="ticks", ylabel="number of nodes", legend=:topright)) #outertopright
     end
     return df
 end
@@ -192,8 +192,8 @@ $(TYPEDSIGNATURES)
 function get_nodes_avg_props(model::GraphModelDynGrTop, 
     props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
 
-    dict = Dict{Symbol, Any}()
-    verts = vertices(model.graph)
+    dict = Dict{Symbol, Vector{Float64}}()
+    verts = getfield(model.graph, :_nodes)
 
     if length(verts)==0
         return DataFrame(dict)
@@ -204,7 +204,7 @@ function get_nodes_avg_props(model::GraphModelDynGrTop,
     for i in 1:length(props)
         fun = props[i]
         name = Symbol(labels[i])
-        dict[name]=Any[]
+        dict[name]=Float64[]
         for tick in 1:model.tick
             val = fun(first_node) - fun(first_node)
             num_alive = 0
@@ -213,7 +213,7 @@ function get_nodes_avg_props(model::GraphModelDynGrTop,
                 death_time = model.graph.nodesprops[node]._extras._death_time
                 if (tick>=birth_time)&&(tick<=death_time)
                     index = tick-birth_time+1
-                    nodecp = create_temp_prop_dict(unwrap_data(model.graph.nodesprops[node]), model.record.nprops, index)
+                    nodecp = create_temp_prop_dict(unwrap(model.graph.nodesprops[node]), unwrap_data(model.graph.nodesprops[node]), model.record.nprops, index)
                     val += fun(nodecp)
                     num_alive+=1
                 end
@@ -226,7 +226,7 @@ function get_nodes_avg_props(model::GraphModelDynGrTop,
     end
     df = DataFrame(dict);
     if plot_result
-        display(plot(Matrix(df), labels=permutedims(labels), xlabel="ticks", ylabel="", legend=:topright)) #outertopright
+        display(plot(Matrix(df), labels=permutedims(names(df)), xlabel="ticks", ylabel="", legend=:topright)) #outertopright
     end
     return df
 end
@@ -243,8 +243,8 @@ function get_nums_nodes(model::GraphModelFixGrTop, conditions::Function...; labe
         dict[name]=Int[]
         for tick in 1:model.tick
             num=0
-            for node in vertices(model.graph)
-                nodecp = create_temp_prop_dict(unwrap_data(model.graph.nodesprops[node]), model.record.nprops, tick)
+            for node in getfield(model.graph, :_nodes)
+                nodecp = create_temp_prop_dict(unwrap(model.graph.nodesprops[node]), unwrap_data(model.graph.nodesprops[node]), model.record.nprops, tick)
                 if condition(nodecp)
                     num+=1
                 end
@@ -254,7 +254,7 @@ function get_nums_nodes(model::GraphModelFixGrTop, conditions::Function...; labe
     end
     df = DataFrame(dict);
     if plot_result
-        display(plot(Matrix(df), labels=permutedims(labels), xlabel="ticks", ylabel="number of nodes", legend=:topright)) #outertopright
+        display(plot(Matrix(df), labels=permutedims(names(df)), xlabel="ticks", ylabel="number of nodes", legend=:topright)) #outertopright
     end
     return df
 end
@@ -268,8 +268,8 @@ $(TYPEDSIGNATURES)
 function get_nodes_avg_props(model::GraphModelFixGrTop, 
     props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
 
-    dict = Dict{Symbol, Any}()
-    verts = vertices(model.graph)
+    dict = Dict{Symbol, Vector{Float64}}()
+    verts = getfield(model.graph, :_nodes)
     num_alive = length(verts)
 
     if num_alive==0
@@ -281,11 +281,11 @@ function get_nodes_avg_props(model::GraphModelFixGrTop,
     for i in 1:length(props)
         fun = props[i]
         name = Symbol(labels[i])
-        dict[name]=Any[]
+        dict[name]=Float64[]
         for tick in 1:model.tick
             val = fun(first_node) - fun(first_node)
             for node in verts
-                nodecp = create_temp_prop_dict(unwrap_data(model.graph.nodesprops[node]), model.record.nprops, tick)
+                nodecp = create_temp_prop_dict(unwrap(model.graph.nodesprops[node]), unwrap_data(model.graph.nodesprops[node]), model.record.nprops, tick)
                 val += fun(nodecp)
             end
             val = val/num_alive
@@ -294,7 +294,7 @@ function get_nodes_avg_props(model::GraphModelFixGrTop,
     end
     df = DataFrame(dict);
     if plot_result
-        display(plot(Matrix(df), labels=permutedims(labels), xlabel="ticks", ylabel="", legend=:topright)) #outertopright
+        display(plot(Matrix(df), labels=permutedims(names(df)), xlabel="ticks", ylabel="", legend=:topright)) #outertopright
     end
     return df
 end
@@ -316,7 +316,7 @@ function get_nums_edges(model::GraphModelDynGrTop, conditions::Function...; labe
                 death_time = model.graph.edgesprops[edge]._extras._death_time
                 if (tick>=birth_time)&&(tick<=death_time)
                     index = tick-birth_time+1
-                    edgecp = create_temp_prop_dict(unwrap_data(model.graph.edgesprops[edge]), model.record.eprops, index)
+                    edgecp = create_temp_prop_dict(unwrap(model.graph.edgesprops[edge]), unwrap_data(model.graph.edgesprops[edge]), model.record.eprops, index)
 
                     if condition(edgecp)
                         num+=1
@@ -328,7 +328,7 @@ function get_nums_edges(model::GraphModelDynGrTop, conditions::Function...; labe
     end
     df = DataFrame(dict);
     if plot_result
-        display(plot(Matrix(df), labels=permutedims(labels), xlabel="ticks", ylabel="number of edges", legend=:topright)) #outertopright
+        display(plot(Matrix(df), labels=permutedims(names(df)), xlabel="ticks", ylabel="number of edges", legend=:topright)) #outertopright
     end
     return df
 end
@@ -342,28 +342,28 @@ $(TYPEDSIGNATURES)
 function get_edges_avg_props(model::GraphModelDynGrTop, 
     props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
 
-    dict = Dict{Symbol, Any}()
-    edges = edges(model.graph)
+    dict = Dict{Symbol, Vector{Float64}}()
+    eds = edges(model.graph)
 
-    if length(edges)==0
+    if length(eds)==0
         return DataFrame(dict)
     end
 
-    first_edge = model.graph.edgesprops[edges[1]]
+    first_edge = model.graph.edgesprops[eds[1]]
 
     for i in 1:length(props)
         fun = props[i]
         name = Symbol(labels[i])
-        dict[name]=Any[]
+        dict[name]=Float64[]
         for tick in 1:model.tick
             val = fun(first_edge) - fun(first_edge)
             num_alive = 0
-            for edge in edges
+            for edge in eds
                 birth_time = model.graph.edgesprops[edge]._extras._birth_time
                 death_time = model.graph.edgesprops[edge]._extras._death_time
                 if (tick>=birth_time)&&(tick<=death_time)
                     index = tick-birth_time+1
-                    edgecp = create_temp_prop_dict(unwrap_data(model.graph.edgesprops[edge]), model.record.eprops, index)
+                    edgecp = create_temp_prop_dict(unwrap(model.graph.edgesprops[edge]), unwrap_data(model.graph.edgesprops[edge]), model.record.eprops, index)
                     val += fun(edgecp)
                     num_alive+=1
                 end
@@ -376,7 +376,7 @@ function get_edges_avg_props(model::GraphModelDynGrTop,
     end
     df = DataFrame(dict);
     if plot_result
-        display(plot(Matrix(df), labels=permutedims(labels), xlabel="ticks", ylabel="", legend=:topright)) #outertopright
+        display(plot(Matrix(df), labels=permutedims(names(df)), xlabel="ticks", ylabel="", legend=:topright)) #outertopright
     end
     return df
 end
@@ -395,7 +395,7 @@ function get_nums_edges(model::GraphModelFixGrTop, conditions::Function...;label
         for tick in 1:model.tick
             num=0
             for edge in edges(model.graph)
-                edgecp = create_temp_prop_dict(unwrap_data(model.graph.edgesprops[edge]), model.record.eprops, tick)
+                edgecp = create_temp_prop_dict(unwrap(model.graph.edgesprops[edge]), unwrap_data(model.graph.edgesprops[edge]), model.record.eprops, tick)
                 if condition(edgecp)
                     num+=1
                 end
@@ -405,7 +405,7 @@ function get_nums_edges(model::GraphModelFixGrTop, conditions::Function...;label
     end
     df = DataFrame(dict);
     if plot_result
-        display(plot(Matrix(df), labels=permutedims(labels), xlabel="ticks", ylabel="number of edges", legend=:topright)) #outertopright
+        display(plot(Matrix(df), labels=permutedims(names(df)), xlabel="ticks", ylabel="number of edges", legend=:topright)) #outertopright
     end
     return df
 end
@@ -417,24 +417,24 @@ $(TYPEDSIGNATURES)
 function get_edges_avg_props(model::GraphModelFixGrTop, 
     props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
 
-    dict = Dict{Symbol, Any}()
-    edges = edges(model.graph)
-    num_alive = length(edges)
+    dict = Dict{Symbol, Vector{Float64}}()
+    eds = edges(model.graph)
+    num_alive = length(eds)
 
     if num_alive==0
         return DataFrame(dict)
     end
 
-    first_edge = model.graph.edgesprops[edges[1]]
+    first_edge = model.graph.edgesprops[eds[1]]
 
     for i in 1:length(props)
         fun = props[i]
         name = Symbol(labels[i])
-        dict[name]=Any[]
+        dict[name]=Float64[]
         for tick in 1:model.tick
             val = fun(first_edge) - fun(first_edge)
-            for edge in edges 
-                edgecp = create_temp_prop_dict(unwrap_data(model.graph.edgesprops[edge]), model.record.eprops, tick)
+            for edge in eds 
+                edgecp = create_temp_prop_dict(unwrap(model.graph.edgesprops[edge]), unwrap_data(model.graph.edgesprops[edge]), model.record.eprops, tick)
                 val += fun(edgecp)
             end
             val = val/num_alive
@@ -444,7 +444,7 @@ function get_edges_avg_props(model::GraphModelFixGrTop,
     end
     df = DataFrame(dict);
     if plot_result
-        display(plot(Matrix(df), labels=permutedims(labels), xlabel="ticks", ylabel="", legend=:topright)) #outertopright
+        display(plot(Matrix(df), labels=permutedims(names(df)), xlabel="ticks", ylabel="", legend=:topright)) #outertopright
     end
     return df
 end

@@ -65,13 +65,17 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function get_agents(model::Union{AbstractGridModel{MortalType}, AbstractGraphModel{T, MortalType} }, condition::Function = _default_true) where T<:MType
-    return model.agents[[(ag._extras._active)&&(condition(ag)) for ag in model.agents]]
+    all_agents = vcat(model.agents, model.parameters._extras._agents_added)
+    return all_agents[[(ag._extras._active)&&(condition(ag)) for ag in all_agents]]
 end
 
 """
 $(TYPEDSIGNATURES)
 """
 @inline function get_agents(model::Union{AbstractGridModel{StaticType}, AbstractGraphModel{T, StaticType} }, condition::Function = _default_true) where T<:MType
+    if condition == _default_true
+        return model.agents
+    end
     return model.agents[[condition(ag) for ag in model.agents]]
 end
 
@@ -80,59 +84,10 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function num_agents(model::Union{AbstractGridModel, AbstractGraphModel }, condition::Function = _default_true)
+    if condition == _default_true
+        return model.parameters._extras._num_agents # number of active agents
+    end
     return length(get_agents(model, condition))
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-"""
-@inline function get_nodes(graph::AbstractPropGraph{MortalType}, condition::Function = _default_true)
-    verts = vertices(graph)
-    return verts[[graph.nodesprops[vt]._extras._active && (condition(graph.nodesprops[vt])) for vt in verts]]
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-"""
-@inline function get_nodes(graph::AbstractPropGraph{StaticType}, condition::Function = _default_true)
-    verts = vertices(graph)
-    return verts[[condition(graph.nodesprops[vt]) for vt in verts]]
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-"""
-@inline function num_nodes(graph::AbstractPropGraph, condition::Function = _default_true)
-    return length(get_nodes(graph, condition))
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-"""
-@inline function get_edges(graph::AbstractPropGraph{MortalType}, condition::Function = _default_true)
-    edges = edges(graph)
-    return edges[[graph.edgesprops[ed]._extras._active && condition(graph.edgesprops[ed]) for ed in edges]]
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-"""
-@inline function get_edges(graph::AbstractPropGraph{StaticType}, condition::Function = _default_true)
-    edges = edges(graph)
-    return edges[[condition(graph.edgesprops[ed]) for ed in edges]]
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-"""
-@inline function num_edges(graph::AbstractPropGraph, condition::Function = _default_true)
-    return length(get_edges(graph, condition))
 end
 
 
@@ -221,28 +176,38 @@ $(TYPEDSIGNATURES)
 Returns agent having given id.
 """
 function agent_with_id(i, model::Union{AbstractGridModel{MortalType}, AbstractGraphModel{T, MortalType} }) where T<:MType
-    ids_agents_added = [ag._extras._id for ag in model.parameters._extras._agents_added]
-    if i in ids_agents_added
-        index = findfirst(x->x==i, ids_agents_added)
-        return model.parameters._extras._agents_added[index]
-    end
-    m = length(model.agents)
-    if i<=m 
-        for j in i:-1:1
+    m = model.parameters._extras._len_model_agents
+
+    if i<=m  
+        for j in i:-1:1 # will work if the list of model agents has not been shuffled
             ag = model.agents[j]
             if ag._extras._id == i
                 return ag
             end
         end
+    end
 
-    else
-        for j in m:-1:1
-            ag = model.agents[j]
-            if ag._extras._id ==i
-                return ag
-            end
+    for ag in model.parameters._extras._agents_added # still assuming that the user will avoid shuffling agents list
+        if ag._extras._id == i
+            return ag
         end
     end
+
+    for j in m:-1:1  # check in model.agents list beginning from the end as the initial part has been checked above
+        ag = model.agents[j]
+        if ag._extras._id == i 
+            return ag
+        end
+    end
+
+    for ag in model.parameters._extras._agents_killed # finally check in the list of killed agents
+        if ag._extras._id == i
+            return ag
+        end
+    end
+
+    return missing
+    
 end
 
 """
@@ -251,23 +216,17 @@ $(TYPEDSIGNATURES)
 Returns agent having given id.
 """
 function agent_with_id(i, model::Union{AbstractGridModel{StaticType}, AbstractGraphModel{T, StaticType} }) where T<:MType
-    m = model.max_id[]
-    if i<=m 
-        for j in i:-1:1
-            ag = model.agents[j]
-            if ag._extras._id == i
-                return ag
-            end
-        end
+    if model.agents[i]._extras._id == i  # will work if agents list has not been shuffled
+        return model.agents[i]
+    end
 
-    else
-        for j in m:-1:1
-            ag = model.agents[j]
-            if ag._extras._id ==i
-                return ag
-            end
+    for ag in model.agents
+        if ag._extras._id == i 
+            return ag
         end
     end
+
+    return missing
 end
 
 
@@ -354,4 +313,3 @@ function set_patchprops!(patch, model::AbstractGridModel; kwargs...)
         end
     end
 end
-

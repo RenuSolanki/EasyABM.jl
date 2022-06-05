@@ -189,19 +189,19 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Returns active neighboring agents to given agent. If the metric is `:chessboard`, then with dist =0 only agents present in the current 
+Returns active neighboring agents to given agent. If the metric is `:grid`, then with dist =0 only agents present in the current 
 block of the given agent are returned; with dist=1, agents in the current block of the given agent along with agents in the neighbouring 
 8 blocks are returned; with dist=2 agents in the current block of given agent, along with agents in 24 nearest blocks are returned, and 
 so on. With metric = `:euclidean` the agents within Euclidean distance `dist` are returned.
 """
-@inline function neighbors(agent::AgentDict3D, model::GridModel3DDynAgNum, dist::Number=1.0; metric::Symbol =:chessboard)
+@inline function neighbors(agent::AgentDict3D, model::GridModel3DDynAgNum, dist::Number=1.0; metric::Symbol =:euclidean)
     if !(agent._extras._active)
         return Vector{AgentDict3D{Symbol, Any}}()
     end
     distint = Int(ceil(dist))
     neighbors_list = _get_neighbors(agent, model, distint)
 
-    if metric == :chessboard
+    if metric == :grid
         return neighbors_list
     end
 
@@ -217,16 +217,16 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Returns active neighboring agents to given agent. If the metric is `:chessboard`, then with dist =0 only agents present in the current 
+Returns active neighboring agents to given agent. If the metric is `:grid`, then with dist =0 only agents present in the current 
 block of the given agent are returned; with dist=1, agents in the current block of the given agent along with agents in the neighbouring 
 8 blocks are returned; with dist=2 agents in the current block of given agent, along with agents in 24 nearest blocks are returned, and 
 so on. With metric = `:euclidean` the agents within Euclidean distance `dist` are returned.
 """
-@inline function neighbors(agent::AgentDict3D, model::GridModel3DFixAgNum, dist::Number=1.0; metric::Symbol =:chessboard)
+@inline function neighbors(agent::AgentDict3D, model::GridModel3DFixAgNum, dist::Number=1.0; metric::Symbol =:grid)
     distint = Int(ceil(dist))
     neighbors_list = _get_neighbors(agent, model, distint)
 
-    if metric == :chessboard
+    if metric == :grid
         return neighbors_list
     end
 
@@ -263,6 +263,9 @@ Returns patches satisfying given condition.
 """
 function get_patches(model::GridModel3D, condition::Function=_default_true)
     patches = [(i,j, k) for i in 1:model.size[1] for j in 1:model.size[2] for k in 1:model.size[3]]
+    if condition == _default_true
+        return patches
+    end
     req_patches = patches[[ condition(model.patches[pt...]) for pt in patches]]
     return req_patches
 end

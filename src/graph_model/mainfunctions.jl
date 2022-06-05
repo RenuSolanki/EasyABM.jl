@@ -2,14 +2,14 @@
 $(TYPEDSIGNATURES)
 
 Creates a model with 
-- agents : list of agents.
-- graph  : A graph created with Graph.jl or with SimpleABM graph functionality.
-- graphics : if true properties of pos, shape, color, orientation will be assigned to each agent by default, if not already assigned by user.
+- `agents` : list of agents.
+- `graph`  : A graph created with Graph.jl or with SimpleABM graph functionality.
+- `graphics` : if true properties of pos, shape, color, orientation will be assigned to each agent by default, if not already assigned by user.
 - `fix_agent_num` : Set it to true if agents do not die and new agents are not born during simulation. 
 - `static_graph` : Set it to false if graph topology needs to be changed during simulation.
 - `decorated_edges` : Set it to true if edges are to be assigned weights or any other properties.
 - `random_positions` : If this property is true, each agent, which doesn't already have a node property defined, will be given a default random node on the graph. 
-- kwargs : Keyword argments used as model parameters. 
+- `kwargs` : Keyword argments used as model parameters. 
 """
 function create_graph_model(agents::Vector{AgentDictGr{Symbol, Any}}, 
     graph::Union{SimplePropGraph,DirPropGraph, SimpleGraph{Int64}, SimpleDiGraph{Int64}}; fix_agents_num=false, 
@@ -46,10 +46,10 @@ function create_graph_model(agents::Vector{AgentDictGr{Symbol, Any}},
     graph.nodesprops[-1] = static_graph
     graph.nodesprops[-2] = fix_agents_num
 
-    if length(vertices(graph)) == 0
+    if length(getfield(graph, :_nodes)) == 0
         _add_vertex!(graph, 1)
     end
-    verts = sort!(vertices(graph))
+    verts = sort!(getfield(graph, :_nodes))
     default_node = verts[1]
     num_verts = length(verts)
 
@@ -68,8 +68,14 @@ function create_graph_model(agents::Vector{AgentDictGr{Symbol, Any}},
     end
 
     parameters._extras._random_positions = random_positions
-    parameters._extras._num_verts = num_verts
+    parameters._extras._num_verts = num_verts # number of active verts - change when node killed / added
+    parameters._extras._num_all_verts = num_verts # num of all verts alive or dead (i.e. length(model.graph.nodes)) - change when node added / permanently removed
+    parameters._extras._max_node_id = num_verts # largest of the number tags of nodes - change when node added / permanently removed
+    parameters._extras._num_edges = length(edges(graph)) # number of active edges
+    parameters._extras._num_agents = n # number of active agents
+    parameters._extras._len_model_agents = n #number of agents in model.agents
     parameters._extras._show_space = true
+    parameters._extras._keep_deads_data = true
 
     if graphics
         locs_x, locs_y = spring_layout(structure)
@@ -186,7 +192,7 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _init_vertex_data!(model::GraphModelDynGrTop)
-    for vt in vertices(model.graph)
+    for vt in getfield(model.graph, :_nodes)
         model.graph.nodesprops[vt]._extras._birth_time = 1
         if length(model.record.nprops)>0
             v_dict = unwrap(model.graph.nodesprops[vt])
@@ -203,7 +209,7 @@ $(TYPEDSIGNATURES)
 """
 @inline function _init_vertex_data!(model::GraphModelFixGrTop)
     if length(model.record.nprops)>0
-        for vt in vertices(model.graph)
+        for vt in getfield(model.graph, :_nodes)
             v_dict = unwrap(model.graph.nodesprops[vt])
             v_data = unwrap_data(model.graph.nodesprops[vt])
             for key in model.record.nprops
@@ -252,7 +258,7 @@ function _init_graph!(model::GraphModel)
     _permanently_remove_inactive_edges!(model)
     _permanently_remove_inactive_nodes!(model)
 
-    if length(vertices(model.graph)) == 0
+    if length(getfield(model.graph, :_nodes)) == 0
         _create_a_node!(model)
     end
 
@@ -268,7 +274,7 @@ function _init_agents!(model::GraphModelDynAgNum)
     _permanently_remove_inactive_agents!(model)
     commit_add_agents!(model)
     empty!(model.parameters._extras._agents_killed)
-    getfield(model,:max_id)[] = max([ag._extras._id for ag in model.agents]...)
+    getfield(model,:max_id)[] = model.parameters._extras._len_model_agents > 0 ? max([ag._extras._id for ag in model.agents]...) : 0
     for agent in model.agents
         agent._extras._birth_time = 1
         _init_agent_record!(agent)
@@ -298,7 +304,10 @@ agents properties is specified, it will replace the `keeps_record_of` list of ea
 with keys "nodes", "edges" and "model" respectively.
 """
 function init_model!(model::GraphModel; initialiser::Function = null_init!, 
-    props_to_record::Dict{String, Vector{Symbol}} = Dict{String, Vector{Symbol}}("agents"=>Symbol[], "nodes"=>Symbol[], "edges"=>Symbol[], "model"=>Symbol[]) )
+    props_to_record::Dict{String, Vector{Symbol}} = Dict{String, Vector{Symbol}}("agents"=>Symbol[], "nodes"=>Symbol[], "edges"=>Symbol[], "model"=>Symbol[]),
+    keep_deads_data = true)
+
+    model.parameters._extras._keep_deads_data= keep_deads_data
 
     aprops = get(props_to_record, "agents", Symbol[])
     nprops = get(props_to_record, "nodes", Symbol[])
@@ -328,7 +337,7 @@ Runs the simulation for `steps` number of steps.
 """
 function run_model!(model::GraphModel; steps=1, step_rule::Function=model_null_step!)
 
-    _run_sim!(model, steps, step_rule, do_after_model_step!)
+    _run_sim!(model, steps, step_rule)
 
 end
 
@@ -356,9 +365,6 @@ end
 
 """
 $(TYPEDSIGNATURES)
-
-Returns an animated simulation created from data collected during the run. Unless a path is specified
-the gif file of the simulation is saved as `anim_graph.gif` inside `your_home/.julia/dev/SimpleABM/gifs/`.
 """
 function save_sim_luxor(model::GraphModel, frames::Int=model.tick, scl::Number=1.0; path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_space = true) 
     if model.graphics
@@ -367,8 +373,8 @@ function save_sim_luxor(model::GraphModel, frames::Int=model.tick, scl::Number=1
         fr = min(frames, ticks)
         movie_abm = Movie(gparams.width, gparams.height, "movie_abm", 1:fr)
         scene_array = Vector{Luxor.Scene}()
-        verts = vertices(model.graph)
-        node_size = _get_node_size(length(verts))
+        verts = getfield(model.graph, :_nodes)
+        node_size = _get_node_size(model.parameters._extras._num_verts)
         
         function backdrop_sg(scene, frame)
             Luxor.background("white")
@@ -402,9 +408,6 @@ end
 
 """
 $(TYPEDSIGNATURES)
-
-Returns an animated simulation created from data collected during the run. Unless a path is specified
-the gif file of the simulation is saved as `anim_graph.gif` inside `your_home/.julia/dev/SimpleABM/gifs/`.
 """
 function save_sim_makie(model::GraphModel, frames::Int=model.tick, scl::Number=1.0; path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_space = true) 
     if model.graphics
@@ -470,13 +473,17 @@ $(TYPEDSIGNATURES)
 
 Creates an animation from the data collected during model run.
 """
-function animate_sim(model::GraphModel, frames::Int=model.tick; plots::Dict{String, Function} = Dict{String, Function}(), 
+function animate_sim(model::GraphModel, frames::Int=model.tick; 
+    agent_plots::Dict{String, <:Function} = Dict{String, Function}(), 
+    node_plots::Dict{String, <:Function} = Dict{String, Function}(), 
+    plots_only = false, 
     path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_graph = true, backend= :luxor)
     ticks = getfield(model, :tick)[]
     model.parameters._extras._show_space = show_graph
     fr = min(frames, ticks)
-    verts = vertices(model.graph)
-    node_size = _get_node_size(length(verts))
+    verts = getfield(model.graph, :_nodes)
+    node_size = _get_node_size(model.parameters._extras._num_verts)
+
     function draw_frame_luxor(t, scl)
         drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
         if model.graphics
@@ -512,18 +519,35 @@ function animate_sim(model::GraphModel, frames::Int=model.tick; plots::Dict{Stri
         save_sim(model, fr, scl, path= path, show_space=show_graph, backend = backend)
     end
 
+    function _does_nothing(t,scl::Number=1)
+        nothing
+    end
 
     draw_frame = backend==:makie ? draw_frame_makie : draw_frame_luxor
 
+    if plots_only
+        draw_frame = _does_nothing
+        _save_sim = _does_nothing
+    end
+
     labels = String[]
     conditions = Function[]
-    for (lbl, cond) in plots
+    for (lbl, cond) in agent_plots
         push!(labels, lbl)
         push!(conditions, cond)
     end
-    df = get_agents_avg_props(model, conditions..., labels= labels)
+    agent_df = get_agents_avg_props(model, conditions..., labels= labels)
 
-    _interactive_app(model, fr,_save_sim, draw_frame, df)
+    labels = String[]
+    conditions = Function[]
+    for (lbl, cond) in node_plots
+        push!(labels, lbl)
+        push!(conditions, cond)
+    end
+
+    node_df = get_agents_avg_props(model, conditions..., labels= labels)
+
+    _interactive_app(model, fr, plots_only,_save_sim, draw_frame, agent_df, DataFrames.DataFrame(), node_df)
 end
 
 
@@ -532,20 +556,18 @@ $(TYPEDSIGNATURES)
 
 Creates an interactive app for the model.
 """
-function create_interactive_app(model::GraphModel; initialiser::Function = null_init!, 
+function create_interactive_app(inmodel::GraphModel; initialiser::Function = null_init!, 
     props_to_record::Dict{String, Vector{Symbol}} = Dict{String, Vector{Symbol}}("agents"=>Symbol[], "nodes"=>Symbol[], "edges"=>Symbol[], "model"=>Symbol[]),
     step_rule::Function=model_null_step!,
     agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
-    model_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
-    plots::Dict{String, Function} = Dict{String, Function}(),
+    model_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), #initialiser will override the changes made
+    agent_plots::Dict{String, <:Function} = Dict{String, Function}(),
+    node_plots::Dict{String, <:Function} = Dict{String, Function}(),
+    plots_only = false,
     path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"),
     frames=200, show_graph=true, backend = :luxor) 
 
-    user_response = loss_of_data_prompt()
-
-    if user_response
-        return
-    end
+    model = deepcopy(inmodel)
 
     model.parameters._extras._show_space = show_graph
 
@@ -555,25 +577,45 @@ function create_interactive_app(model::GraphModel; initialiser::Function = null_
     end
 
 
-    function _init_interactive_model(ufun::Function = ()-> nothing)
-        init_model!(model, initialiser=initialiser, props_to_record = props_to_record)
-        ufun()
-        _run_interactive_model(frames)
+    lblsa = String[]
+    condsa = Function[]
+    for (lbl, cond) in agent_plots
+        push!(lblsa, lbl)
+        push!(condsa, cond)
     end
 
-    _init_interactive_model()
+    lblsp = String[]
+    condsp = Function[]
+    for (lbl, cond) in node_plots
+        push!(lblsp, lbl)
+        push!(condsp, cond)
+    end
+    function _init_interactive_model(ufun::Function = x -> nothing)
+        model = deepcopy(inmodel)
+        ufun(model)
+        init_model!(model, initialiser=initialiser, props_to_record = props_to_record)
+        ufun(model)
+        _run_interactive_model(frames)
+        agent_df = get_agents_avg_props(model, condsa..., labels= lblsa)
+        node_df = get_nodes_avg_props(model, condsp..., labels= lblsp)
+        return agent_df, DataFrame(), node_df
+    end
+
+    agent_df, patch_df, node_df= _init_interactive_model()
 
     function _save_sim(scl)
         save_sim(model, frames, scl, path= path, show_space=show_graph, backend = backend)
     end
 
-    #_run_interactive_model()
+    function _does_nothing(t,scl::Number=1)
+        nothing
+    end
 
     function _draw_interactive_frame_luxor(t, scl)
+        verts = getfield(model.graph, :_nodes)
+        node_size = _get_node_size(model.parameters._extras._num_verts)
         drawing = Drawing(gparams.width, gparams.height, :png)
         if model.graphics
-            verts = vertices(model.graph)
-            node_size = _get_node_size(length(verts))
             Luxor.origin()
             Luxor.background("white")
             if is_static(model.graph) && show_graph
@@ -586,6 +628,8 @@ function create_interactive_app(model::GraphModel; initialiser::Function = null_
         finish()
         drawing
     end
+
+
     fig = Figure(resolution = (gparams.height, gparams.width))
     ax = Axis(fig[1, 1])
     ax.title = " "
@@ -603,9 +647,14 @@ function create_interactive_app(model::GraphModel; initialiser::Function = null_
         return fig
     end
 
-    _draw_interactive_frame = backend==:makie ? _draw_interactive_frame_makie : _draw_interactive_frame_makie
+    _draw_interactive_frame = backend==:makie ? _draw_interactive_frame_makie : _draw_interactive_frame_luxor
 
-    _live_interactive_app(model, frames, _save_sim, _init_interactive_model, _run_interactive_model, _draw_interactive_frame, agent_controls, model_controls,plots)
+    if plots_only
+        _draw_interactive_frame = _does_nothing
+        _save_sim = _does_nothing
+    end
+
+    _live_interactive_app(model, frames, plots_only, _save_sim, _init_interactive_model, _run_interactive_model, _draw_interactive_frame, agent_controls, model_controls, agent_df, ()->nothing, patch_df, node_df)
 
 end
 

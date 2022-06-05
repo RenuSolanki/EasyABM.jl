@@ -11,6 +11,7 @@ makedocs(
                 "Schellings Segregation model" => "schelling.md",
                 "Flocking" => "boids.md",
                 "Rock-Paper-Scissor" => "stone_paper_scissor.md",
+                "SIR model" => "SIR.md",
 
                 ],
                 
@@ -20,7 +21,7 @@ makedocs(
                 ],
 
             "Graph Space Examples" => [
-
+                "Ising model" => "ising.md",
                 ],
             
             ],

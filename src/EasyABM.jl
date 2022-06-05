@@ -4,6 +4,7 @@ export  StaticType, MortalType, PropDict, gparams, gparams3d,
         #create agents and models
         create_2d_agent, create_2d_agents, create_graph_agent, 
         create_graph_agents, create_3d_agent, create_3d_agents,
+        create_similar,
         create_2d_model, create_graph_model, create_3d_model,
         # initialise, run, visualise
         init_model!, run_model!, run_model_epochs!, animate_sim, 
@@ -51,6 +52,7 @@ export  StaticType, MortalType, PropDict, gparams, gparams3d,
 
 using Luxor, DataFrames, StatsBase, SparseArrays
 using Plots:plot
+import Plots
 using Graphs
 using JLD2
 using Random

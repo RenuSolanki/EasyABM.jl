@@ -34,7 +34,7 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _create_a_node!(model::GraphModelDynGrTop)
-    num = length(vertices(model.graph))+1
+    num = model.parameters._extras._max_node_id+1
     _add_vertex!(model.graph, num)
     madict = PropDataDict() 
     madict._extras._agents = Int[]
@@ -43,7 +43,9 @@ $(TYPEDSIGNATURES)
     madict._extras._death_time = Inf
     model.graph.nodesprops[num] = madict
     empty!(model.record.nprops)
-    model.parameters._extras._num_verts = 1
+    model.parameters._extras._num_verts += 1
+    model.parameters._extras._num_all_verts += 1
+    model.parameters._extras._max_node_id = num
 end
 
 
@@ -51,14 +53,16 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _create_a_node!(model::GraphModelFixGrTop)
-    num = length(vertices(model.graph))+1
+@inline function _create_a_node!(model::GraphModelFixGrTop) #in the rare case when use creates models with an empty graph
+    num = model.parameters._extras._max_node_id+1
     _add_vertex!(model.graph, num)
     madict = PropDataDict()
     madict._extras._agents = Int[]
     model.graph.nodesprops[num] = madict
     empty!(model.record.nprops)
-    model.parameters._extras._num_verts = 1
+    model.parameters._extras._num_verts += 1
+    model.parameters._extras._num_all_verts += 1
+    model.parameters._extras._max_node_id = num
 end
 
 
@@ -75,11 +79,12 @@ function add_agent!(agent, model::GraphModelDynAgNum)
             _create_a_node!(model)
         end
     
-        verts = get_nodes(model.graph)
+        verts = get_nodes(model)
+        len_verts = model.parameters._extras._num_verts #number of active verts
 
         if !haskey(agent, :node) || !(agent.node in verts)
             if model.parameters._extras._random_positions
-                default_node = verts[rand(1:length(verts))]
+                default_node = verts[rand(1:len_verts)]
                 agent.node = default_node # if random_positions is true, we need to assign a pos property
             else
                 default_node = verts[1]
@@ -109,6 +114,8 @@ function add_agent!(agent, model::GraphModelDynAgNum)
         _init_agent_record!(agent)
 
         getfield(model,:max_id)[] +=1
+        model.parameters._extras._num_agents += 1 #active agents
+        model.parameters._extras._len_model_agents +=1 # len(model.agents)
     end
 end
 
@@ -117,6 +124,7 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _create_node_structure!(node, graph::SimplePropGraph)
+    push!(getfield(graph, :_nodes), node)
     graph.structure[node] = Int[]
 end
 
@@ -124,6 +132,7 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _create_node_structure!(node, graph::DirPropGraph)
+    push!(getfield(graph, :_nodes), node)
     graph.in_structure[node] = Int[]
     graph.out_structure[node] = Int[]
 end
@@ -133,32 +142,29 @@ $(TYPEDSIGNATURES)
 
 Adds a node with properties specified in `kwargs` to the model's graph.
 """
-function add_node!(node, model::GraphModelDynGrTop; kwargs...)
-    if node<0
-        println("Only positive numbered nodes are allowed!")
-        return
+function add_node!(model::GraphModelDynGrTop; kwargs...)
+    node = model.parameters._extras._max_node_id+1
+    _create_node_structure!(node, model.graph)
+    madict = PropDataDict(Dict{Symbol, Any}(kwargs))
+    madict._extras._agents=Int[]
+    madict._extras._active=true
+    madict._extras._birth_time = model.tick
+    madict._extras._death_time=Inf
+    model.graph.nodesprops[node] = madict
+    model.parameters._extras._num_verts +=1
+    model.parameters._extras._num_all_verts+=1
+    model.parameters._extras._max_node_id = node
+    if model.graphics && !haskey(model.graph.nodesprops[node], :pos) && !haskey(model.graph.nodesprops[node]._extras, :_pos)
+        model.graph.nodesprops[node]._extras._pos = (rand()*_scale_graph+_boundary_frame, rand()*_scale_graph+_boundary_frame)
     end
-    nodes = vertices(model.graph)
-    if !(node in nodes)
-        _create_node_structure!(node, model.graph)
-        madict = PropDataDict(Dict{Symbol, Any}(kwargs))
-        madict._extras._agents=Int[]
-        madict._extras._active=true
-        madict._extras._birth_time = model.tick
-        madict._extras._death_time=Inf
-        model.graph.nodesprops[node] = madict
-        model.parameters._extras._num_verts +=1
-        if model.graphics && !haskey(model.graph.nodesprops[node], :pos) && !haskey(model.graph.nodesprops[node]._extras, :_pos)
-            model.graph.nodesprops[node]._extras._pos = (rand()*_scale_graph+_boundary_frame, rand()*_scale_graph+_boundary_frame)
-        end
-        if length(model.record.nprops)>0
-            node_dict = unwrap(model.graph.nodesprops[node])
-            node_data = unwrap_data(model.graph.nodesprops[node])
-            for key in model.record.nprops
-                push!(node_data[key], node_dict[key])
-            end
+    if length(model.record.nprops)>0
+        node_dict = unwrap(model.graph.nodesprops[node])
+        node_data = unwrap_data(model.graph.nodesprops[node])
+        for key in model.record.nprops
+            push!(node_data[key], node_dict[key])
         end
     end
+
 end
 
 
@@ -202,7 +208,7 @@ $(TYPEDSIGNATURES)
 Adds an edge with properties `kwargs` to model graph. 
 """
 function create_edge!(i, j, model::GraphModelDynGrTop; kwargs...)
-    nodes = vertices(model.graph)
+    nodes = getfield(model.graph, :_nodes)
     i,j,condition = _add_edge_condition(nodes,i,j,model.graph)
     if condition
         _update_edge_structure!(i, j, model.graph)
@@ -210,6 +216,7 @@ function create_edge!(i, j, model::GraphModelDynGrTop; kwargs...)
         madict._extras._active=true
         madict._extras._birth_time = model.tick
         madict._extras._death_time=Inf
+        model.parameters._extras._num_edges +=1
         model.graph.edgesprops[(i,j)] = madict
         if length(model.record.eprops)>0
             edge_dict = unwrap(model.graph.edgesprops[(i,j)])
@@ -236,14 +243,17 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _kill_edges_at!(node::Int, graph::SimplePropGraph, tick::Int)
+    n=0
     structure = graph.structure[node]
     for j in structure
         i,k = j>node ? (node, j) : (j, node)
         if graph.edgesprops[(i,k)]._extras._active
             graph.edgesprops[(i,k)]._extras._active = false
             graph.edgesprops[(i,k)]._extras._death_time = tick
+            n+=1
         end
     end
+    return n
 end
 
 """
@@ -252,18 +262,22 @@ $(TYPEDSIGNATURES)
 Adds an edge with properties `kwargs` to model graph. 
 """
 @inline function _kill_edges_at!(node::Int, graph::DirPropGraph, tick::Int)
+    n = 0 
     for j in graph.in_structure[node]
         if graph.edgesprops[(j,node)]._extras._active
             graph.edgesprops[(j,node)]._extras._active = false
             graph.edgesprops[(j,node)]._extras._death_time = tick
+            n+=1
         end
     end
     for j in graph.out_structure[node]
         if graph.edgesprops[(node,j)]._extras._active
             graph.edgesprops[(node,j)]._extras._active = false
             graph.edgesprops[(node,j)]._extras._death_time = tick
+            n+=1
         end
     end
+    return n
 end
 
 
@@ -280,10 +294,11 @@ adds an edge with properties `kwargs` to model graph.
         agent._extras._active = false
         agent._extras._death_time = model.tick
     end
-    _kill_edges_at!(node, model.graph, model.tick)
+    n = _kill_edges_at!(node, model.graph, model.tick)
     model.graph.nodesprops[node]._extras._active = false
     model.graph.nodesprops[node]._extras._death_time= model.tick
     model.parameters._extras._num_verts -= 1
+    model.parameters._extras._num_edges -= n
 end
 
 
@@ -296,20 +311,23 @@ adds an edge with properties `kwargs` to model graph.
     if length(model.graph.nodesprops[node]._extras._agents)>0
         return
     end
-    _kill_edges_at!(node, model.graph, model.tick)
+    n = _kill_edges_at!(node, model.graph, model.tick)
     model.graph.nodesprops[node]._extras._active = false
     model.graph.nodesprops[node]._extras._death_time= model.tick
     model.parameters._extras._num_verts -= 1   
+    model.parameters._extras._num_edges -= n
 end
 
 
 """
 $(TYPEDSIGNATURES)
 
-Removes a node from model graph. 
+Removes a node from model graph. For performance reasons the function does not check if the node contains the node so it will
+throw an error if the user tries to delete a node which is not there. Also the node will not be deleted if the agents in the model
+can not be killed and the number of agents at the given node is nonzero.
 """
 function kill_node!(node, model::GraphModelDynGrTop)
-    if (node in vertices(model.graph)) && model.graph.nodesprops[node]._extras._active 
+    if model.graph.nodesprops[node]._extras._active 
        _clear_and_kill_node!(node, model)       
     end
 end
@@ -345,6 +363,7 @@ function kill_edge!(i,j, model::GraphModelDynGrTop)
     if condition
         model.graph.edgesprops[(i,j)]._extras._active = false
         model.graph.edgesprops[(i,j)]._extras._death_time  = model.tick
+        model.parameters._extras._num_edges -= 1
     end
 end
 
@@ -362,10 +381,16 @@ end
 $(TYPEDSIGNATURES)
 """
 function _permanently_remove_inactive_nodes!(model::GraphModelDynGrTop)
-    verts = vertices(model.graph)
+    verts = getfield(model.graph, :_nodes)
     nodes_to_remove = verts[[!(model.graph.nodesprops[vt]._extras._active) for vt in verts]]
     for node in nodes_to_remove
-        _rem_vertex!(model.graph, node)
+        _rem_vertex_f!(model.graph, node)
+        model.parameters._extras._num_all_verts -=1
+    end
+    if model.parameters._extras._num_all_verts >0
+        model.parameters._extras._max_node_id = getfield(model.graph, :_nodes)[model.parameters._extras._num_all_verts]
+    else
+        model.parameters._extras._max_node_id = 0 
     end
 end
 
@@ -378,10 +403,10 @@ _permanently_remove_inactive_nodes!(model::GraphModelFixGrTop) = nothing
 $(TYPEDSIGNATURES)
 """
 function _permanently_remove_inactive_edges!(model::GraphModelDynGrTop)
-    edges = edges(model.graph)
-    edges_to_remove = edges[[!(model.graph.edgesprops[ed]._extras._active) for ed in edges]]
+    eds = edges(model.graph)
+    edges_to_remove = eds[[!(model.graph.edgesprops[ed]._extras._active) for ed in eds]]
     for edge in edges_to_remove
-        _rem_edge!(model.graph, edge[1], edge[2])
+        _rem_edge_f!(model.graph, edge[1], edge[2])
     end
 end
 
@@ -397,7 +422,7 @@ $(TYPEDSIGNATURES)
 """
 @inline function update_nodes_record!(model::GraphModelDynGrTop)
     if length(model.record.nprops)>0
-        for node in vertices(model.graph)
+        for node in getfield(model.graph, :_nodes)
             if model.graph.nodesprops[node]._extras._active
                 node_dict = unwrap(model.graph.nodesprops[node])
                 node_data = unwrap_data(model.graph.nodesprops[node])
@@ -415,7 +440,7 @@ $(TYPEDSIGNATURES)
 """
 @inline function update_nodes_record!(model::GraphModelFixGrTop)
     if length(model.record.nprops)>0
-        for node in vertices(model.graph)
+        for node in getfield(model.graph, :_nodes)
             node_dict = unwrap(model.graph.nodesprops[node])
             node_data = unwrap_data(model.graph.nodesprops[node])
             for key in model.record.nprops
@@ -489,8 +514,12 @@ $(TYPEDSIGNATURES)
 """
 function do_after_model_step!(model::GraphModelDynAgNum)
     
-    _permanently_remove_inactive_agents!(model)  # permanent removal simply means storing in a different place. We don't do that 
-                                                 # with inactive nodes and edges during a simulation.
+    _permanently_remove_inactive_agents!(model)  # permanent removal simply means storing in a different place unless `keep_deads_data` is false.
+    
+    if !(model.parameters._extras._keep_deads_data)
+        _permanently_remove_inactive_nodes!(model)
+        _permanently_remove_inactive_edges!(model)
+    end
 
     commit_add_agents!(model) 
 
@@ -510,6 +539,11 @@ end
 $(TYPEDSIGNATURES)
 """
 function do_after_model_step!(model::GraphModelFixAgNum)
+
+    if !(model.parameters._extras._keep_deads_data)
+        _permanently_remove_inactive_nodes!(model)
+        _permanently_remove_inactive_edges!(model)
+    end
 
     update_agents_record!(model)
 

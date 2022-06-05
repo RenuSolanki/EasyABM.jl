@@ -452,6 +452,69 @@ function set_edgeprops!(edge, model::GraphModel; kwargs...)
     end
 end
 
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function get_nodes(model::GraphModelDynGrTop, condition::Function = _default_true)
+    verts = getfield(model.graph, :_nodes)
+    return verts[[model.graph.nodesprops[vt]._extras._active && (condition(model.graph.nodesprops[vt])) for vt in verts]]
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function get_nodes(model::GraphModelFixGrTop, condition::Function = _default_true)
+    verts = getfield(model.graph, :_nodes)
+    if condition == _default_true
+        return verts
+    end
+    return verts[[condition(model.graph.nodesprops[vt]) for vt in verts]]
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function num_nodes(model::GraphModel, condition::Function = _default_true)
+    if condition == _default_true
+        return model.parameters._extras._num_verts # number of active verts
+    end
+    return length(get_nodes(model, condition))
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function get_edges(model::GraphModelDynGrTop, condition::Function = _default_true)
+    eds = edges(model.graph)
+    return eds[[model.graph.edgesprops[ed]._extras._active && condition(model.graph.edgesprops[ed]) for ed in eds]]
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function get_edges(model::GraphModelFixGrTop, condition::Function = _default_true)
+    eds = edges(model.graph)
+    if condition == _default_true # for edges may not have properties assigned to them
+        return eds
+    end
+    return eds[[condition(model.graph.edgesprops[ed]) for ed in eds]]
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function num_edges(model::GraphModel, condition::Function = _default_true)
+    if condition == _default_true
+        return model.parameters._extras._num_edges # num of active edges
+    end
+    return length(get_edges(model, condition))
+end
+
 
 """
 $(TYPEDSIGNATURES)

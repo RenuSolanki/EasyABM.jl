@@ -1,7 +1,7 @@
 struct PropDict{K, V} <: AbstractPropDict{K, V}
-    d::Dict{Symbol, Any}
+    d::Dict{Symbol, V}
     PropDict() = new{Symbol, Any}(Dict{Symbol, Any}())
-    PropDict(d::Dict{Symbol, Any}) = new{Symbol, Any}(d)
+    PropDict(d::Dict{Symbol, V}) where V = new{Symbol, V}(d)
 end
 
 Base.IteratorSize(::Type{PropDict{T}}) where T = IteratorSize(T)

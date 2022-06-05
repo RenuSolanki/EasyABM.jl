@@ -65,35 +65,30 @@ end
 
 @inline function _create_props_lists(aprops::Vector{Symbol}, nprops::Vector{Symbol}, eprops::Vector{Symbol}, mprops::Vector{Symbol}, model::AbstractGraphModel)
 
+    empty!(model.record.aprops)
     for sym in aprops
-        if !(sym in model.record.aprops)
-            push!(model.record.aprops, sym)
-        end
+        push!(model.record.aprops, sym)
     end
 
-    if length(model.record.aprops)>0
+    if length(aprops)>0
         for agent in model.agents
-            unwrap(agent)[:keeps_record_of] = copy(model.record.aprops)
+            unwrap(agent)[:keeps_record_of] = copy(aprops)
         end
     end
 
+    empty!(model.record.mprops)
     for sym in mprops
-        if !(sym in model.record.mprops)
-            push!(model.record.mprops, sym)
-        end
+        push!(model.record.mprops, sym)
     end
  
-
+    empty!(model.record.nprops)
     for sym in nprops
-        if !(sym in model.record.nprops)
-            push!(model.record.nprops, sym)
-        end
+        push!(model.record.nprops, sym)
     end
 
+    empty!(model.record.eprops)
     for sym in eprops
-        if !(sym in model.record.eprops)
-            push!(model.record.eprops, sym)
-        end
+        push!(model.record.eprops, sym)
     end
 
 end
@@ -114,14 +109,23 @@ $(TYPEDSIGNATURES)
 This function is for use from within the module and is not exported.
 """
 @inline function _permanently_remove_inactive_agents!(model::Union{AbstractGridModel{MortalType}, AbstractGraphModel{T, MortalType} }) where T<:MType
+    newly_added = model.parameters._extras._agents_added
     for i in length(model.parameters._extras._agents_killed):-1:1
         agent = model.parameters._extras._agents_killed[i]
-        if agent._extras._newly_killed
-            agent._extras._newly_killed = false
-            deleteat!(model.agents, findfirst(m->m==agent, model.agents))
+        if agent._extras._death_time == model.tick
+            if agent in newly_added
+                deleteat!(newly_added, findfirst(m->m==agent, newly_added))
+            else
+                deleteat!(model.agents, findfirst(m->m==agent, model.agents))
+                model.parameters._extras._len_model_agents -= 1
+            end     
         else
             break
         end
+    end
+    if !(model.parameters._extras._keep_deads_data)
+        empty!(model.parameters._extras._agents_killed)
+        getfield(model,:max_id)[] = model.parameters._extras._len_model_agents > 0 ? max([ag._extras._id for ag in model.agents]...) : 0
     end
 end
 
@@ -135,8 +139,9 @@ This function is for use from within the module and is not exported.
     agents_to_add = model.parameters._extras._agents_added
     for ag in agents_to_add
         push!(model.agents, ag)
+        model.parameters._extras._len_model_agents +=1
     end
-    model.parameters._extras._agents_added = eltype(model.agents)[] 
+    empty!(model.parameters._extras._agents_added)
 end
 
 """
@@ -267,7 +272,7 @@ function _init_agents!(model::AbstractGridModel{MortalType})
     _permanently_remove_inactive_agents!(model)
     commit_add_agents!(model)
     empty!(model.parameters._extras._agents_killed)
-    getfield(model,:max_id)[] = length(model.agents)> 0 ? max([ag._extras._id for ag in model.agents]...) : 0
+    getfield(model,:max_id)[] = model.parameters._extras._len_model_agents > 0 ? max([ag._extras._id for ag in model.agents]...) : 0
     for agent in model.agents
         agent._extras._birth_time = 1
         _recalculate_position!(agent, model.size, model.periodic)
@@ -294,7 +299,6 @@ $(TYPEDSIGNATURES)
 @inline function _kill_agent!(agent::AbstractPropDict, push_to, tick)
         agent._extras._active= false
         agent._extras._death_time = tick
-        agent._extras._newly_killed = true
         push!(push_to, agent)
 end
 
@@ -312,6 +316,7 @@ function kill_agent!(agent::AbstractPropDict, model::AbstractGridModel{MortalTyp
             deleteat!(model.patches[gloc...]._extras._agents, findfirst(m->m==agent._extras._id, model.patches[gloc...]._extras._agents))
         end
         _kill_agent!(agent, model.parameters._extras._agents_killed, model.tick)
+        model.parameters._extras._num_agents -= 1
     end
 end
 
@@ -320,8 +325,7 @@ end
 $(TYPEDSIGNATURES)
 
 Sets the agent as inactive thus effectively removing from the model. However, the removed agents 
-are permanently removed from the list `model.agents` only twice in one step i) After the `agent_step_function` 
-has run for all agents and ii) After the `step_rule`.
+are permanently removed from the list `model.agents` only after each step.
 """
 function kill_agent!(agent::AbstractPropDict, model::AbstractGraphModel{T,MortalType}) where T<:MType
     if agent._extras._active
@@ -330,6 +334,7 @@ function kill_agent!(agent::AbstractPropDict, model::AbstractGraphModel{T,Mortal
             deleteat!(model.graph.nodesprops[x]._extras._agents, findfirst(m->m==agent._extras._id, model.graph.nodesprops[x]._extras._agents))
         end
         _kill_agent!(agent, model.parameters._extras._agents_killed, model.tick)
+        model.parameters._extras._num_agents -= 1
     end
 end
 
@@ -339,11 +344,11 @@ $(TYPEDSIGNATURES)
 
 """
 @inline function _run_sim!(model::Union{AbstractGridModel, AbstractGraphModel }, steps,
-    step_rule::Function, do_after::Function) 
+    step_rule::Function) 
  
     for step in 1:steps
         step_rule(model)
-        do_after(model)     
+        do_after_model_step!(model)     
     end
 end
 

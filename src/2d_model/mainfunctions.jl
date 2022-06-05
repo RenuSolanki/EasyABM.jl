@@ -5,19 +5,21 @@ $(TYPEDSIGNATURES)
 Creates a model with 
 - agents : list of agents.
 - graphics : if true properties of pos, shape, color, orientation will be assigned to each agent by default, if not already assigned by the user.
-- `fix_agent_num` : Set it to true if agents do not die and new agents are not born during simulation. If set to false, each agent is 
-assigned default properties `_birth_time`, `_death_time`, `_active` which are for internal use in the package and must not be modified
-by the user. 
+- `fix_agent_num` : Set it to true if agents do not die and new agents are not born during simulation.
 - `grid_size` : A tuple (dimx, dimy) which tells the number of blocks the space is to be divided into along x and y directions. An agent can take
 positions from 0 to dimx in x-direction and 0 to dimy in y direction in order to stay within grid space. The word `grid` in the function
 `create_grid_model` does not imply that agents will be restricted to move in discrete steps. The agents can move continuously or 
 in discrete steps depending upon how user implements the step rule. Each grid block is called a patch which like agents can be assigned 
 its own properties.  Other than the number of patches in the model, `grid_size` will also restrict the domain of `neighbors` function 
-(which when called with either :chessboard or :euclidean metric option) will only take into account the agents within the grid dimensions and 
+(which when called with either :grid or :euclidean metric option) will only take into account the agents within the grid dimensions and 
 will ignore any agents which have crossed the boundary of grid space(unless periodic is set to true). 
 - periodic : If `periodic` is true the grid space will be periodic in both x and y directions. 
 - `random_positions` : If this property is true, each agent, which doesn't already have a position defined, will be given a default random continous position. 
 - kwargs : Keyword argments used as model parameters. 
+
+```@julia 
+create_2d_model(agents)
+```
 """
 function create_2d_model(agents::Vector{AgentDict2D{Symbol, Any}}; graphics=true, fix_agents_num=false, 
     grid_size::NTuple{2,Int}= (10,10), periodic = false, random_positions=false, kwargs...)
@@ -55,6 +57,10 @@ function create_2d_model(agents::Vector{AgentDict2D{Symbol, Any}}; graphics=true
 
     parameters._extras._random_positions = random_positions
     parameters._extras._show_space = true
+    parameters._extras._num_agents = n # number of active agents
+    parameters._extras._len_model_agents = n #number of agents in model.agents
+    parameters._extras._num_patches = xdim*ydim
+    parameters._extras._keep_deads_data = true
 
 
     for (i, agent) in enumerate(agents)
@@ -147,8 +153,10 @@ agents properties is specified, it will replace the `keeps_record_of` list of ea
 with keys "patches" and "model" respectively.
 """
 function init_model!(model::GridModel2D; initialiser::Function = null_init!, 
-    props_to_record::Dict{String, Vector{Symbol}} = Dict{String, Vector{Symbol}}("agents"=>Symbol[], "patches"=>Symbol[], "model"=>Symbol[]) )
+    props_to_record::Dict{String, Vector{Symbol}} = Dict{String, Vector{Symbol}}("agents"=>Symbol[], "patches"=>Symbol[], "model"=>Symbol[]),
+    keep_deads_data = true)
 
+    model.parameters._extras._keep_deads_data= keep_deads_data
     aprops = get(props_to_record, "agents", Symbol[])
     pprops = get(props_to_record, "patches", Symbol[])
     mprops = get(props_to_record, "model", Symbol[])
@@ -177,7 +185,7 @@ Runs the simulation for `steps` number of steps.
 """
 function run_model!(model::GridModel2D; steps=1, step_rule::Function=model_null_step!)
 
-    _run_sim!(model, steps, step_rule, do_after_model_step!)
+    _run_sim!(model, steps, step_rule)
     
 end
 
@@ -311,7 +319,10 @@ $(TYPEDSIGNATURES)
 
 Creates an animation from the data collected during model run.
 """
-function animate_sim(model::GridModel2D, frames::Int=model.tick; plots::Dict{String, Function} = Dict{String, Function}(), 
+function animate_sim(model::GridModel2D, frames::Int=model.tick; 
+    agent_plots::Dict{String, <:Function} = Dict{String, Function}(), 
+    patch_plots::Dict{String, <:Function} = Dict{String, Function}(),
+    plots_only = false,
     path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"), show_grid=false, backend=:luxor, tail = (1, agent->false))
 
     ticks = getfield(model, :tick)[]
@@ -363,17 +374,34 @@ function animate_sim(model::GridModel2D, frames::Int=model.tick; plots::Dict{Str
         save_sim(model, fr, scl, path= path, show_space=show_grid, backend = backend, tail = tail)
     end
 
+    function _does_nothing(t,scl::Number=1)
+        nothing
+    end
+
     draw_frame = backend == :makie ? draw_frame_makie : draw_frame_luxor
+
+    if plots_only
+        draw_frame = _does_nothing
+        _save_sim = _does_nothing
+    end
 
     labels = String[]
     conditions = Function[]
-    for (lbl, cond) in plots
+    for (lbl, cond) in agent_plots
         push!(labels, lbl)
         push!(conditions, cond)
     end
-    df = get_agents_avg_props(model, conditions..., labels= labels)
+    agent_df = get_agents_avg_props(model, conditions..., labels= labels)
 
-    _interactive_app(model, fr, _save_sim, draw_frame, df)
+    labels = String[]
+    conditions = Function[]
+    for (lbl, cond) in patch_plots
+        push!(labels, lbl)
+        push!(conditions, cond)
+    end
+    patch_df = get_patches_avg_props(model, conditions..., labels= labels)
+
+    _interactive_app(model, fr, plots_only, _save_sim, draw_frame, agent_df, patch_df, DataFrames.DataFrame())
 
 end
 
@@ -383,20 +411,18 @@ $(TYPEDSIGNATURES)
 
 Creates an interactive app for the model.
 """
-function create_interactive_app(model::GridModel2D; initialiser::Function = null_init!, 
+function create_interactive_app(inmodel::GridModel2D; initialiser::Function = null_init!, 
     props_to_record::Dict{String, Vector{Symbol}} = Dict{String, Vector{Symbol}}("agents"=>Symbol[], "patches"=>Symbol[], "model"=>Symbol[]),
     step_rule::Function=model_null_step!,
     agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
-    model_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
-    plots::Dict{String, Function} = Dict{String, Function}(),
+    model_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(),
+    agent_plots::Dict{String, <:Function} = Dict{String, Function}(),
+    patch_plots::Dict{String, <:Function} = Dict{String, Function}(),
+    plots_only = false,
     path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"),
     frames=200, show_grid=false, backend = :luxor, tail =(1, agent-> false)) 
 
-    user_response = loss_of_data_prompt()
-
-    if user_response
-        return
-    end
+    model = deepcopy(inmodel)
 
     model.parameters._extras._show_space = show_grid
 
@@ -405,18 +431,40 @@ function create_interactive_app(model::GridModel2D; initialiser::Function = null
         run_model!(model, steps=t, step_rule=step_rule)
     end
 
-
-
-    function _init_interactive_model(ufun::Function = ()-> nothing)
-        init_model!(model, initialiser=initialiser, props_to_record=props_to_record)
-        ufun()
-        _run_interactive_model(frames)
+    lblsa = String[]
+    condsa = Function[]
+    for (lbl, cond) in agent_plots
+        push!(lblsa, lbl)
+        push!(condsa, cond)
     end
 
-    _init_interactive_model()
+    lblsp = String[]
+    condsp = Function[]
+    for (lbl, cond) in patch_plots
+        push!(lblsp, lbl)
+        push!(condsp, cond)
+    end
+
+    function _init_interactive_model(ufun::Function = x -> nothing)
+        model = deepcopy(inmodel)
+        ufun(model) # will provide init with updated model parameters
+        init_model!(model, initialiser=initialiser, props_to_record=props_to_record)
+        ufun(model) # will override init if some parameters are changed inside it
+        _run_interactive_model(frames)
+        agent_df = get_agents_avg_props(model, condsa..., labels= lblsa)
+        patch_df = get_patches_avg_props(model, condsp..., labels= lblsp)
+        return agent_df, patch_df, DataFrame()
+    end
+
+
+   agent_df, patch_df, node_df = _init_interactive_model()
 
     function _save_sim(scl)
         save_sim(model, frames, scl, path= path, show_space=show_grid, backend = backend, tail = tail)
+    end
+
+    function _does_nothing(t,scl::Number=1)
+        nothing
     end
 
     #_run_interactive_model()
@@ -453,6 +501,9 @@ function create_interactive_app(model::GridModel2D; initialiser::Function = null
         if model.graphics
             Luxor.origin()
             Luxor.background("white")
+            if show_grid && !(:color in model.record.pprops)
+                draw_patches_static(model)
+            end
             draw_agents_and_patches(model, t, scl, tail...)
         end
         finish()
@@ -461,7 +512,12 @@ function create_interactive_app(model::GridModel2D; initialiser::Function = null
 
     _draw_interactive_frame = backend == :makie ? _draw_interactive_frame_makie : _draw_interactive_frame_luxor
 
-    _live_interactive_app(model, frames, _save_sim, _init_interactive_model, _run_interactive_model, _draw_interactive_frame, agent_controls, model_controls, plots)
+    if plots_only
+        _draw_interactive_frame = _does_nothing
+        _save_sim = _does_nothing
+    end
+
+    _live_interactive_app(model, frames, plots_only, _save_sim, _init_interactive_model, _run_interactive_model, _draw_interactive_frame, agent_controls, model_controls, agent_df, ()->nothing, patch_df, node_df)
 
 end
 

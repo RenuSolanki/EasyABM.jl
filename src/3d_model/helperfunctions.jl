@@ -72,10 +72,10 @@ function add_agent!(agent, model::GridModel3DDynAgNum)
         _init_agent_record!(agent)
 
         getfield(model,:max_id)[] += 1
+        model.parameters._extras._num_agents += 1
+        model.parameters._extras._len_model_agents +=1 
     end
 end
-
-
 
 
 

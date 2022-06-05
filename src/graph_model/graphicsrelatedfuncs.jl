@@ -10,7 +10,7 @@ const gsize = 10
 $(TYPEDSIGNATURES)
 """
 function _get_node_size(n::Int)
-    node_size = 0.1*gsize/sqrt(n)
+    node_size = 0.15*gsize/sqrt(n)
     return node_size        
 end
 
@@ -192,8 +192,8 @@ $(TYPEDSIGNATURES)
 """
 @inline function _create_makie_frame(ax, model::GraphModel, points, markers, colors, rotations, sizes, verts_pos, verts_dir, verts_color, show_space)
     ax.aspect = DataAspect()
-    xlims!(ax, 0.0, 1)
-    ylims!(ax, 0.0, 1)
+    xlims!(ax, 0.0, gsize)
+    ylims!(ax, 0.0, gsize)
     if show_space
         scatter!(ax, verts_pos, marker=:circle, color = verts_color)
         arrowhead = is_digraph(model.graph) ? '△'  :  '.' #\bigtriangleup<tab>
@@ -331,6 +331,22 @@ $(TYPEDSIGNATURES)
     setline(1)                              
     shapefunctions2d[shape](size)  
     grestore()  
+
+
+    #uncomment this to mark each agent with its id
+    # gsave()
+    # translate(-(width/2), (height/2))
+    # Luxor.transform([1 0 0 -1 0 0]) 
+    # translate(x+a,y+b)
+    # if shape_color != :white
+    #     sethue("white")
+    # else
+    #     sethue("black")
+    # end
+    # fontface("Arial-Black")
+    # fontsize(10)
+    # text("$(agent._extras._id)", halign = :center, valign = :middle)
+    # grestore()
 
 end
 

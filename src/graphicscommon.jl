@@ -143,17 +143,17 @@ end
 const shapefunctions3d = Dict{Symbol, Function}(:sphere => _create_sphere, :box => _create_3Dbox, :cone => _create_cone, :cylinder => _create_cylinder)
 
 
-
 function backdrop(scene, frame)
-    background("green")
+    Luxor.background("green")
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-function _interactive_app(model::Union{AbstractGridModel, AbstractGraphModel}, fr, _save_sim::Function, draw_frame::Function, df::DataFrames.DataFrame)
+function _interactive_app(model::Union{AbstractGridModel, AbstractGraphModel}, fr, plots_only::Bool, _save_sim::Function, draw_frame::Function, 
+    agent_df::DataFrames.DataFrame, patch_df::DataFrames.DataFrame, node_df::DataFrames.DataFrame)
         timeS = slider(1:fr, label = "time")
-        scaleS = slider(0.1:0.1:5, label = "scale")
+        scaleS = slider(0.1:0.1:2, label = "scale")
         run = button("run")
         stop = button("stop")
         sv = button("save")
@@ -197,16 +197,34 @@ function _interactive_app(model::Union{AbstractGridModel, AbstractGraphModel}, f
         end
 
         plots = Any[]
-        num_plots = length(names(df))
-        for nm in names(df)
-            height =Int(ceil((gparams.height+gparams.border)/num_plots))
-            pl = Interact.@map plot(df[:,nm][1:&timeS], legend=false, xlabel = "time", ylabel= nm, size=(300,150) );
+        if size(agent_df)[1]>0
+            pl = Interact.@map plot(Matrix(agent_df)[1:&timeS, :], labels=permutedims(names(agent_df)), xlabel="ticks", ylabel="", legend=:outertopright, size=(300,150))
             push!(plots, pl)
         end
 
-        animlux = Interact.@map draw_frame(&timeS, &scaleS)#&output)
+        if size(patch_df)[1]>0
+            pl = Interact.@map plot(Matrix(patch_df)[1:&timeS, :], labels=permutedims(names(patch_df)), xlabel="ticks", ylabel="", legend=:outertopright, size=(300,150))
+            push!(plots, pl)
+        end
+
+        if size(node_df)[1]>0
+            pl = Interact.@map plot(Matrix(node_df)[1:&timeS, :], labels=permutedims(names(node_df)), xlabel="ticks", ylabel="", legend=:outertopright, size=(300,150))
+            #pl = Interact.@map plot(node_df[:,nm][1:&timeS], legend=false, xlabel = "time", ylabel= nm, size=(300,150) );
+            push!(plots, pl)
+        end
+
+    
+        animlux = Interact.@map draw_frame(&timeS, &scaleS)
+        
+        
         spc = Widgets.latex("\\;"^2) #smallspace
         spclarge = Widgets.latex("\\;"^45) #largespace
+
+        if plots_only
+            sv = spc
+        end
+
+
         wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop, "sv"=>sv])
         @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, hbox(spc, :run, spc, :stop, spc, :sv)), spc, animlux, spc, vbox(plots...) ) )  
 end
@@ -216,14 +234,20 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphModel}, fr,_save_sim::Function, 
+function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphModel}, fr,
+    plots_only::Bool, _save_sim::Function, 
     _init_interactive_model::Function, _run_interactive_model::Function, 
     _draw_interactive_frame::Function, agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
-    model_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), plots::Dict{String, Function} = Dict{String, Function}(), render_trivial = ()->nothing)
-
+    model_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
+    agent_df = DataFrame(),
+    render_trivial = ()->nothing, 
+    patch_df = DataFrame(),
+    node_df = DataFrame()
+    )
     timeS = slider(1:fr, label = "time")
-    scaleS = slider(0.1:0.1:5, label = "scale")
+    scaleS = slider(0.1:0.1:2, label = "scale")
     emptyS = slider(1:1, label = "hack")
+
     ag_controls = Any[]
     ag_listeners = Any[]
     for (a,b,lst) in agent_controls
@@ -294,7 +318,6 @@ function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphMode
     end
 
     gfun() = begin
-        #timeS[]+=1
         if (timeS[]<fr)&&(check[]==0)
             @sync donecessarystuff()
             sleep(0.05)
@@ -304,7 +327,8 @@ function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphMode
         end
     end
 
-    ufun() = begin
+    ufun(md) = begin
+        model = md
         for cg in ag_controls
             cg[]=cg[]
         end
@@ -312,10 +336,32 @@ function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphMode
             cg[]=cg[]
         end  
     end
+
+    pls = Any[]
+    function _create_plots()
+        empty!(pls)
+        if size(agent_df)[1]>1
+            pl = Interact.@map plot(Matrix(agent_df)[1:&timeS, :], labels=permutedims(names(agent_df)), xlabel="ticks", ylabel="", legend=:outertopright, size=(300,150))
+            push!(pls, pl)
+        end
+    
+        if size(patch_df)[1]>1
+            pl = Interact.@map plot(Matrix(patch_df)[1:&timeS, :], labels=permutedims(names(patch_df)), xlabel="ticks", ylabel="", legend=:outertopright, size=(300,150))
+            push!(pls, pl)
+        end
+    
+        if size(node_df)[1]>1
+            pl = Interact.@map plot(Matrix(node_df)[1:&timeS, :], labels=permutedims(names(node_df)), xlabel="ticks", ylabel="", legend=:outertopright, size=(300,150))
+            #pl = Interact.@map plot(node_df[:,nm][1:&timeS], legend=false, xlabel = "time", ylabel= nm, size=(300,150) );
+            push!(pls, pl)
+        end
+    end
+
     rfun() = begin 
         check[] = 1
-        timeS[]=1
-        _init_interactive_model(ufun)
+        agent_df, patch_df, node_df = _init_interactive_model(ufun)
+        _create_plots()
+        timeS[]= 1
         check[] = 0
     end
 
@@ -353,32 +399,20 @@ function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphMode
         _draw_interactive_frame(t, scl)
     end
 
-    function draw_plot(t, nm,con)
-
-        if t>model.tick
-            _run_interactive_model(t-model.tick)
-        end
-        df = get_agents_avg_props(model, con, labels= [nm]);
-
-        plot(df[:,nm][1:t], legend=false, xlabel = "time", ylabel= nm, size=(300,150) )
-
-    end
-        
-
-
-    pls = Any[]
-    num_plots = length(plots)
-    for (nm, con) in plots
-        height =Int(ceil((gparams.height+gparams.border)/num_plots))
-        pl = Interact.@map draw_plot(&timeS, nm, con);
-        push!(pls, pl)
-    end
+    Plots.gr(fmt=:png)
+    _create_plots()
 
     animlux = Interact.@map _draw_a_frame(&timeS, &scaleS)#&output)
 
-    
     spc = Widgets.latex("\\;"^2) #smallspace
     spclarge = Widgets.latex("\\;"^45) #largespace
+
+    if plots_only
+        sv = spc
+        scaleS = spc
+    end
+
+
 
     if !(typeof(model)<:GridModel3D)
         wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop, "rst"=>rst, "sv"=>sv])

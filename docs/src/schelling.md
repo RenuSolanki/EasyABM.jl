@@ -29,7 +29,7 @@ function initialiser!(model)
         agent.pos = (x-0.5,y-0.5)
     end    
     for agent in model.agents
-        nbrs = neighbors(agent, model, 1)
+        nbrs = neighbors(agent, model, 1, metric = :grid)
         num_alike = 0
         for nbr in nbrs
             if nbr.color == agent.color
@@ -102,7 +102,7 @@ After defining the `step_rule!` function we can also choose to create an interac
 create_interactive_app(model, initialiser= initialise!,
     step_rule=step_rule!,
     model_controls=[(:min_alike, :s, 1:8)], 
-    plots=Dict("happy"=> agent-> agent.mood == happy ? 1 : 0, "sad"=> agent-> agent.mood == sad ? 1 : 0),
+    agent_plots=Dict("happy"=> agent-> agent.mood == happy ? 1 : 0, "sad"=> agent-> agent.mood == sad ? 1 : 0),
     frames=200) 
 ```
 

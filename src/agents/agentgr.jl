@@ -155,17 +155,32 @@ $(TYPEDSIGNATURES)
 
 Returns a list of n graph agents all having same properties as `agent`.  
 """
-function create_graph_agents(n::Int, agent::AgentDictGr)
-list = Vector{AgentDictGr{Symbol, Any}}()
-ag = deepcopy(agent)
-if haskey(ag._extras, :_id)
-    delete!(unwrap(ag._extras), :_id)
+function create_similar(agent::AgentDictGr, n::Int)
+    dc = Dict{Symbol, Any}()
+    dc_agent = unwrap(agent)
+    for (key, val) in dc_agent
+        if key != :_extras 
+            dc[key] = val
+        end
+    end
+    agents = create_graph_agents(n; dc...)
+    return agents
 end
-for i in 1:n
-    agent_new = deepcopy(ag)
-    push!(list, agent_new)
-end
-return list
+
+"""
+$(TYPEDSIGNATURES)
+Returns an agent with same properties as given `agent`. 
+"""
+function create_similar(agent::AgentDictGr)
+    dc = Dict{Symbol, Any}()
+    dc_agent = unwrap(agent)
+    for (key, val) in dc_agent
+        if key != :_extras 
+            dc[key] = val
+        end
+    end
+    agent = create_graph_agent(;dc...)
+    return agent
 end
 
 

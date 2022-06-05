@@ -17,8 +17,8 @@ const GridModel2DDynAgNum = GridModel2D{MortalType}
     
 
 function Base.getproperty(d::T, n::Symbol) where {T<:GridModel2D}
-    if n == :tick
-       return getfield(d, :tick)[]
+    if (n == :tick) || (n==:max_id)
+       return getfield(d, n)[]
     else
        return getfield(d, n)
     end
