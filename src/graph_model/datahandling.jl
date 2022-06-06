@@ -10,17 +10,23 @@
 $(TYPEDSIGNATURES)
 """
 function get_node_data(node::Int, model::GraphModelDynGrTop)
+    graph = model.graph
+    dead_graph = model.parameters._extras._dead_meta_graph
     if !(node in getfield(model.graph, :_nodes))
-        println("node ", node, " does not exist!")
-        return
+        if node in getfield(dead_graph, :_nodes)
+            graph = dead_graph
+        else
+            println("node ", node, " does not exist!")
+            return (birthtime = 0, deathtime = 0, record = DataFrame()) 
+        end
     end
     datadict=Dict{Symbol,Any}()
-    birth_time = model.graph.nodesprops[node]._extras._birth_time
-    death_time = model.graph.nodesprops[node]._extras._death_time
+    birth_time = graph.nodesprops[node]._extras._birth_time
+    death_time = graph.nodesprops[node]._extras._death_time
     uptick = death_time == Inf ? model.tick+1 : death_time+1
     downtick = birth_time-1
     for key in model.record.nprops
-        datadict[key] = vcat(fill(missing, downtick),unwrap_data(model.graph.nodesprops[node])[key], fill(missing, model.tick-uptick+1))
+        datadict[key] = vcat(fill(missing, downtick),unwrap_data(graph.nodesprops[node])[key], fill(missing, model.tick-uptick+1))
     end
     df = DataFrame(datadict);
     return (birthtime = birth_time, deathtime = death_time, record = df)   
@@ -32,7 +38,7 @@ $(TYPEDSIGNATURES)
 function get_node_data(node::Int, model::GraphModelFixGrTop)
     if !(node in getfield(model.graph, :_nodes))
         println("node ", node, " does not exist!")
-        return
+        return (record=DataFrame(),)
     end
     datadict=Dict{Symbol,Any}()
     for key in model.record.nprops
@@ -45,12 +51,12 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_edge_data_condition(i,j,model::GraphModel)
-    if !(is_digraph(model.graph))
+@inline function _get_edge_data_condition(i,j, graph)
+    if !(is_digraph(graph))
         i,j = i>j ? (j,i) : (i,j)
-        condition = (i in getfield(model.graph, :_nodes)) && (j in model.graph.structure[i])
+        condition = haskey(graph.structure, i) && (j in graph.structure[i])
     else
-        condition = (i in getfield(model.graph, :_nodes)) && (j in model.graph.out_structure[i])
+        condition = haskey(graph.out_structure, i) && (j in graph.out_structure[i])
     end
     return i,j, condition
 end
@@ -60,14 +66,22 @@ end
 $(TYPEDSIGNATURES)
 """
 function get_edge_data(i::Int,j::Int, model::GraphModelDynGrTop)
-    i,j,condition = _get_edge_data_condition(i,j,model)
-    if !condition
-        println("edge ", (i,j), " does not exist!")
-        return
+    graph = model.graph
+    dead_graph = model.parameters._extras._dead_meta_graph
+    i,j,condition = _get_edge_data_condition(i,j, graph)
+    if !(condition)
+        i,j,condition = _get_edge_data_condition(i,j, dead_graph)
+        if !condition
+            println("edge ", (i,j), " does not exist!")
+            return (birthtime = o, deathtime = 0, record = DataFrame()) 
+        else
+            graph = dead_graph
+        end
     end
+
     datadict=Dict{Symbol,Any}()
-    birth_time = model.graph.edgesprops[(i,j)]._extras._birth_time
-    death_time = model.graph.edgesprops[(i,j)]._extras._death_time
+    birth_time = graph.edgesprops[(i,j)]._extras._birth_time
+    death_time = graph.edgesprops[(i,j)]._extras._death_time
     uptick = death_time == Inf ? model.tick+1 : death_time+1
     downtick = birth_time-1
     for key in model.record.eprops
@@ -93,7 +107,7 @@ function get_edge_data(i::Int,j::Int, model::GraphModelFixGrTop)
     i,j,condition = _get_edge_data_condition(i,j,model)
     if !condition
         println("edge ", (i,j), " does not exist!")
-        return
+        return (record=DataFrame(),)
     end
     datadict=Dict{Symbol,Any}()
     for key in model.record.eprops
@@ -141,7 +155,7 @@ function latest_propvals(edge, model::GraphModel, propname::Symbol, n::Int)
     if !(is_digraph(model.graph))
         i,j = i>j ? (j,i) : (i,j)
     end
-    return unwrap_data(model.graph.edgesprops[(i,j)])[propname][max(end-n,1):end]
+    return latest_propvals(model.graph.edgesprops[(i,j)], propname, n)
 end
 
 
@@ -158,6 +172,7 @@ $(TYPEDSIGNATURES)
 """
 function get_nums_nodes(model::GraphModelDynGrTop, conditions::Function...; labels::Vector{String} = string.(collect(1:length(conditions))), plot_result = false ) where N
     dict = Dict{Symbol, Vector{Int}}()
+    dead_graph = model.parameters._extras._dead_meta_graph
     for i in 1:length(conditions)
         name = Symbol(labels[i])
         condition = conditions[i]
@@ -170,6 +185,17 @@ function get_nums_nodes(model::GraphModelDynGrTop, conditions::Function...; labe
                 if (tick>=birth_time)&&(tick<=death_time)
                     index = tick-birth_time+1
                     nodecp = create_temp_prop_dict(unwrap(model.graph.nodesprops[node]), unwrap_data(model.graph.nodesprops[node]), model.record.nprops, index)
+                    if condition(nodecp)
+                        num+=1
+                    end
+                end
+            end
+            for node in getfield(dead_graph, :_nodes)
+                birth_time = dead_graph.nodesprops[node]._extras._birth_time
+                death_time = dead_graph.nodesprops[node]._extras._death_time
+                if (tick>=birth_time)&&(tick<=death_time)
+                    index = tick-birth_time+1
+                    nodecp = create_temp_prop_dict(unwrap(dead_graph.nodesprops[node]), unwrap_data(dead_graph.nodesprops[node]), model.record.nprops, index)
                     if condition(nodecp)
                         num+=1
                     end
@@ -193,13 +219,19 @@ function get_nodes_avg_props(model::GraphModelDynGrTop,
     props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
 
     dict = Dict{Symbol, Vector{Float64}}()
+    dead_graph = model.parameters._extras._dead_meta_graph
     verts = getfield(model.graph, :_nodes)
+    vertsd = getfield(dead_graph, :_nodes)
+    first_node = PropDataDict()
 
-    if length(verts)==0
-        return DataFrame(dict)
+    if (length(verts)!=0) 
+        first_node = model.graph.nodesprops[verts[1]]
+    elseif (length(vertsd)!= 0)
+        first_node = dead_graph.nodesprops[vertsd[1]]
+    else
+        return DataFrame()
     end
 
-    first_node = model.graph.nodesprops[1]
 
     for i in 1:length(props)
         fun = props[i]
@@ -214,6 +246,17 @@ function get_nodes_avg_props(model::GraphModelDynGrTop,
                 if (tick>=birth_time)&&(tick<=death_time)
                     index = tick-birth_time+1
                     nodecp = create_temp_prop_dict(unwrap(model.graph.nodesprops[node]), unwrap_data(model.graph.nodesprops[node]), model.record.nprops, index)
+                    val += fun(nodecp)
+                    num_alive+=1
+                end
+            end
+
+            for node in vertsd
+                birth_time = dead_graph.nodesprops[node]._extras._birth_time
+                death_time = dead_graph.nodesprops[node]._extras._death_time
+                if (tick>=birth_time)&&(tick<=death_time)
+                    index = tick-birth_time+1
+                    nodecp = create_temp_prop_dict(unwrap(dead_graph.nodesprops[node]), unwrap_data(dead_graph.nodesprops[node]), model.record.nprops, index)
                     val += fun(nodecp)
                     num_alive+=1
                 end
@@ -305,6 +348,7 @@ $(TYPEDSIGNATURES)
 """
 function get_nums_edges(model::GraphModelDynGrTop, conditions::Function...; labels::Vector{String} = string.(collect(1:length(conditions))), plot_result = false ) where N
     dict = Dict{Symbol, Vector{Int}}()
+    dead_graph = model.parameters._extras._dead_meta_graph
     for i in 1:length(conditions)
         name = Symbol(labels[i])
         condition = conditions[i]
@@ -317,6 +361,18 @@ function get_nums_edges(model::GraphModelDynGrTop, conditions::Function...; labe
                 if (tick>=birth_time)&&(tick<=death_time)
                     index = tick-birth_time+1
                     edgecp = create_temp_prop_dict(unwrap(model.graph.edgesprops[edge]), unwrap_data(model.graph.edgesprops[edge]), model.record.eprops, index)
+
+                    if condition(edgecp)
+                        num+=1
+                    end
+                end
+            end
+            for edge in edges(dead_graph)
+                birth_time = dead_graph.edgesprops[edge]._extras._birth_time
+                death_time = dead_graph.edgesprops[edge]._extras._death_time
+                if (tick>=birth_time)&&(tick<=death_time)
+                    index = tick-birth_time+1
+                    edgecp = create_temp_prop_dict(unwrap(dead_graph.edgesprops[edge]), unwrap_data(dead_graph.edgesprops[edge]), model.record.eprops, index)
 
                     if condition(edgecp)
                         num+=1
@@ -343,13 +399,19 @@ function get_edges_avg_props(model::GraphModelDynGrTop,
     props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
 
     dict = Dict{Symbol, Vector{Float64}}()
+    dead_graph = model.parameters._extras._dead_meta_graph
     eds = edges(model.graph)
+    edsd = edges(dead_graph)
+    first_edge = PropDataDict()
 
-    if length(eds)==0
-        return DataFrame(dict)
+    if length(eds)!=0
+        first_edge = model.graph.edgesprops[eds[1]]
+    elseif length(edsd)!=0 
+        first_edge = dead_graph.edgesprops[edsd[1]]
+    else
+        return DataFrame()
     end
 
-    first_edge = model.graph.edgesprops[eds[1]]
 
     for i in 1:length(props)
         fun = props[i]
@@ -364,6 +426,16 @@ function get_edges_avg_props(model::GraphModelDynGrTop,
                 if (tick>=birth_time)&&(tick<=death_time)
                     index = tick-birth_time+1
                     edgecp = create_temp_prop_dict(unwrap(model.graph.edgesprops[edge]), unwrap_data(model.graph.edgesprops[edge]), model.record.eprops, index)
+                    val += fun(edgecp)
+                    num_alive+=1
+                end
+            end
+            for edge in edsd
+                birth_time = dead_graph.edgesprops[edge]._extras._birth_time
+                death_time = dead_graph.edgesprops[edge]._extras._death_time
+                if (tick>=birth_time)&&(tick<=death_time)
+                    index = tick-birth_time+1
+                    edgecp = create_temp_prop_dict(unwrap(dead_graph.edgesprops[edge]), unwrap_data(dead_graph.edgesprops[edge]), model.record.eprops, index)
                     val += fun(edgecp)
                     num_alive+=1
                 end

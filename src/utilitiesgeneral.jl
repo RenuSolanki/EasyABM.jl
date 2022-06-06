@@ -307,9 +307,7 @@ function set_patchprops!(patch, model::AbstractGridModel; kwargs...)
     for (key, val) in dict
         patch_dict[key] = val
         if !haskey(patch_data, key)
-            patch_data[key] = [val]
-        elseif key in model.record.pprops
-            push!(patch_data[key], val)
+            patch_data[key] = typeof(val)[]
         end
     end
 end

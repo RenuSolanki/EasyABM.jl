@@ -1,72 +1,10 @@
 
 """
 $(TYPEDSIGNATURES)
-"""
-@inline function _linked_all_neighbor_nodes(node, active_nbs, graph::SimplePropGraph)
-    to_keep = Int[]
-    for j in active_nbs
-        a, b = node > j ? (j, node) : (node, j)
-        if (graph.edgesprops[(a,b)]._extras._active)
-            push!(to_keep, j)
-        end
-    end
-    return to_keep
-end
-
-
-
-@inline function _linked_all_neighbor_nodes(node, active_nbs, graph::DirPropGraph)
-    to_keep = Int[]
-    for j in active_nbs
-        if (j in graph.out_structure[node])
-            if (graph.edgesprops[(node,j)]._extras._active)
-                push!(to_keep,j)
-            end
-        elseif (j in graph.in_structure[node])
-            if (graph.edgesprops[(j, node)]._extras._active)
-                push!(to_keep,j)
-            end
-        end
-    end
-
-    return to_keep
-end
-
-
-
-"""
-$(TYPEDSIGNATURES)
 
 Returns nodes neighboring given node.
 """
-function neighbor_nodes(node::Int, model::GraphModelDynGrTop)
-    if !(model.graph.nodesprops[node]._extras._active)
-        return Int[]
-    end
-    all_nbs = all_neighbors(model.graph, node)
-    active_nbs = all_nbs[[model.graph.nodesprops[nd]._extras._active for nd in all_nbs]]
-    to_keep = _linked_all_neighbor_nodes(node, active_nbs, model.graph)
-    return to_keep 
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Returns nodes neighboring node of the given agent.
-"""
-function neighbor_nodes(agent::AgentDictGr, model::GraphModelDynGrTop)
-
-    return neighbor_nodes(agent.node, model)    
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Returns nodes neighboring given node.
-"""
-function neighbor_nodes(node::Int, model::GraphModelFixGrTop)
+function neighbor_nodes(node::Int, model::GraphModel)
     return all_neighbors(model.graph, node)
 end
 
@@ -76,59 +14,9 @@ $(TYPEDSIGNATURES)
 
 Returns nodes neighboring node of the given agent.
 """
-function neighbor_nodes(agent::AgentDictGr, model::GraphModelFixGrTop)
-    return all_neighbors(model.graph, agent.node)
-end
+function neighbor_nodes(agent::AgentDictGr, model::GraphModel)
 
-
-
-
-####################
-####################
-
-"""
-$(TYPEDSIGNATURES)
-"""
-@inline function _linked_in_neighbor_nodes(node, active_nbs, graph::SimplePropGraph)
-    return _linked_all_neighbor_nodes(node, active_nbs, graph)
-end
-
-"""
-$(TYPEDSIGNATURES)
-"""
-@inline function _linked_in_neighbor_nodes(node, active_nbs, graph::DirPropGraph)
-    to_keep = Int[]
-    for j in active_nbs
-        if (graph.edgesprops[(j, node)]._extras._active)
-            push!(to_keep,j)
-        end
-    end
-    return to_keep
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Returns nodes of incoming edges at given node. 
-"""
-function in_neighbor_nodes(node::Int, model::GraphModelDynGrTop)
-    if !(model.graph.nodesprops[node]._extras._active)
-        return Int[]
-    end
-    all_nbs = in_neighbors(model.graph, node)
-    active_nbs = all_nbs[[model.graph.nodesprops[nd]._extras._active for nd in all_nbs]]
-    to_keep = _linked_in_neighbor_nodes(node, active_nbs, model.graph)
-    return to_keep 
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Returns nodes of incoming edges at given agent's node.
-"""
-function in_neighbor_nodes(agent::AgentDictGr, model::GraphModelDynGrTop)
-    in_neighbor_nodes(agent.node, model)
+    return all_neighbors(model.graph, agent.node)  
 end
 
 
@@ -137,7 +25,7 @@ $(TYPEDSIGNATURES)
 
 Returns nodes of incoming edges at given node. 
 """
-function in_neighbor_nodes(node::Int, model::GraphModelFixGrTop)
+function in_neighbor_nodes(node::Int, model::GraphModel)
     return in_neighbors(model.graph, node)
 end
 
@@ -147,32 +35,8 @@ $(TYPEDSIGNATURES)
 
 Returns nodes of incoming edges at given agent's node.
 """
-function in_neighbor_nodes(agent::AgentDictGr, model::GraphModelFixGrTop)
-    return in_neighbors(model.graph, agent.node)
-end
-
-
-####################
-####################
-
-"""
-$(TYPEDSIGNATURES)
-"""
-@inline function _linked_out_neighbor_nodes(node, active_nbs, graph::SimplePropGraph)
-    return _linked_all_neighbor_nodes(node, active_nbs, graph)
-end
-
-"""
-$(TYPEDSIGNATURES)
-"""
-@inline function _linked_out_neighbor_nodes(node, active_nbs, graph::DirPropGraph)
-    to_keep = Int[]
-    for j in active_nbs
-        if (graph.edgesprops[(node,j)]._extras._active)
-            push!(to_keep,j)
-        end
-    end
-    return to_keep
+function in_neighbor_nodes(agent::AgentDictGr, model::GraphModel)
+    return  in_neighbors(model.graph, agent.node)
 end
 
 
@@ -181,33 +45,10 @@ $(TYPEDSIGNATURES)
 
 Returns nodes of outgoing edges at given node.
 """
-function out_neighbor_nodes(node::Int, model::GraphModelDynGrTop)
-    if !(model.graph.nodesprops[node]._extras._active)
-        return Int[]
-    end
-    all_nbs = out_neighbors(model.graph, node)
-    active_nbs = all_nbs[[model.graph.nodesprops[nd]._extras._active for nd in all_nbs]]
-    to_keep = _linked_out_neighbor_nodes(node, active_nbs, model.graph)
-    return to_keep 
-end
+function out_neighbor_nodes(node::Int, model::GraphModel)
 
-"""
-$(TYPEDSIGNATURES)
-
-Returns nodes of outgoing edges at given agent's node.
-"""
-function out_neighbor_nodes(agent::AgentDictGr, model::GraphModelDynGrTop)
-    out_neighbor_nodes(agent.node, model)
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Returns nodes of outgoing edges at given node.
-"""
-function out_neighbor_nodes(node::Int, model::GraphModelFixGrTop)
     return out_neighbors(model.graph, node)
+
 end
 
 """
@@ -215,7 +56,7 @@ $(TYPEDSIGNATURES)
 
 Returns nodes of outgoing edges at given agent's node.
 """
-function out_neighbor_nodes(agent::AgentDictGr, model::GraphModelFixGrTop)
+function out_neighbor_nodes(agent::AgentDictGr, model::GraphModel)
     return out_neighbors(model.graph, agent.node)
 end
 
@@ -404,9 +245,7 @@ function set_nodeprops!(node::Int, model::GraphModel; kwargs...)
     for (key, val) in dict
         node_dict[key] = val
         if !haskey(node_data, key)
-            node_data[key] = [val]
-        elseif key in model.record.nprops
-            push!(node_data[key], val)
+            node_data[key] = typeof(val)[]
         end
     end
 end
@@ -424,9 +263,7 @@ function set_edgeprops!(i::Int,j::Int, model::GraphModel; kwargs...)
     for (key, val) in dict
         edge_dict[key] = val
         if !haskey(edge_data, key)
-            edge_data[key] = [val]
-        elseif key in model.record.eprops
-            push!(edge_data[key], val)
+            edge_data[key] = typeof(val)[]
         end
     end
 end
@@ -438,33 +275,14 @@ Sets properties of given edge.
 """
 function set_edgeprops!(edge, model::GraphModel; kwargs...)
     i,j=edge
-    i,j=_set_edgeprops!(model.graph, i,j; kwargs...)
-    dict = Dict{Symbol, Any}(kwargs...)
-    edge_dict = unwrap(model.graph.edgesprops[(i,j)])
-    edge_data = unwrap_data(model.graph.edgesprops[(i,j)])
-    for (key, val) in dict
-        edge_dict[key] = val
-        if !haskey(edge_data, key)
-            edge_data[key] = [val]
-        elseif key in model.record.eprops
-            push!(edge_data[key], val)
-        end
-    end
-end
-
-"""
-$(TYPEDSIGNATURES)
-"""
-@inline function get_nodes(model::GraphModelDynGrTop, condition::Function = _default_true)
-    verts = getfield(model.graph, :_nodes)
-    return verts[[model.graph.nodesprops[vt]._extras._active && (condition(model.graph.nodesprops[vt])) for vt in verts]]
+    set_edgeprops!(i,j, model; kwargs...)
 end
 
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function get_nodes(model::GraphModelFixGrTop, condition::Function = _default_true)
+@inline function get_nodes(model::GraphModel, condition::Function = _default_true) # choose from active nodes
     verts = getfield(model.graph, :_nodes)
     if condition == _default_true
         return verts
@@ -487,16 +305,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function get_edges(model::GraphModelDynGrTop, condition::Function = _default_true)
-    eds = edges(model.graph)
-    return eds[[model.graph.edgesprops[ed]._extras._active && condition(model.graph.edgesprops[ed]) for ed in eds]]
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-"""
-@inline function get_edges(model::GraphModelFixGrTop, condition::Function = _default_true)
+@inline function get_edges(model::GraphModel, condition::Function = _default_true)
     eds = edges(model.graph)
     if condition == _default_true # for edges may not have properties assigned to them
         return eds

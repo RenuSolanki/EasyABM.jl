@@ -10,7 +10,7 @@ const gsize = 10
 $(TYPEDSIGNATURES)
 """
 function _get_node_size(n::Int)
-    node_size = 0.15*gsize/sqrt(n)
+    node_size = min(0.15*gsize/sqrt(n),0.4)
     return node_size        
 end
 
@@ -79,14 +79,28 @@ end
     return sqrt((x-z)^2+(y-w)^2)
 end
 
-
+@inline function out_links(graph::PropDict, vert)
+    if haskey(graph, :structure)
+        out_structure = Int[]
+        structure = graph.structure[vert]
+        for k in structure
+            if k>vert
+                push!(out_structure, k)
+            end
+        end
+        return out_structure
+    elseif haskey(graph, :out_structure)
+        return graph.out_structure[vert]
+    else
+        return Int[]
+    end
+end
 
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_graph_layout_info(model::GraphModelDynGrTop, frame)
-    graph = model.graph
+@inline function _get_graph_layout_info(model::GraphModelDynGrTop, graph, frame)
     verts = vertices(graph)
     alive_verts = verts[[(graph.nodesprops[nd]._extras._birth_time <=frame)&&(frame<=graph.nodesprops[nd]._extras._death_time) for nd in verts]]
     verts_pos = Vector{GeometryBasics.Point2{Float64}}()
@@ -112,17 +126,15 @@ $(TYPEDSIGNATURES)
             push!(verts_dir, GeometryBasics.Vec(pos_x-pos_p))
             push!(verts_color, vert_col)
         end
-
-
     end
+
     return (verts_pos, verts_dir, verts_color)
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_graph_layout_info(model::GraphModelFixGrTop, frame)
-    graph = model.graph
+@inline function _get_graph_layout_info(model::GraphModelFixGrTop, graph, frame)
     alive_verts = vertices(graph)
     verts_pos = Vector{GeometryBasics.Point2{Float64}}()
     verts_dir = Vector{GeometryBasics.Vec2{Float64}}()
@@ -155,7 +167,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_agents_pos(model::GraphModelDynAgNum, frame)
+@inline function _get_agents_pos(model::GraphModelDynAgNum, graph, frame)
     posits = Vector{GeometryBasics.Vec2{Float64}}()
     all_agents = vcat(model.agents, model.parameters._extras._agents_killed)
     for agent in all_agents
@@ -163,7 +175,7 @@ $(TYPEDSIGNATURES)
         if (agent._extras._birth_time<= frame)&&(frame<= agent._extras._death_time)
             index = frame - agent._extras._birth_time +1
             node = (:node in agent.keeps_record_of) ? agent_data[:node][index] : agent.node
-            pos = _get_vert_pos(model.graph, node, frame, model.record.nprops)+GeometryBasics.Vec(0.05-0.1*rand(), 0.05-0.1*rand())
+            pos = _get_vert_pos(graph, node, frame, model.record.nprops)+GeometryBasics.Vec(0.05-0.1*rand(), 0.05-0.1*rand())
             push!(posits, pos)
         end
     end
@@ -174,13 +186,13 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_agents_pos(model::GraphModelFixAgNum, frame) 
+@inline function _get_agents_pos(model::GraphModelFixAgNum, graph, frame) 
     posits = Vector{GeometryBasics.Vec2{Float64}}()
     for agent in model.agents
         agent_data = unwrap_data(agent)
         index = frame 
         node = (:node in agent.keeps_record_of) ? agent_data[:node][index] : agent.node
-        pos = _get_vert_pos(model.graph, node, frame, model.record.nprops)+GeometryBasics.Vec(0.05-0.1*rand(), 0.05-0.1*rand())
+        pos = _get_vert_pos(graph, node, frame, model.record.nprops)+GeometryBasics.Vec(0.05-0.1*rand(), 0.05-0.1*rand())
         push!(posits, pos)
     end
     return posits

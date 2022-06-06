@@ -7,7 +7,7 @@
 
 struct SimplePropGraph{T} <: AbstractPropGraph{T}
     _nodes::Vector{Int}
-    structure:: Dict{Int, Vector{Int}} #Dict{Int, PropDict{Symbol, Vector{Int}}}
+    structure:: Dict{Int, Vector{Int}}
     nodesprops::Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}
     edgesprops::Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}
     SimplePropGraph(w::Type{T}) where T<:MType = new{w}(Vector{Int}(), Dict{Int, Vector{Int}}(), 
@@ -30,9 +30,13 @@ struct SimplePropGraph{T} <: AbstractPropGraph{T}
         end
         new{w}(collect(1:n), structure, Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
     end
+
+    function SimplePropGraph(_nodes, structure, nodesprops, edgesprops, w::Type{T}) where T<:MType
+        return new{w}(_nodes, structure, nodesprops, edgesprops)
+    end
 end
 
-function Base.getproperty(g::T, key) where T<:AbstractPropGraph
+function Base.getproperty(g::T, key::Symbol) where T<:AbstractPropGraph
     if key == :_nodes 
         return nothing
     else
@@ -206,11 +210,13 @@ function _rem_vertex!(g::SimplePropGraph, i::Int)
 end
 
 function _rem_vertex_f!(g::SimplePropGraph, i::Int) #f = check (i in nodes) done before calling function
+    num = 0 
     for j in g.structure[i]
         x, y = j>i ? (i,j) : (j,i)
         if (x,y) in keys(g.edgesprops)
             delete!(g.edgesprops, (x,y))
         end
+        num+=1
         deleteat!(g.structure[j], findfirst(m->m==i, g.structure[j]))   
     end
     if i in keys(g.nodesprops)
@@ -218,15 +224,20 @@ function _rem_vertex_f!(g::SimplePropGraph, i::Int) #f = check (i in nodes) done
     end
     delete!(g.structure, i)
     deleteat!(getfield(g, :_nodes), searchsortedfirst(getfield(g, :_nodes),i)) 
+    return num # number of edges deleted
+end
+
+function _num_edges_at(node, g::SimplePropGraph)
+    return length(g.structure[node])
 end
 
 function _rem_edge!(g::SimplePropGraph, i::Int, j::Int)
     if i>j
         i,j = j,i
     end
-    if (j in keys(g.structure))&&(i in g.structure[j])
-        deleteat!(g.structure[j], findfirst(x->x==i,g.strucrure[j]))
-        deleteat!(g.structure[i], findfirst(x->x==j,g.strucrure[i]))
+    if (j in getfield(g, :_nodes))&&(i in g.structure[j])
+        deleteat!(g.structure[j], findfirst(x->x==i,g.structure[j]))
+        deleteat!(g.structure[i], findfirst(x->x==j,g.structure[i]))
         if (i,j) in keys(g.edgesprops)
             delete!(g.edgesprops, (i,j))
         end
@@ -238,8 +249,8 @@ function _rem_edge_f!(g::SimplePropGraph, i::Int, j::Int) #f = checks Set([i, j]
     if i>j
         i,j = j,i
     end
-    deleteat!(g.structure[j], findfirst(x->x==i,g.strucrure[j]))
-    deleteat!(g.structure[i], findfirst(x->x==j,g.strucrure[i]))
+    deleteat!(g.structure[j], findfirst(x->x==i,g.structure[j]))
+    deleteat!(g.structure[i], findfirst(x->x==j,g.structure[i]))
     if (i,j) in keys(g.edgesprops)
         delete!(g.edgesprops, (i,j))
     end
@@ -343,6 +354,12 @@ is_static(g::SimplePropGraph) = typeof(g) <: SimplePropGraph{StaticType}
 
 """
 $(TYPEDSIGNATURES)
+"""
+mortal_type(g::SimplePropGraph) = is_static(g) ? StaticType : MortalType
+
+
+"""
+$(TYPEDSIGNATURES)
 
 Creates a simple prop graph with n vertices. 
 """
@@ -355,6 +372,14 @@ $(TYPEDSIGNATURES)
 Creates a simple prop graph with given structure. 
 """
 create_simple_graph(structure::Dict{Int, Vector{Int}}; gtype::Type{T}=StaticType) where T<: MType = SimplePropGraph(structure,gtype)
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function convert_type(graph::SimplePropGraph, w::Type{T}) where T<:MType
+    return SimplePropGraph(getfield(graph, :_nodes), graph.structure, graph.nodesprops, graph.edgesprops, w)
+end
 
 
 """
@@ -439,6 +464,64 @@ function adjacency_matrix(g::SimplePropGraph)
     end
     sparse(rows, cols, vals)
 end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function combined_graph(grapha::SimplePropGraph, graphb::SimplePropGraph)
+    graphc = deepcopy(grapha)
+    nodesc = getfield(graphc, :_nodes)
+    structurec = graphc.structure
+    nodespropsc = graphc.nodesprops
+    edgespropsc= graphc.edgesprops
+
+    nodesb = getfield(graphb, :_nodes)
+    structureb = graphb.structure
+    nodespropsb = graphb.nodesprops
+    edgespropsb= graphb.edgesprops
+    for node in nodesb
+        push!(nodesc, node)
+    end
+    for (key, value) in structureb
+        structurec[key] = value
+    end
+    for (key, value) in nodespropsb
+        nodespropsc[key] = value
+    end
+    for (key, value) in edgespropsb
+        edgespropsc[key] = value
+    end
+    return graphc   
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function combined_graph!(grapha::SimplePropGraph, graphb::SimplePropGraph)
+    graphc = grapha
+    nodesc = getfield(graphc, :_nodes)
+    structurec = graphc.structure
+    nodespropsc = graphc.nodesprops
+    edgespropsc= graphc.edgesprops
+
+    nodesb = getfield(graphb, :_nodes)
+    structureb = graphb.structure
+    nodespropsb = graphb.nodesprops
+    edgespropsb= graphb.edgesprops
+    for node in nodesb
+        push!(nodesc, node)
+    end
+    for (key, value) in structureb
+        structurec[key] = value
+    end
+    for (key, value) in nodespropsb
+        nodespropsc[key] = value
+    end
+    for (key, value) in edgespropsb
+        edgespropsc[key] = value
+    end  
+end
 ####################################
 ####################################
 #    SIMPLE_PROP_GRAPH END         #
@@ -492,6 +575,10 @@ struct DirPropGraph{T}<: AbstractPropGraph{T}
             dc2[i] = Int[]
         end
         new{w}(collect(1:n), dc1, dc2, Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{Tuple{Int,Int}, PropDataDict{Symbol, Any}}())
+    end
+
+    function DirPropGraph(_nodes, in_structure, out_structure, nodesprops, edgesprops, w::Type{T}) where T<:MType
+        return new{w}(_nodes, in_structure, out_structure, nodesprops, edgesprops)
     end
 end
 
@@ -629,11 +716,13 @@ function _rem_vertex!(g::DirPropGraph, i::Int)
             if (i,j) in keys(g.edgesprops)
                 delete!(g.edgesprops, (i,j))
             end
+            deleteat!(g.in_structure[j], findfirst(m->m==i, g.in_structure[j]))   
         end
         for j in g.in_structure[i]
             if (j,i) in keys(g.edgesprops)
                 delete!(g.edgesprops, (j,i))
             end
+            deleteat!(g.out_structure[j], findfirst(m->m==i, g.out_structure[j]))   
         end
         
         delete!(g.out_structure, i)
@@ -648,15 +737,20 @@ end
 
 
 function _rem_vertex_f!(g::DirPropGraph, i::Int) # f = checks i in nodes done before calling function
+    num = 0 
     for j in g.out_structure[i]
+        num+=1
         if (i,j) in keys(g.edgesprops)
             delete!(g.edgesprops, (i,j))
         end
+        deleteat!(g.in_structure[j], findfirst(m->m==i, g.in_structure[j])) 
     end
     for j in g.in_structure[i]
+        num+=1
         if (j,i) in keys(g.edgesprops)
             delete!(g.edgesprops, (j,i))
         end
+        deleteat!(g.out_structure[j], findfirst(m->m==i, g.out_structure[j])) 
     end
     
     delete!(g.out_structure, i)
@@ -666,11 +760,17 @@ function _rem_vertex_f!(g::DirPropGraph, i::Int) # f = checks i in nodes done be
         delete!(g.nodesprops, i)
     end
     deleteat!(getfield(g, :_nodes), searchsortedfirst(getfield(g, :_nodes),i))
+    return num
+end
+
+function _num_edges_at(node, g::DirPropGraph)
+    return length(g.in_structure[node])+length(g.out_structure[node])
 end
 
 function _rem_edge!(g::DirPropGraph, i::Int, j::Int)
-    if (i in keys(g.out_structure)) && (j in g.out_structure[i])
+    if (i in getfield(g, :_nodes)) && (j in g.out_structure[i])
         deleteat!(g.out_structure[i], findfirst(x->x==j, g.out_structure[i]))
+        deleteat!(g.in_structure[j], findfirst(x->x==i, g.in_structure[j]))
         if (i,j) in keys(g.edgesprops)
             delete!(g.edgesprops, (i,j))
         end
@@ -679,6 +779,7 @@ end
 
 function _rem_edge_f!(g::DirPropGraph, i::Int, j::Int) # f = checks (i,j) in g.edges done before calling function
     deleteat!(g.out_structure[i], findfirst(x->x==j, g.out_structure[i]))
+    deleteat!(g.in_structure[j], findfirst(x->x==i, g.in_structure[j]))
     if (i,j) in keys(g.edgesprops)
         delete!(g.edgesprops, (i,j))
     end
@@ -767,6 +868,13 @@ $(TYPEDSIGNATURES)
 """
 is_static(g::DirPropGraph) = typeof(g) <: DirPropGraph{StaticType}
 
+
+"""
+$(TYPEDSIGNATURES)
+"""
+mortal_type(g::DirPropGraph) = is_static(g) ? StaticType : MortalType
+
+
 """
 $(TYPEDSIGNATURES)
 
@@ -780,6 +888,14 @@ $(TYPEDSIGNATURES)
 Creates a directed prop graph with given structure. 
 """
 create_dir_graph(in_structure::Dict{Int, Vector{Int}}; gtype::Type{T}=StaticType) where T <: MType = DirPropGraph(in_structure, gtype)
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function convert_type(graph::DirPropGraph, w::Type{T}) where T<:MType
+    return DirPropGraph(getfield(graph, :_nodes), graph.in_structure, graph.out_structure, graph.nodesprops, graph.edgesprops, w)
+end
 
 
 """
@@ -864,6 +980,76 @@ function adjacency_matrix(g::DirPropGraph)
         end
     end
     sparse(rows, cols, vals)
+end
+
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function combined_graph(grapha::DirPropGraph, graphb::DirPropGraph)
+    graphc = deepcopy(grapha)
+    nodesc = getfield(graphc, :_nodes)
+    structure_inc = graphc.in_structure
+    structure_outc = graphc.out_structure
+    nodespropsc = graphc.nodesprops
+    edgespropsc= graphc.edgesprops
+
+    nodesb = getfield(graphb, :_nodes)
+    structure_inb = graphb.in_structure
+    structure_outb = graphb.out_structure
+    nodespropsb = graphb.nodesprops
+    edgespropsb= graphb.edgesprops
+    for node in nodesb
+        push!(nodesc, node)
+    end
+    for (key, value) in structure_inb
+        structure_inc[key] = value
+    end
+    for (key, value) in structure_outb
+        structure_outc[key] = value
+    end
+    for (key, value) in nodespropsb
+        nodespropsc[key] = value
+    end
+    for (key, value) in edgespropsb
+        edgespropsc[key] = value
+    end
+    return graphc   
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function combined_graph!(grapha::DirPropGraph, graphb::DirPropGraph)
+    graphc = grapha
+    nodesc = getfield(graphc, :_nodes)
+    structure_inc = graphc.in_structure
+    structure_outc = graphc.out_structure
+    nodespropsc = graphc.nodesprops
+    edgespropsc= graphc.edgesprops
+
+    nodesb = getfield(graphb, :_nodes)
+    structure_inb = graphb.in_structure
+    structure_outb = graphb.out_structure
+    nodespropsb = graphb.nodesprops
+    edgespropsb= graphb.edgesprops
+    for node in nodesb
+        push!(nodesc, node)
+    end
+    for (key, value) in structure_inb
+        structure_inc[key] = value
+    end
+    for (key, value) in structure_outb
+        structure_outc[key] = value
+    end
+    for (key, value) in nodespropsb
+        nodespropsc[key] = value
+    end
+    for (key, value) in edgespropsb
+        edgespropsc[key] = value
+    end  
 end
 ####################################
 ####################################

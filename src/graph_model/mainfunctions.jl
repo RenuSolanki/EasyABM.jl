@@ -25,11 +25,7 @@ function create_graph_model(agents::Vector{AgentDictGr{Symbol, Any}},
     end
 
     if (typeof(graph)<:AbstractPropGraph{StaticType}) && !(static_graph) # if user sends a (default) statictype graph but deliberately sets static_graph to false then change graph type to dynamic
-        if !is_digraph(graph)
-            graph = create_simple_graph(graph.structure, gtype = MortalType)
-        else
-            graph = create_dir_graph(graph.in_structure, gtype = MortalType)
-        end
+        graph = convert_type(graph, MortalType)
     end
 
     gtype = static_graph ? StaticType : MortalType
@@ -126,6 +122,10 @@ function create_graph_model(agents::Vector{AgentDictGr{Symbol, Any}},
                 end
             end
         end
+    end
+
+    if !static_graph
+        _create_dead_meta_graph(graph, parameters)
     end
 
     for (i, agent) in enumerate(agents)
@@ -255,8 +255,9 @@ $(TYPEDSIGNATURES)
 """
 function _init_graph!(model::GraphModel)
 
-    _permanently_remove_inactive_edges!(model)
-    _permanently_remove_inactive_nodes!(model)
+    _reshift_node_numbers(model)
+
+    _permanently_remove_dead_graph_data!(model)
 
     if length(getfield(model.graph, :_nodes)) == 0
         _create_a_node!(model)
@@ -368,19 +369,20 @@ $(TYPEDSIGNATURES)
 """
 function save_sim_luxor(model::GraphModel, frames::Int=model.tick, scl::Number=1.0; path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_space = true) 
     if model.graphics
+        graph = is_static(model.graph) ? model.graph : combined_graph(model.graph, model.parameters._extras._dead_meta_graph)
         ticks = getfield(model, :tick)[]
         model.parameters._extras._show_space = show_space
         fr = min(frames, ticks)
         movie_abm = Movie(gparams.width, gparams.height, "movie_abm", 1:fr)
         scene_array = Vector{Luxor.Scene}()
-        verts = getfield(model.graph, :_nodes)
+        verts = getfield(graph, :_nodes)
         node_size = _get_node_size(model.parameters._extras._num_verts)
         
         function backdrop_sg(scene, frame)
             Luxor.background("white")
             _draw_title(scene, frame)
             for vert in verts
-                _draw_da_vert(model.graph, vert, node_size, frame, model.record.nprops)
+                _draw_da_vert(graph, vert, node_size, frame, model.record.nprops)
             end
         end
     
@@ -393,7 +395,7 @@ function save_sim_luxor(model::GraphModel, frames::Int=model.tick, scl::Number=1
 
         push!(scene_array, Luxor.Scene(movie_abm, use_backdrop, 1:fr))
         for i in 1:fr
-            draw_all(scene, frame) = draw_agents_and_graph(model, verts, node_size, frame,scl)
+            draw_all(scene, frame) = draw_agents_and_graph(model, graph, verts, node_size, frame,scl)
 
             push!(scene_array, Luxor.Scene(movie_abm, draw_all, i:i))
         end
@@ -411,6 +413,7 @@ $(TYPEDSIGNATURES)
 """
 function save_sim_makie(model::GraphModel, frames::Int=model.tick, scl::Number=1.0; path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_space = true) 
     if model.graphics
+        graph = is_static(model.graph) ? model.graph : combined_graph(model.graph, model.parameters._extras._dead_meta_graph)
         ticks = getfield(model, :tick)[]
         model.parameters._extras._show_space = show_space
         fr = min(frames, ticks)
@@ -419,14 +422,14 @@ function save_sim_makie(model::GraphModel, frames::Int=model.tick, scl::Number=1
         time = Observable(1)
 
         #[[Point2f(5*rand(),5*rand()) for i in 1:20] for j in 1:n]
-        points = @lift(_get_agents_pos(model,$time))
+        points = @lift(_get_agents_pos(model,graph, $time))
         markers = @lift(_to_makie_shapes.(_get_propvals(model,$time, :shape)))
         colors = @lift(_get_propvals(model, $time, :color))
         rotations = @lift(_get_propvals(model, $time, :orientation))
         sizes = @lift(_get_propvals(model, $time, :size))
-        verts_pos = @lift(_get_graph_layout_info(model, $time)[1])
-        verts_dir = @lift(_get_graph_layout_info(model, $time)[2]) 
-        verts_color = @lift(_get_graph_layout_info(model, $time)[3])
+        verts_pos = @lift(_get_graph_layout_info(model,graph, $time)[1])
+        verts_dir = @lift(_get_graph_layout_info(model,graph, $time)[2]) 
+        verts_color = @lift(_get_graph_layout_info(model,graph, $time)[3])
         title = @lift((t->"t = $t")($time))
 
         fig = Figure(resolution = (gparams.height, gparams.width))
@@ -480,8 +483,9 @@ function animate_sim(model::GraphModel, frames::Int=model.tick;
     path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_graph = true, backend= :luxor)
     ticks = getfield(model, :tick)[]
     model.parameters._extras._show_space = show_graph
+    graph = is_static(model.graph) ? model.graph : combined_graph(model.graph, model.parameters._extras._dead_meta_graph)
     fr = min(frames, ticks)
-    verts = getfield(model.graph, :_nodes)
+    verts = getfield(graph, :_nodes)
     node_size = _get_node_size(model.parameters._extras._num_verts)
 
     function draw_frame_luxor(t, scl)
@@ -491,10 +495,10 @@ function animate_sim(model::GraphModel, frames::Int=model.tick;
             Luxor.background("white")
             if is_static(model.graph) && show_graph
                 for vert in verts
-                    _draw_da_vert(model.graph, vert, node_size, t, model.record.nprops)
+                    _draw_da_vert(graph, vert, node_size, t, model.record.nprops)
                 end
             end
-            draw_agents_and_graph(model, verts, node_size, t, scl)
+            draw_agents_and_graph(model,graph, verts, node_size, t, scl)
         end
         finish()
         drawing
@@ -504,12 +508,12 @@ function animate_sim(model::GraphModel, frames::Int=model.tick;
     ax.title = " "
     function draw_frame_makie(t, scl)
         empty!(ax)
-        points = _get_agents_pos(model,t)
+        points = _get_agents_pos(model,graph,t)
         markers = _to_makie_shapes.(_get_propvals(model,t, :shape))
         colors = _get_propvals(model, t, :color)
         rotations = _get_propvals(model, t, :orientation)
         sizes = _get_propvals(model, t, :size, scl)
-        verts_pos, verts_dir, verts_color   = _get_graph_layout_info(model, t)
+        verts_pos, verts_dir, verts_color   = _get_graph_layout_info(model,graph, t)
 
         _create_makie_frame(ax, model, points, markers, colors, rotations, sizes, verts_pos, verts_dir, verts_color, show_graph)
         return fig
@@ -568,6 +572,11 @@ function create_interactive_app(inmodel::GraphModel; initialiser::Function = nul
     frames=200, show_graph=true, backend = :luxor) 
 
     model = deepcopy(inmodel)
+    
+    if !is_static(model.graph)
+        combined_graph!(model.graph, model.parameters._extras._dead_meta_graph)
+        model.parameters._extras._dead_meta_graph = SimplePropGraph(MortalType)
+    end
 
     model.parameters._extras._show_space = show_graph
 
@@ -596,6 +605,10 @@ function create_interactive_app(inmodel::GraphModel; initialiser::Function = nul
         init_model!(model, initialiser=initialiser, props_to_record = props_to_record)
         ufun(model)
         _run_interactive_model(frames)
+        if !is_static(model.graph)
+            combined_graph!(model.graph, model.parameters._extras._dead_meta_graph)
+            model.parameters._extras._dead_meta_graph = SimplePropGraph(MortalType)
+        end
         agent_df = get_agents_avg_props(model, condsa..., labels= lblsa)
         node_df = get_nodes_avg_props(model, condsp..., labels= lblsp)
         return agent_df, DataFrame(), node_df
@@ -623,7 +636,7 @@ function create_interactive_app(inmodel::GraphModel; initialiser::Function = nul
                     _draw_da_vert(model.graph, vert, node_size, t, model.record.nprops)
                 end
             end
-            draw_agents_and_graph(model, verts, node_size, t, scl)
+            draw_agents_and_graph(model,model.graph, verts, node_size, t, scl)
         end
         finish()
         drawing
@@ -636,12 +649,12 @@ function create_interactive_app(inmodel::GraphModel; initialiser::Function = nul
 
     function _draw_interactive_frame_makie(t, scl)
         empty!(ax)
-        points = _get_agents_pos(model,t)
+        points = _get_agents_pos(model,model.graph,t)
         markers = _to_makie_shapes.(_get_propvals(model,t, :shape))
         colors = _get_propvals(model, t, :color)
         rotations = _get_propvals(model, t, :orientation)
         sizes = _get_propvals(model, t, :size, scl)
-        verts_pos, verts_dir, verts_color  = _get_graph_layout_info(model, t)
+        verts_pos, verts_dir, verts_color  = _get_graph_layout_info(model,model.graph, t)
 
         _create_makie_frame(ax, model, points, markers, colors, rotations, sizes, verts_pos, verts_dir, verts_color, show_graph)
         return fig

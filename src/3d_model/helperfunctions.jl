@@ -86,22 +86,7 @@ $(TYPEDSIGNATURES)
 
 This function is for use from within the module and is not exported.
 """
-@inline function update_agents_record!(model::GridModel3DDynAgNum) 
-    for agent in model.agents
-        if agent._extras._active
-            _recalculate_position!(agent, model.size, model.periodic)
-            _update_agent_record!(agent)
-        end
-    end
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-This function is for use from within the module and is not exported.
-"""
-@inline function update_agents_record!(model::GridModel3DFixAgNum) 
+@inline function update_agents_record!(model::GridModel3D) 
     for agent in model.agents
         _recalculate_position!(agent, model.size, model.periodic)
         _update_agent_record!(agent)

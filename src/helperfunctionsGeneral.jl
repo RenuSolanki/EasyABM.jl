@@ -110,22 +110,30 @@ This function is for use from within the module and is not exported.
 """
 @inline function _permanently_remove_inactive_agents!(model::Union{AbstractGridModel{MortalType}, AbstractGraphModel{T, MortalType} }) where T<:MType
     newly_added = model.parameters._extras._agents_added
-    for i in length(model.parameters._extras._agents_killed):-1:1
-        agent = model.parameters._extras._agents_killed[i]
-        if agent._extras._death_time == model.tick
-            if agent in newly_added
-                deleteat!(newly_added, findfirst(m->m==agent, newly_added))
+    len_dead = length(model.parameters._extras._agents_killed)
+    if len_dead>0
+        for i in len_dead:-1:1
+            agent = model.parameters._extras._agents_killed[i]
+            aid = agent._extras._id
+            if agent._extras._death_time == model.tick
+                if agent in newly_added
+                    deleteat!(newly_added, findfirst(m->m._extras._id==aid, newly_added))
+                else
+                    deleteat!(model.agents, findfirst(m->m._extras._id==aid, model.agents))
+                    model.parameters._extras._len_model_agents -= 1
+                end     
             else
-                deleteat!(model.agents, findfirst(m->m==agent, model.agents))
-                model.parameters._extras._len_model_agents -= 1
-            end     
-        else
-            break
+                break
+            end
         end
-    end
-    if !(model.parameters._extras._keep_deads_data)
-        empty!(model.parameters._extras._agents_killed)
-        getfield(model,:max_id)[] = model.parameters._extras._len_model_agents > 0 ? max([ag._extras._id for ag in model.agents]...) : 0
+        if !(model.parameters._extras._keep_deads_data)
+            empty!(model.parameters._extras._agents_killed)
+            if length(newly_added)>0
+                getfield(model,:max_id)[] = max([ag._extras._id for ag in newly_added]...)
+            else
+                getfield(model,:max_id)[] = model.parameters._extras._len_model_agents > 0 ? max([ag._extras._id for ag in model.agents]...) : 0
+            end
+        end
     end
 end
 
