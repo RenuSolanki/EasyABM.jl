@@ -73,7 +73,6 @@ function add_agent!(agent, model::GridModel3DDynAgNum)
 
         getfield(model,:max_id)[] += 1
         model.parameters._extras._num_agents += 1
-        model.parameters._extras._len_model_agents +=1 
     end
 end
 
@@ -211,8 +210,8 @@ $(TYPEDSIGNATURES)
         end
     end
     all_agents = vcat(model.agents, model.parameters._extras._agents_killed)
-    @sync for agent in all_agents
-        @async _if_alive_draw_agent(vis, agent, model, frame, scl, tail_length, tail_condition)
+    for agent in all_agents
+        _if_alive_draw_agent(vis, agent, model, frame, scl, tail_length, tail_condition)
     end
 end
 
@@ -228,7 +227,7 @@ $(TYPEDSIGNATURES)
         end
     end
 
-    @sync for agent in model.agents
-        @async draw_agent(vis, agent, model, frame, scl, tail_length, tail_condition)
+    for agent in model.agents
+        draw_agent(vis, agent, model, frame, scl, tail_length, tail_condition)
     end
 end

@@ -109,7 +109,7 @@ $(TYPEDSIGNATURES)
     for vert in alive_verts
         index = frame-graph.nodesprops[vert]._extras._birth_time + 1
         out_structure = out_links(graph, vert)
-        active_out_structure = out_structure[[(graph.edgesprops[(vert, nd)]._extras._birth_time <= frame)&&(frame<=graph.edgesprops[(vert, nd)]._extras._death_time) for nd in out_structure]]
+        active_out_structure, indices = _get_active_out_structure(graph, vert, out_structure, frame)
         pos = _get_vert_pos(graph, vert, frame, model.record.nprops)
         pos_p = GeometryBasics.Point(pos)
         vert_col = :black 
@@ -290,7 +290,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agent(agent::AgentDictGr, model::GraphModel, node_size, scl, index, frame) # the check 0<index< length(data) has been made before calling the function.
+@inline function draw_agent(agent::AgentDictGr, model::GraphModel, graph, node_size, scl, index, frame) # the check 0<index< length(data) has been made before calling the function.
     record = agent.keeps_record_of
     agent_data = unwrap_data(agent)   
     
@@ -304,12 +304,15 @@ $(TYPEDSIGNATURES)
     node = (:node in record) ? agent_data[:node][index] : agent.node
 
     
-    pos = _get_vert_pos(model.graph, node, frame, model.record.nprops) #model.graph.nodesprops[node]._extras._pos
+    pos = _get_vert_pos(graph, node, frame, model.record.nprops) #model.graph.nodesprops[node]._extras._pos
 
     orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
     shape = (:shape in record) ? agent_data[:shape][index] : agent.shape
     shape_color = (:color in record) ? agent_data[:color][index] : agent.color
 
+    if !(shape in keys(shapefunctions2d))
+        shape = :circle
+    end
 
     size = node_size
     

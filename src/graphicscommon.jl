@@ -36,7 +36,8 @@ $(TYPEDSIGNATURES)
         if (agent._extras._birth_time<= t)&&(t<= agent._extras._death_time)
             index = t - agent._extras._birth_time +1
             propval = (prop in agent.keeps_record_of) ? agent_data[prop][index] : agent_dict[prop]
-            propval = (prop == :size) ? propval*scl*gparams.width/model.size[1] : propval
+            divisor = hasfield(typeof(model), :size) ? model.size[1] : gparams.width
+            propval = (prop == :size) ? propval*scl*gparams.width/divisor : propval
             push!(propvals, propval)
         end
     end
@@ -53,7 +54,8 @@ $(TYPEDSIGNATURES)
         agent_data = unwrap_data(agent)
         agent_dict = unwrap(agent)
         propval = (prop in agent.keeps_record_of) ? agent_data[prop][t] : agent_dict[prop]
-        propval = (prop == :size) ? propval*scl : propval
+        divisor = hasfield(typeof(model), :size) ? model.size[1] : gparams.width
+        propval = (prop == :size) ? propval*scl*gparams.width/divisor : propval
         push!(propvals, propval)
     end
     return propvals
@@ -151,7 +153,7 @@ end
 $(TYPEDSIGNATURES)
 """
 function _interactive_app(model::Union{AbstractGridModel, AbstractGraphModel}, fr, plots_only::Bool, _save_sim::Function, draw_frame::Function, 
-    agent_df::DataFrames.DataFrame, patch_df::DataFrames.DataFrame, node_df::DataFrames.DataFrame)
+    agent_df::DataFrames.DataFrame, patch_df::DataFrames.DataFrame, node_df::DataFrames.DataFrame, model_df::DataFrames.DataFrame)
         timeS = slider(1:fr, label = "time")
         scaleS = slider(0.1:0.1:2, label = "scale")
         run = button("run")
@@ -213,6 +215,12 @@ function _interactive_app(model::Union{AbstractGridModel, AbstractGraphModel}, f
             push!(plots, pl)
         end
 
+        if size(model_df)[1]>0
+            pl = Interact.@map plot(Matrix(model_df)[1:&timeS, :], labels=permutedims(names(model_df)), xlabel="ticks", ylabel="", legend=:outertopright, size=(300,150))
+            #pl = Interact.@map plot(node_df[:,nm][1:&timeS], legend=false, xlabel = "time", ylabel= nm, size=(300,150) );
+            push!(plots, pl)
+        end
+
     
         animlux = Interact.@map draw_frame(&timeS, &scaleS)
         
@@ -242,7 +250,8 @@ function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphMode
     agent_df = DataFrame(),
     render_trivial = ()->nothing, 
     patch_df = DataFrame(),
-    node_df = DataFrame()
+    node_df = DataFrame(),
+    model_df = DataFrame()
     )
     timeS = slider(1:fr, label = "time")
     scaleS = slider(0.1:0.1:2, label = "scale")
@@ -355,11 +364,17 @@ function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphMode
             #pl = Interact.@map plot(node_df[:,nm][1:&timeS], legend=false, xlabel = "time", ylabel= nm, size=(300,150) );
             push!(pls, pl)
         end
+
+        if size(model_df)[1]>1
+            pl = Interact.@map plot(Matrix(model_df)[1:&timeS, :], labels=permutedims(names(model_df)), xlabel="ticks", ylabel="", legend=:outertopright, size=(300,150))
+            #pl = Interact.@map plot(node_df[:,nm][1:&timeS], legend=false, xlabel = "time", ylabel= nm, size=(300,150) );
+            push!(pls, pl)
+        end
     end
 
     rfun() = begin 
         check[] = 1
-        agent_df, patch_df, node_df = _init_interactive_model(ufun)
+        agent_df, patch_df, node_df, model_df = _init_interactive_model(ufun)
         _create_plots()
         timeS[]= 1
         check[] = 0

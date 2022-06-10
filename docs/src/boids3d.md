@@ -44,7 +44,7 @@ init_model!(model, initialiser = initialiser!)
 
 ## Step 3: Run the model
 
-In this step we implement the step logic of the Schellings model in the `step_rule!` function and run the model for 500 steps. 
+In this step we implement the step logic of the flocking model in the `step_rule!` function and run the model for 500 steps. 
 
 
 

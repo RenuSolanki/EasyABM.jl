@@ -17,43 +17,41 @@ Base.IteratorSize(::Type{AgentDictGr{T}}) where T = IteratorSize(T)
 Base.IteratorEltype(::Type{AgentDictGr{T}}) where T = IteratorEltype(T)
 
 
-function update_nodesprops!(agent::AgentDictGr, node_info::Nothing)
+function update_nodesprops!(agent::AgentDictGr, model::Nothing)
     nothing
 end
 
-function update_nodesprops!(agent::AgentDictGr, nodesprops::Dict{Int, Union{PropDataDict{Symbol, Any},Bool}})
-    static_graph = nodesprops[-1]
-    fix_agents_num = nodesprops[-2]
-    if fix_agents_num || agent._extras._active
-        if !static_graph
-            if !nodesprops[agent.node]._extras._active # we rely on user to check (agent.node in keys(nodesprops) / nodes of graph) before setting node of agent. 
-                unwrap(agent)[:node] = agent._extras._last_node_loc
-                return 
-            end
-            node_new = agent.node
-            node_old = agent._extras._last_node_loc
-            i = agent._extras._id
+function update_nodesprops!(agent::AgentDictGr, graph::AbstractPropGraph{StaticType})
+    node_new = agent.node
+    node_old = agent._extras._last_node_loc
+    i = agent._extras._id
+    nodesprops = graph.nodesprops
 
-            if node_new != node_old
-                deleteat!(nodesprops[node_old]._extras._agents, findfirst(x->x==i, nodesprops[node_old]._extras._agents))
-                push!(nodesprops[node_new]._extras._agents, i)
-                agent._extras._last_node_loc = node_new  
-            end
-
-        else
-            node_new = agent.node
-            node_old = agent._extras._last_node_loc
-            i = agent._extras._id
-
-            if node_new != node_old
-                deleteat!(nodesprops[node_old]._extras._agents, findfirst(x->x==i, nodesprops[node_old]._extras._agents))
-                push!(nodesprops[node_new]._extras._agents, i)
-                agent._extras._last_node_loc = node_new  
-            end
-
-        end
+    if node_new != node_old
+        deleteat!(nodesprops[node_old]._extras._agents, findfirst(x->x==i, nodesprops[node_old]._extras._agents))
+        push!(nodesprops[node_new]._extras._agents, i)
+        agent._extras._last_node_loc = node_new  
     end
-    
+end
+
+
+function update_nodesprops!(agent::AgentDictGr, graph::AbstractPropGraph{MortalType})
+    if !graph.nodesprops[agent.node]._extras._active
+        unwrap(agent)[:node] = agent._extras._last_node_loc
+        return 
+    else
+        node_new = agent.node
+        node_old = agent._extras._last_node_loc
+        i = agent._extras._id
+        nodesprops = graph.nodesprops
+
+        if node_new != node_old
+            deleteat!(nodesprops[node_old]._extras._agents, findfirst(x->x==i, nodesprops[node_old]._extras._agents))
+            push!(nodesprops[node_new]._extras._agents, i)
+            agent._extras._last_node_loc = node_new  
+        end
+
+    end 
 end
 
 
@@ -75,7 +73,7 @@ function Base.setproperty!(agent::AgentDictGr, key::Symbol, x)
     dict[key] = x
 
     if key==:node 
-        update_nodesprops!(agent, agent._extras._nodesprops)
+        update_nodesprops!(agent, agent._extras._graph)
     end
 
     if !(key in keys(dict_data)) && !(key == :_extras) && !(key == :keeps_record_of)
@@ -130,7 +128,7 @@ function create_graph_agent(;kwargs...)
         dict_agent[:keeps_record_of] = Symbol[]
     end
     dict_agent[:_extras] = PropDict()
-    dict_agent[:_extras]._nodesprops = nothing
+    dict_agent[:_extras]._graph = nothing
     dict_agent[:_extras]._active = true
 
     return AgentDictGr(dict_agent)

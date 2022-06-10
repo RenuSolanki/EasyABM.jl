@@ -86,16 +86,6 @@ function create_3d_model(agents::Vector{AgentDict3D{Symbol, Any}}; graphics=true
             end
         end
 
-        if length(agent.keeps_record_of)==0
-            keeps_record_of = Symbol[]
-            for key in keys(agent)
-                if !(key == :_extras) && !(key==:keeps_record_of)
-                    push!(keeps_record_of, key)
-                end
-            end
-            unwrap(agent)[:keeps_record_of] = keeps_record_of
-        end
-
         _recalculate_position!(agent, grid_size, periodic)
 
         _init_agent_record!(agent)
@@ -283,6 +273,7 @@ function create_interactive_app(inmodel::GridModel3D; initialiser::Function = nu
     model_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), #initialiser will override the changes made
     agent_plots::Dict{String, <:Function} = Dict{String, Function}(),
     patch_plots::Dict{String, <:Function} = Dict{String, Function}(),
+    model_plots::Vector{Symbol} = Symbol[],
     plots_only = false,
     frames=200, show_grid=false, tail=(1, agent->false)) 
 
@@ -303,9 +294,10 @@ function create_interactive_app(inmodel::GridModel3D; initialiser::Function = nu
         nothing
     end
 
-    #_run_interactive_model()
-    vis = Visualizer()
-    _adjust_origin_and_draw_bounding_box(vis, true)
+    if !plots_only
+        vis = Visualizer()
+        _adjust_origin_and_draw_bounding_box(vis, true)
+    end
 
     if show_grid
         draw_patches_static(vis,model)
@@ -331,16 +323,19 @@ function create_interactive_app(inmodel::GridModel3D; initialiser::Function = nu
         init_model!(model, initialiser=initialiser, props_to_record=props_to_record)
         ufun(model)
         _run_interactive_model(frames)
-        delete!(vis["agents"])
-        delete!(vis["tails"])
-        all_agents = _get_all_agents(model)
-        draw_agents_static(vis, model, all_agents, tail...)
+        if !plots_only
+            delete!(vis["agents"])
+            delete!(vis["tails"])
+            all_agents = _get_all_agents(model)
+            draw_agents_static(vis, model, all_agents, tail...)
+        end
         agent_df = get_agents_avg_props(model, condsa..., labels= lblsa)
         patch_df = get_patches_avg_props(model, condsp..., labels= lblsp)
-        return agent_df, patch_df, DataFrame()
+        model_df = get_model_data(model, model_plots).record
+        return agent_df, patch_df, DataFrame(), model_df
     end
 
-    agent_df, patch_df, node_df = _init_interactive_model()
+    agent_df, patch_df, node_df, model_df = _init_interactive_model()
 
     function _draw_interactive_frame(t, scl)
         draw_agents_and_patches(vis, model, t, scl, tail...)
@@ -356,7 +351,9 @@ function create_interactive_app(inmodel::GridModel3D; initialiser::Function = nu
         _render_trivial = _does_nothing
     end
 
-    _live_interactive_app(model, frames, plots_only, _save_sim, _init_interactive_model, _run_interactive_model, _draw_interactive_frame, agent_controls, model_controls, agent_df, _render_trivial, patch_df, node_df)
+    _live_interactive_app(model, frames, plots_only, _save_sim, _init_interactive_model, 
+    _run_interactive_model, _draw_interactive_frame, agent_controls, model_controls, 
+    agent_df, _render_trivial, patch_df, node_df, model_df)
 
 end
 

@@ -39,9 +39,6 @@ function create_graph_model(agents::Vector{AgentDictGr{Symbol, Any}},
         graph = create_dir_graph(graph, gtype = gtype)
     end
 
-    graph.nodesprops[-1] = static_graph
-    graph.nodesprops[-2] = fix_agents_num
-
     if length(getfield(graph, :_nodes)) == 0
         _add_vertex!(graph, 1)
     end
@@ -111,8 +108,7 @@ function create_graph_model(agents::Vector{AgentDictGr{Symbol, Any}},
             end
             if !is_static(graph)
                 graph.edgesprops[ed]._extras._active = true
-                graph.edgesprops[ed]._extras._birth_time = 1
-                graph.edgesprops[ed]._extras._death_time = Inf
+                graph.edgesprops[ed]._extras._bd_times = [(1, typemax(Int))]
             end
             e_dict = unwrap(graph.edgesprops[ed])
             e_data = unwrap_data(graph.edgesprops[ed])
@@ -156,23 +152,12 @@ function create_graph_model(agents::Vector{AgentDictGr{Symbol, Any}},
                 unwrap(agent)[:node] = ag_node
             end
         end    
-        
-        if length(agent.keeps_record_of) == 0
-            keeps_record_of = Symbol[]
-            for key in keys(agent)
-                if !(key == :_extras) && !(key==:keeps_record_of)
-                    push!(keeps_record_of, key)
-                end
-            end
-            unwrap(agent)[:keeps_record_of] = keeps_record_of
-        end
 
         _init_agent_record!(agent)
 
-        agent._extras._nodesprops = graph.nodesprops
+        agent._extras._graph = graph
     end
 
-    
     model = GraphModel(graph, agents, Ref(n), graphics, parameters, (aprops=Symbol[], nprops=Symbol[], eprops=Symbol[], mprops = Symbol[]), Ref(1), gtype = gtype, atype = atype)
 
     return model
@@ -479,6 +464,7 @@ Creates an animation from the data collected during model run.
 function animate_sim(model::GraphModel, frames::Int=model.tick; 
     agent_plots::Dict{String, <:Function} = Dict{String, Function}(), 
     node_plots::Dict{String, <:Function} = Dict{String, Function}(), 
+    model_plots::Vector{Symbol} = Symbol[],
     plots_only = false, 
     path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_graph = true, backend= :luxor)
     ticks = getfield(model, :tick)[]
@@ -550,8 +536,9 @@ function animate_sim(model::GraphModel, frames::Int=model.tick;
     end
 
     node_df = get_agents_avg_props(model, conditions..., labels= labels)
+    model_df = get_model_data(model, model_plots).record
 
-    _interactive_app(model, fr, plots_only,_save_sim, draw_frame, agent_df, DataFrames.DataFrame(), node_df)
+    _interactive_app(model, fr, plots_only,_save_sim, draw_frame, agent_df, DataFrames.DataFrame(), node_df, model_df)
 end
 
 
@@ -567,6 +554,7 @@ function create_interactive_app(inmodel::GraphModel; initialiser::Function = nul
     model_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), #initialiser will override the changes made
     agent_plots::Dict{String, <:Function} = Dict{String, Function}(),
     node_plots::Dict{String, <:Function} = Dict{String, Function}(),
+    model_plots::Vector{Symbol} = Symbol[],
     plots_only = false,
     path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"),
     frames=200, show_graph=true, backend = :luxor) 
@@ -611,10 +599,11 @@ function create_interactive_app(inmodel::GraphModel; initialiser::Function = nul
         end
         agent_df = get_agents_avg_props(model, condsa..., labels= lblsa)
         node_df = get_nodes_avg_props(model, condsp..., labels= lblsp)
-        return agent_df, DataFrame(), node_df
+        model_df = get_model_data(model, model_plots).record
+        return agent_df, DataFrame(), node_df, model_df
     end
 
-    agent_df, patch_df, node_df= _init_interactive_model()
+    agent_df, patch_df, node_df, model_df= _init_interactive_model()
 
     function _save_sim(scl)
         save_sim(model, frames, scl, path= path, show_space=show_graph, backend = backend)
@@ -667,7 +656,9 @@ function create_interactive_app(inmodel::GraphModel; initialiser::Function = nul
         _save_sim = _does_nothing
     end
 
-    _live_interactive_app(model, frames, plots_only, _save_sim, _init_interactive_model, _run_interactive_model, _draw_interactive_frame, agent_controls, model_controls, agent_df, ()->nothing, patch_df, node_df)
+    _live_interactive_app(model, frames, plots_only, _save_sim, _init_interactive_model, 
+    _run_interactive_model, _draw_interactive_frame, agent_controls, model_controls, 
+    agent_df, ()->nothing, patch_df, node_df, model_df)
 
 end
 

@@ -127,6 +127,9 @@ $(TYPEDSIGNATURES)
     shape = (:shape in record) ? agent_data[:shape][index] : agent.shape
     shape_color = (:color in record) ? agent_data[:color][index] : agent.color
 
+    if !(shape in keys(shapefunctions2d))
+        shape = :circle
+    end
 
     size = xdim/50
 

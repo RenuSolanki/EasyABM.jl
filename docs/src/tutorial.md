@@ -11,11 +11,11 @@ We explain these steps below through a very simple model of a star-planet system
 
 ## Step 1: Create the agents and the model.
 
-In the first step we create the agents and the model. For the star-planet system, we need one agent for the star and one for the planet. We will assume that the star is stationary and the planet revolves around it. We set the position of the star to be (5,5) which is the center point of the 2d space, as the default dimensions of 2d space in EasyABM is 10x10. We set the position of the planet to be (7,5) and its velocity to be (0,1). Since, the planet will change its position we require it to record its position during the model run. We specify this via `keeps_record_of` property of the planet. The `gravity` property of the model is a constant of proportionality for the force between the star and the planet. 
+In the first step we create the agents and the model. For the star-planet system, we need one agent for the star and one for the planet. We will assume that the star is stationary and the planet revolves around it. We set the position of the star to be (5,5) which is the center point of the 2d space, as the default dimensions of 2d space in EasyABM is 10x10. We set the position of the planet to be (7,5) and its velocity to be (0,1). Since, the planet will change its position we require it to record its position and velocity during the model run. We specify this via `keeps_record_of` property of the planet. The `gravity` property of the model is a constant of proportionality for the force between the star and the planet. 
 
 ```julia
 star = create_2d_agent( pos = (5,5), size = 15, color = :yellow) # by default 2d space is 10x10, so that (5,5) is center.
-planet = create_2d_agent(pos = (7,5), vel = (0,1), size=5, color = :blue, keeps_record_of = [:pos]) 
+planet = create_2d_agent(pos = (7,5), vel = (0,1), size=5, color = :blue, keeps_record_of = [:pos, :vel]) 
 model = create_2d_model([star, planet], gravity = 3.0)
 ```
 
@@ -25,7 +25,6 @@ In this step we define an initialiser function to set the initial properties of 
 
 ```julia
 function initialiser!(model)
-    function initialiser!(model)
     planet = model.agents[2]
     planet.pos = (5, 8)
     planet.vel = (-1,0)
@@ -53,7 +52,7 @@ end
 Now we can run the model for desired number of steps as follows
 
 ```julia
-run_model!(model, steps = 200)
+run_model!(model, steps = 200, step_rule = step_rule!)
 ```
 
 Once the model has run, we can look at the animation of the time evolutio with following line of code
@@ -93,7 +92,7 @@ create_interactive_app(model, initialiser= initialiser!,
 
 ## Step 4: Fetch data
 
-In this simple model, the only data we have collected is the position of the planet. We can get this data as follows. 
+In this simple model, the only data we have collected is the position and velocity of the planet. We can get this data as follows. 
 
 ```julia
 df = get_agent_data(model.agents[2], model).record

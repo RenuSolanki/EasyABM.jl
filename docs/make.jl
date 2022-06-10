@@ -12,6 +12,8 @@ makedocs(
                 "Flocking" => "boids.md",
                 "Rock-Paper-Scissor" => "stone_paper_scissor.md",
                 "SIR model" => "SIR.md",
+                "Predator-prey" => "predator_prey.md",
+                "Conways Game of Life" => "conwaygol.md",
 
                 ],
                 

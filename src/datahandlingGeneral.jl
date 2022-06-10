@@ -1,11 +1,11 @@
 """
 $(TYPEDSIGNATURES)
 """
-function get_agent_data(agent::AbstractPropDict, model::Union{AbstractGridModel{MortalType}, AbstractGraphModel{T, MortalType}}) where T<:MType
+function get_agent_data(agent::AbstractPropDict, model::Union{AbstractGridModel{MortalType}, AbstractGraphModel{T, MortalType}}, props = agent.keeps_record_of) where T<:MType
     datadict=Dict{Symbol,Any}()
     uptick = agent._extras._death_time == Inf ? model.tick+1 : agent._extras._death_time+1
     downtick = agent._extras._birth_time-1
-    for key in agent.keeps_record_of
+    for key in props
         datadict[key] = vcat(fill(missing, downtick),unwrap_data(agent)[key], fill(missing, model.tick-uptick+1))
     end
     df = DataFrame(datadict)
@@ -15,9 +15,9 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_agent_data(agent::AbstractPropDict, model::Union{AbstractGridModel{StaticType}, AbstractGraphModel{T, StaticType}}) where T<:MType
+function get_agent_data(agent::AbstractPropDict, model::Union{AbstractGridModel{StaticType}, AbstractGraphModel{T, StaticType}}, props = agent.keeps_record_of) where T<:MType
     datadict=Dict{Symbol,Any}()
-    for key in agent.keeps_record_of
+    for key in props
         datadict[key] = unwrap_data(agent)[key]
     end
     df = DataFrame(datadict)
@@ -28,13 +28,13 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_patch_data(patch, model::AbstractGridModel)
+function get_patch_data(patch, model::AbstractGridModel, props = model.record.pprops)
     if !(all(1 .<= patch) && all(patch .<= model.size))
         println("Patch $patch does not exist!")
         return
     end
     datadict=Dict{Symbol,Any}()
-    for key in model.record.pprops
+    for key in props
         datadict[key] = unwrap_data(model.patches[patch...])[key]
     end
     df = DataFrame(datadict)
@@ -67,15 +67,29 @@ function latest_propvals(patch, model::AbstractGridModel, propname::Symbol, n::I
 end
 
 
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function propnames(obj::AbstractPropDict)
+    names = Symbol[]
+    for key in keys(unwrap(obj))
+        if (key!=:_extras)&&(key!=:keeps_record_of)
+            push!(names, key)
+        end
+    end
+    return names
+end
+
+
 
 
 
 """
 $(TYPEDSIGNATURES)
 """
-function get_model_data(model::Union{AbstractGridModel, AbstractGraphModel})
+function get_model_data(model::Union{AbstractGridModel, AbstractGraphModel}, props = model.record.mprops)
     datadict=Dict{Symbol,Any}()
-    for key in model.record.mprops
+    for key in props
         datadict[key] = unwrap_data(model.parameters)[key]
     end
     df = DataFrame(datadict)

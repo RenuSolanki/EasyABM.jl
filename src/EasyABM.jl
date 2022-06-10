@@ -12,7 +12,8 @@ export  StaticType, MortalType, PropDict, gparams, gparams3d,
 
         # data 
         get_agent_data, get_patch_data, get_node_data,
-        get_edge_data, get_model_data, latest_propvals, get_nums_agents, get_nums_patches,
+        get_edge_data, get_model_data, latest_propvals, 
+        propnames, get_nums_agents, get_nums_patches,
         get_nums_nodes, get_nums_edges, get_agents_avg_props, get_patches_avg_props,
         get_nodes_avg_props, get_edges_avg_props,
         
@@ -22,6 +23,7 @@ export  StaticType, MortalType, PropDict, gparams, gparams3d,
         double_triangular_grid, draw_graph,
         adjacency_matrix, add_node!, kill_node!, 
         create_edge!, kill_edge!, is_digraph, is_static,
+        vertices,
 
 
         #helpers 2d/3D

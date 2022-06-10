@@ -8,7 +8,7 @@
 struct SimplePropGraph{T} <: AbstractPropGraph{T}
     _nodes::Vector{Int}
     structure:: Dict{Int, Vector{Int}}
-    nodesprops::Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}
+    nodesprops::Dict{Int, PropDataDict{Symbol, Any} }
     edgesprops::Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}
     SimplePropGraph(w::Type{T}) where T<:MType = new{w}(Vector{Int}(), Dict{Int, Vector{Int}}(), 
     Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
@@ -44,11 +44,15 @@ function Base.getproperty(g::T, key::Symbol) where T<:AbstractPropGraph
     end
 end
 
-@inline vertices(g::SimplePropGraph) = copy(getfield(g, :_nodes))
+
+"""
+$(TYPEDSIGNATURES)
+"""
+vertices(g::SimplePropGraph) = copy(getfield(g, :_nodes))
 
 function edges(g::SimplePropGraph)
     _edges = Vector{Tuple{Int, Int}}()
-    for i in getfield(g, :_nodes)
+    for i in keys(g.structure)
         for j in g.structure[i]
             if (i<j)
                 push!(_edges, (i,j))
@@ -468,59 +472,44 @@ end
 
 """
 $(TYPEDSIGNATURES)
+not meant to combine general graph; serves only a specific use case.
 """
 function combined_graph(grapha::SimplePropGraph, graphb::SimplePropGraph)
     graphc = deepcopy(grapha)
     nodesc = getfield(graphc, :_nodes)
     structurec = graphc.structure
-    nodespropsc = graphc.nodesprops
-    edgespropsc= graphc.edgesprops
 
     nodesb = getfield(graphb, :_nodes)
     structureb = graphb.structure
-    nodespropsb = graphb.nodesprops
-    edgespropsb= graphb.edgesprops
     for node in nodesb
         push!(nodesc, node)
     end
+    sort!(nodesc)
     for (key, value) in structureb
-        structurec[key] = value
-    end
-    for (key, value) in nodespropsb
-        nodespropsc[key] = value
-    end
-    for (key, value) in edgespropsb
-        edgespropsc[key] = value
+        append!(structurec[key], value)
     end
     return graphc   
 end
 
 """
 $(TYPEDSIGNATURES)
+not meant to combine general graph; serves only a specific use case.
 """
 function combined_graph!(grapha::SimplePropGraph, graphb::SimplePropGraph)
     graphc = grapha
     nodesc = getfield(graphc, :_nodes)
     structurec = graphc.structure
-    nodespropsc = graphc.nodesprops
-    edgespropsc= graphc.edgesprops
 
     nodesb = getfield(graphb, :_nodes)
     structureb = graphb.structure
-    nodespropsb = graphb.nodesprops
-    edgespropsb= graphb.edgesprops
+
     for node in nodesb
         push!(nodesc, node)
     end
+    sort!(nodesc)
     for (key, value) in structureb
-        structurec[key] = value
+        append!(structurec[key], value)
     end
-    for (key, value) in nodespropsb
-        nodespropsc[key] = value
-    end
-    for (key, value) in edgespropsb
-        edgespropsc[key] = value
-    end  
 end
 ####################################
 ####################################
@@ -538,7 +527,7 @@ struct DirPropGraph{T}<: AbstractPropGraph{T}
     _nodes::Vector{Int}
     in_structure::Dict{Int, Vector{Int}}
     out_structure::Dict{Int, Vector{Int}}
-    nodesprops::Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}
+    nodesprops::Dict{Int, PropDataDict{Symbol, Any}}
     edgesprops::Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}
     DirPropGraph(w::Type{T}) where T<:MType = new{w}(Vector{Int}(), Dict{Int, Vector{Int}}(), Dict{Int, Vector{Int}}(), Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}())
     function DirPropGraph(in_structure::Dict{Int, Vector{Int}},w::Type{T}) where T<:MType
@@ -584,6 +573,11 @@ end
 
 
 out_links(g::DirPropGraph, i) = g.out_structure[i]
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
 vertices(g::DirPropGraph) = copy(getfield(g, :_nodes))
 
 function edges(g::DirPropGraph)
@@ -986,8 +980,9 @@ end
 
 """
 $(TYPEDSIGNATURES)
+not meant to combine general graph; serves only a specific use case.
 """
-function combined_graph(grapha::DirPropGraph, graphb::DirPropGraph)
+function combined_graph(grapha::DirPropGraph, graphb::DirPropGraph) 
     graphc = deepcopy(grapha)
     nodesc = getfield(graphc, :_nodes)
     structure_inc = graphc.in_structure
@@ -1000,14 +995,16 @@ function combined_graph(grapha::DirPropGraph, graphb::DirPropGraph)
     structure_outb = graphb.out_structure
     nodespropsb = graphb.nodesprops
     edgespropsb= graphb.edgesprops
+
     for node in nodesb
         push!(nodesc, node)
     end
+    sort!(nodesc)
     for (key, value) in structure_inb
-        structure_inc[key] = value
+        append!(structure_inc[key],value)
     end
     for (key, value) in structure_outb
-        structure_outc[key] = value
+        append!(structure_outc[key], value)
     end
     for (key, value) in nodespropsb
         nodespropsc[key] = value
@@ -1021,6 +1018,7 @@ end
 
 """
 $(TYPEDSIGNATURES)
+not meant to combine general graph; serves only a specific use case.
 """
 function combined_graph!(grapha::DirPropGraph, graphb::DirPropGraph)
     graphc = grapha
@@ -1038,11 +1036,12 @@ function combined_graph!(grapha::DirPropGraph, graphb::DirPropGraph)
     for node in nodesb
         push!(nodesc, node)
     end
+    sort!(nodesc)
     for (key, value) in structure_inb
-        structure_inc[key] = value
+        append!(structure_inc[key],value)
     end
     for (key, value) in structure_outb
-        structure_outc[key] = value
+        append!(structure_outc[key],value)
     end
     for (key, value) in nodespropsb
         nodespropsc[key] = value

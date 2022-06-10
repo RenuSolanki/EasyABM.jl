@@ -92,16 +92,6 @@ function create_2d_model(agents::Vector{AgentDict2D{Symbol, Any}}; graphics=true
             end
         end
 
-        if length(agent.keeps_record_of)==0
-            keeps_record_of = Symbol[]
-            for key in keys(agent)
-                if !(key == :_extras) && !(key==:keeps_record_of)
-                    push!(keeps_record_of, key)
-                end
-            end
-            unwrap(agent)[:keeps_record_of] = keeps_record_of
-        end
-
         _recalculate_position!(agent, grid_size, periodic)
         
         _init_agent_record!(agent)
@@ -322,6 +312,7 @@ Creates an animation from the data collected during model run.
 function animate_sim(model::GridModel2D, frames::Int=model.tick; 
     agent_plots::Dict{String, <:Function} = Dict{String, Function}(), 
     patch_plots::Dict{String, <:Function} = Dict{String, Function}(),
+    model_plots::Vector{Symbol} = Symbol[],
     plots_only = false,
     path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"), show_grid=false, backend=:luxor, tail = (1, agent->false))
 
@@ -400,8 +391,9 @@ function animate_sim(model::GridModel2D, frames::Int=model.tick;
         push!(conditions, cond)
     end
     patch_df = get_patches_avg_props(model, conditions..., labels= labels)
+    model_df = get_model_data(model, model_plots).record
 
-    _interactive_app(model, fr, plots_only, _save_sim, draw_frame, agent_df, patch_df, DataFrames.DataFrame())
+    _interactive_app(model, fr, plots_only, _save_sim, draw_frame, agent_df, patch_df, DataFrames.DataFrame(),model_df )
 
 end
 
@@ -418,6 +410,7 @@ function create_interactive_app(inmodel::GridModel2D; initialiser::Function = nu
     model_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(),
     agent_plots::Dict{String, <:Function} = Dict{String, Function}(),
     patch_plots::Dict{String, <:Function} = Dict{String, Function}(),
+    model_plots::Vector{Symbol} = Symbol[],
     plots_only = false,
     path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"),
     frames=200, show_grid=false, backend = :luxor, tail =(1, agent-> false)) 
@@ -453,11 +446,12 @@ function create_interactive_app(inmodel::GridModel2D; initialiser::Function = nu
         _run_interactive_model(frames)
         agent_df = get_agents_avg_props(model, condsa..., labels= lblsa)
         patch_df = get_patches_avg_props(model, condsp..., labels= lblsp)
-        return agent_df, patch_df, DataFrame()
+        model_df = get_model_data(model, model_plots).record
+        return agent_df, patch_df, DataFrame(), model_df
     end
 
 
-   agent_df, patch_df, node_df = _init_interactive_model()
+   agent_df, patch_df, node_df, model_df = _init_interactive_model()
 
     function _save_sim(scl)
         save_sim(model, frames, scl, path= path, show_space=show_grid, backend = backend, tail = tail)
@@ -517,7 +511,8 @@ function create_interactive_app(inmodel::GridModel2D; initialiser::Function = nu
         _save_sim = _does_nothing
     end
 
-    _live_interactive_app(model, frames, plots_only, _save_sim, _init_interactive_model, _run_interactive_model, _draw_interactive_frame, agent_controls, model_controls, agent_df, ()->nothing, patch_df, node_df)
+    _live_interactive_app(model, frames, plots_only, _save_sim, _init_interactive_model, _run_interactive_model, 
+    _draw_interactive_frame, agent_controls, model_controls, agent_df, ()->nothing, patch_df, node_df, model_df)
 
 end
 

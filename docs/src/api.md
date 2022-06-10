@@ -41,6 +41,7 @@ get_node_data
 get_edge_data 
 get_model_data 
 latest_propvals
+propnames
 get_nums_agents 
 get_nums_patches
 get_nums_nodes 

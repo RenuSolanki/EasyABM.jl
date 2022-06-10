@@ -131,7 +131,8 @@ This function is for use from within the module and is not exported.
             if length(newly_added)>0
                 getfield(model,:max_id)[] = max([ag._extras._id for ag in newly_added]...)
             else
-                getfield(model,:max_id)[] = model.parameters._extras._len_model_agents > 0 ? max([ag._extras._id for ag in model.agents]...) : 0
+                len = model.parameters._extras._len_model_agents
+                getfield(model,:max_id)[] = len > 0 ? model.agents[len]._extras._id : 0
             end
         end
     end
@@ -235,17 +236,6 @@ $(TYPEDSIGNATURES)
     if length(model.record.aprops)>0
         unwrap(agent)[:keeps_record_of] = model.record.aprops
     end
-
-    if length(agent.keeps_record_of)==0  # if agents keep_record_of is empty then record everything
-        keeps_record_of = Symbol[]
-        for key in keys(agent)
-            if !(key == :_extras) && !(key==:keeps_record_of)
-                push!(keeps_record_of, key)
-            end
-        end
-        unwrap(agent)[:keeps_record_of] = keeps_record_of
-    end
-
 end
 
 
@@ -280,7 +270,8 @@ function _init_agents!(model::AbstractGridModel{MortalType})
     _permanently_remove_inactive_agents!(model)
     commit_add_agents!(model)
     empty!(model.parameters._extras._agents_killed)
-    getfield(model,:max_id)[] = model.parameters._extras._len_model_agents > 0 ? max([ag._extras._id for ag in model.agents]...) : 0
+    len = model.parameters._extras._len_model_agents 
+    getfield(model,:max_id)[] = len > 0 ? model.agents[len]._extras._id : 0
     for agent in model.agents
         agent._extras._birth_time = 1
         _recalculate_position!(agent, model.size, model.periodic)

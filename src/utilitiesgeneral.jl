@@ -115,6 +115,16 @@ end
 """
 $(TYPEDSIGNATURES)
 
+Returns true if a node is alive else returns false.
+"""
+function is_alive(node, model::AbstractGraphModel)
+    return model.graph.nodesprops[node]._extras._active
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
 Returns true if a patch is occupied.
 """
 function is_occupied(patch, model::AbstractGridModel)
