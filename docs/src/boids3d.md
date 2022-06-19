@@ -18,7 +18,7 @@ Lets create 200 agents with properties `shape`, `pos`, `vel` and `orientation` (
 The argument `fix_agents_num` is set to true which means that the boids number will remain fixed during simulation. 
 
 ```julia
-boids = create_3d_agents(200, shape = :cone, pos = (0.0,0.0,0.0), 
+boids = con_3d_agents(200, shape = :cone, pos = (0.0,0.0,0.0), 
     vel=(0.0,0.0,0.0), orientation = 0.0, keeps_record_of = [:pos, :orientation])
 model = create_3d_model(boids,fix_agents_num=true, min_dis = 0.3, coh_fac = 0.05, 
     sep_fac = 0.5, dt= 0.1, vis_range = 2.0, aln_fac = 0.35, periodic = true)

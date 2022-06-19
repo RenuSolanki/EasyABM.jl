@@ -14,8 +14,8 @@ We explain these steps below through a very simple model of a star-planet system
 In the first step we create the agents and the model. For the star-planet system, we need one agent for the star and one for the planet. We will assume that the star is stationary and the planet revolves around it. We set the position of the star to be (5,5) which is the center point of the 2d space, as the default dimensions of 2d space in EasyABM is 10x10. We set the position of the planet to be (7,5) and its velocity to be (0,1). Since, the planet will change its position we require it to record its position and velocity during the model run. We specify this via `keeps_record_of` property of the planet. The `gravity` property of the model is a constant of proportionality for the force between the star and the planet. 
 
 ```julia
-star = create_2d_agent( pos = (5,5), size = 15, color = :yellow) # by default 2d space is 10x10, so that (5,5) is center.
-planet = create_2d_agent(pos = (7,5), vel = (0,1), size=5, color = :blue, keeps_record_of = [:pos, :vel]) 
+star = con_2d_agent( pos = (5.0,5.0), size = 15, color = :yellow) # by default 2d space is 10x10, so that (5,5) is center.
+planet = con_2d_agent(pos = (7.0,5.0), vel = (0.0,1.0), size=5, color = :blue, keeps_record_of = [:pos, :vel]) 
 model = create_2d_model([star, planet], gravity = 3.0)
 ```
 
@@ -26,8 +26,8 @@ In this step we define an initialiser function to set the initial properties of 
 ```julia
 function initialiser!(model)
     planet = model.agents[2]
-    planet.pos = (5, 8)
-    planet.vel = (-1,0)
+    planet.pos = (5.0, 8.0)
+    planet.vel = (-1.0,0.0)
 end
 
 init_model!(model, initialiser = initialiser!)

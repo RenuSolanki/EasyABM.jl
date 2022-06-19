@@ -4,21 +4,10 @@ struct PropDataDict{K, V} <: AbstractPropDict{K, V}
     PropDataDict() = new{Symbol, Any}(Dict{Symbol, Any}(:_extras => PropDict(Dict{Symbol,Any}(:_active=>true))), Dict{Symbol, Any}())
     function PropDataDict(d::Dict{Symbol, Any})
         data = Dict{Symbol, Any}()
-
-        if haskey(d, :pos)
-            x,y = d[:pos]
-            data[:pos] = GeometryBasics.Vec(Float64(x),y)
-        end
         
         if !haskey(d,:_extras)
             d[:_extras]=PropDict()
             d[:_extras]._active = true
-        end
-
-        for (key, value) in d
-            if key != :_extras
-                data[key]=typeof(value)[]
-            end
         end
         new{Symbol, Any}(d, data)
     end
@@ -34,20 +23,8 @@ function Base.setproperty!(d::PropDataDict, key::Symbol, x)
     end
 
     dict = unwrap(d)
-    dict_data = unwrap_data(d)
-    if key != :_extras
-        dict[key] = x
-    else
-        throw(StaticPropException("Can not modify private property : $key"))
-    end
-    if key == :pos
-        dict[:pos] = GeometryBasics.Vec(Float64(x[1]), x[2])
-    end
 
-    if !(key in keys(dict_data)) && !(key == :_extras)
-        dict_data[key] = typeof(dict[key])[]
-    end
-
+    dict[key] = x
 end
 
 function Base.show(io::IO, ::MIME"text/plain", a::PropDataDict)# works with REPL

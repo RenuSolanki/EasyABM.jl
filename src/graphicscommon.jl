@@ -27,7 +27,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_propvals(model::Union{AbstractGridModel{MortalType}, AbstractGraphModel{T, MortalType} }, t, prop::Symbol, scl=1.0) where T<:MType
+@inline function _get_propvals(model::Union{AbstractSpaceModel{MortalType}, AbstractGraphModel{T, MortalType} }, t, prop::Symbol, scl=1.0) where T<:MType
     propvals = Vector{type_dict[prop]}()
     all_agents = vcat(model.agents, model.parameters._extras._agents_killed)
     for agent in all_agents
@@ -35,9 +35,10 @@ $(TYPEDSIGNATURES)
         agent_dict = unwrap(agent)
         if (agent._extras._birth_time<= t)&&(t<= agent._extras._death_time)
             index = t - agent._extras._birth_time +1
-            propval = (prop in agent.keeps_record_of) ? agent_data[prop][index] : agent_dict[prop]
+            propval = (prop in agent.keeps_record_of) ? agent_data[prop][index] : (prop == :pos ? agent.pos : agent_dict[prop])
             divisor = hasfield(typeof(model), :size) ? model.size[1] : gparams.width
             propval = (prop == :size) ? propval*scl*gparams.width/divisor : propval
+            propval = (prop == :pos) ? GeometryBasics.Vec(propval...) : propval
             push!(propvals, propval)
         end
     end
@@ -48,14 +49,15 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_propvals(model::Union{AbstractGridModel{StaticType}, AbstractGraphModel{T, StaticType} }, t, prop::Symbol, scl=1.0) where T<:MType
+@inline function _get_propvals(model::Union{AbstractSpaceModel{StaticType}, AbstractGraphModel{T, StaticType} }, t, prop::Symbol, scl=1.0) where T<:MType
     propvals = Vector{type_dict[prop]}()
     for agent in model.agents
         agent_data = unwrap_data(agent)
         agent_dict = unwrap(agent)
-        propval = (prop in agent.keeps_record_of) ? agent_data[prop][t] : agent_dict[prop]
+        propval = (prop in agent.keeps_record_of) ? agent_data[prop][t] : (prop == :pos ? agent.pos : agent_dict[prop])
         divisor = hasfield(typeof(model), :size) ? model.size[1] : gparams.width
         propval = (prop == :size) ? propval*scl*gparams.width/divisor : propval
+        propval = (prop == :pos) ? GeometryBasics.Vec(propval...) : propval
         push!(propvals, propval)
     end
     return propvals
@@ -152,7 +154,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _interactive_app(model::Union{AbstractGridModel, AbstractGraphModel}, fr, plots_only::Bool, _save_sim::Function, draw_frame::Function, 
+function _interactive_app(model::Union{AbstractSpaceModel, AbstractGraphModel}, fr, plots_only::Bool, _save_sim::Function, draw_frame::Function, 
     agent_df::DataFrames.DataFrame, patch_df::DataFrames.DataFrame, node_df::DataFrames.DataFrame, model_df::DataFrames.DataFrame)
         timeS = slider(1:fr, label = "time")
         scaleS = slider(0.1:0.1:2, label = "scale")
@@ -242,7 +244,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphModel}, fr,
+function _live_interactive_app(model::Union{AbstractSpaceModel, AbstractGraphModel}, fr,
     plots_only::Bool, _save_sim::Function, 
     _init_interactive_model::Function, _run_interactive_model::Function, 
     _draw_interactive_frame::Function, agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
@@ -410,6 +412,8 @@ function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphMode
         sfun()
     end
 
+    rst[] = rst[] #reset initially
+    
     function _draw_a_frame(t, scl)
         _draw_interactive_frame(t, scl)
     end
@@ -429,7 +433,7 @@ function _live_interactive_app(model::Union{AbstractGridModel, AbstractGraphMode
 
 
 
-    if !(typeof(model)<:GridModel3D)
+    if !(typeof(model)<:SpaceModel3D)
         wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop, "rst"=>rst, "sv"=>sv])
         return @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, vbox(ag_controls...), vbox(md_controls...), hbox(spc, :run, spc, :stop, spc, :rst, spc, :sv)), spc, animlux, spc, vbox(pls...) ) )  
     else

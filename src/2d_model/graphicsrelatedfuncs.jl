@@ -1,7 +1,7 @@
 
 ############################
 
-@inline function _get_grid_colors(model::GridModel2D, t)
+@inline function _get_grid_colors(model::SpaceModel2D, t)
     if :color in model.record.pprops
         colors = [unwrap_data(model.patches[i,j])[:color][t] for i in 1:model.size[1] for j in 1:model.size[2]]
     else
@@ -10,13 +10,15 @@
     return colors
 end
 
-@inline function _get_tail(agent, model::GridModel2DDynAgNum, t, tail_length)
+@inline function _get_tail(agent, model::SpaceModel2D{MortalType}, t, tail_length)
     agent_data = unwrap_data(agent)
-    agent_tail = GeometryBasics.Vec2{Float64}[]
+    agent_tail = GeometryBasics.Vec2{Float64}[][]
+    offset = model.parameters._extras._offset
     if (agent._extras._birth_time<= t)&&(t<= agent._extras._death_time)
         index = t - agent._extras._birth_time +1
         for i in max(1, index-tail_length):index
-            push!(agent_tail, agent_data[:pos][i])
+            v = agent_data[:pos][i]+offset
+            push!(agent_tail, GeometryBasics.Vec(v...))
         end   
     end
     return agent_tail
@@ -26,19 +28,21 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_tail(agent, model::GridModel2DFixAgNum, t, tail_length)
+@inline function _get_tail(agent, model::SpaceModel2D{StaticType}, t, tail_length)
     agent_data = unwrap_data(agent)
     agent_tail = GeometryBasics.Vec2{Float64}[]
     index = t 
+    offset = model.parameters._extras._offset
     for i in max(1, index-tail_length):index
-        push!(agent_tail, agent_data[:pos][i])
+        v = agent_data[:pos][i]+offset
+        push!(agent_tail, GeometryBasics.Vec(v...))
     end   
     return agent_tail
 end
 
 
 
-@inline function _create_makie_frame(ax, model::GridModel2D, points, markers, colors, rotations, sizes, grid_colors, show_space)
+@inline function _create_makie_frame(ax, model::SpaceModel2D, points, markers, colors, rotations, sizes, grid_colors, show_space)
     ax.aspect = DataAspect()
     xlims!(ax, 0.0, model.size[1])
     ylims!(ax, 0.0, model.size[2])
@@ -72,7 +76,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_patches_static(model::GridModel2D)
+@inline function draw_patches_static(model::SpaceModel2D)
     xdim = model.size[1]
     ydim = model.size[2]
     width = gparams.width
@@ -93,7 +97,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_patches(model::GridModel2D, frame)
+@inline function draw_patches(model::SpaceModel2D, frame)
     xdim = model.size[1]
     ydim = model.size[2]
     width = gparams.width
@@ -112,17 +116,18 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agent(agent::AgentDict2D, model::GridModel2D, xdim::Int, ydim::Int, scl, index::Int, tail_length, tail_condition)
+@inline function draw_agent(agent, model::SpaceModel2D, xdim::Int, ydim::Int, scl, index::Int, tail_length, tail_condition)
     record = agent.keeps_record_of
     periodic = model.periodic
     agent_data = unwrap_data(agent)
+    offset = model.parameters._extras._offset
 
     width = gparams.width
     height = gparams.height
     w = width/xdim
     h = height/ydim
 
-    pos = (:pos in record) ? agent_data[:pos][index] : agent.pos
+    pos = (:pos in record) ? agent_data[:pos][index] + offset : agent.pos + offset
     orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
     shape = (:shape in record) ? agent_data[:shape][index] : agent.shape
     shape_color = (:color in record) ? agent_data[:color][index] : agent.color

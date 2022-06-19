@@ -5,11 +5,8 @@ This function is for use from within the module and is not exported.
 It takes an agent as first argument, and if `graphics` is true, some
 graphics related properties are added to the agent if not already defined. 
 """
-function manage_default_graphics_data!(agent::AgentDictGr, graphics, default_node)
+function manage_default_graphics_data!(agent::AgentDictGr, graphics)
     if graphics
-        if !haskey(agent, :node)
-            agent.node = default_node
-        end
         if !haskey(agent, :shape)
             agent.shape = :circle
         end
@@ -110,31 +107,23 @@ function add_agent!(agent, model::GraphModelDynAgNum)
     
         verts = get_nodes(model)
         len_verts = model.parameters._extras._num_verts #number of active verts
+        random_positions = model.parameters._extras._random_positions
 
-        if !haskey(agent, :node) || !(agent.node in verts)
-            if model.parameters._extras._random_positions
-                default_node = verts[rand(1:len_verts)]
-                agent.node = default_node # if random_positions is true, we need to assign a pos property
+        if !(agent.node in verts)
+            if random_positions
+                default_node = verts[rand(1:len_verts)] # if random_positions is true, we need to assign a pos property
             else
                 default_node = verts[1]
             end
+            setfield!(agent, :node, default_node)
         end
 
         _manage_default_data!(agent, model)
-        manage_default_graphics_data!(agent, model.graphics, default_node)
+        manage_default_graphics_data!(agent, model.graphics)
 
+        node = agent.node 
 
-        if haskey(agent, :node)
-            node = agent.node 
-            if node in verts
-                push!(model.graph.nodesprops[node]._extras._agents, agent._extras._id)
-                agent._extras._last_node_loc = node   
-            else
-                agent.node = default_node
-                push!(model.graph.nodesprops[default_node]._extras._agents, agent._extras._id)
-                agent._extras._last_node_loc = default_node
-            end
-        end
+        push!(model.graph.nodesprops[node]._extras._agents, agent._extras._id)
 
         agent._extras._model = model
 

@@ -7,12 +7,11 @@ using EasyABM
 
 ## Step 1: Create Agents and Model
 
-We work with patches in this model, so we create our model with a list of zero agents. The size of the 
+We work with only patches in this model. The size of the 
 grid in the model created is 20x20 and `alive_percent` is the fraction of patches that are live initially.
 
 ```julia
-agents = create_2d_agents(0)
-model = create_2d_model(agents, grid_size = (20,20), alive_percent = 0.4)
+model = create_2d_model(size = (20,20), alive_percent = 0.4)
 ```
 
 ## Step 2: Initialise the model

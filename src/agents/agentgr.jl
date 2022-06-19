@@ -1,15 +1,11 @@
-struct AgentDictGr{K, V} <: AbstractPropDict{K, V}
+mutable struct AgentDictGr{K, V} <: AbstractPropDict{K, V}
+    node::Int
     d::Dict{Symbol, Any}
     data::Dict{Symbol, Any}
-    AgentDictGr() = new{Symbol, Any}(Dict{Symbol, Any}(:_extras => PropDict(Dict{Symbol,Any}(:_active=>true))), Dict{Symbol, Any}())
-    function AgentDictGr(d::Dict{Symbol, Any})
-        data = Dict{Symbol, Any}()
-        for (key,value) in d
-            if !(key == :_extras) && !(key == :keeps_record_of)
-                data[key]=typeof(value)[]
-            end
-        end    
-        new{Symbol, Any}(d, data)
+    AgentDictGr() = new{Symbol, Any}(1, Dict{Symbol, Any}(:_extras => PropDict(Dict{Symbol,Any}(:_active=>true))), Dict{Symbol, Any}())
+    function AgentDictGr(node, d::Dict{Symbol, Any})
+        data = Dict{Symbol, Any}()  
+        new{Symbol, Any}(node, d, data)
     end
 end
 
@@ -18,72 +14,67 @@ Base.IteratorEltype(::Type{AgentDictGr{T}}) where T = IteratorEltype(T)
 
 
 function update_nodesprops!(agent::AgentDictGr, model::Nothing)
-    nothing
+    return
 end
 
-function update_nodesprops!(agent::AgentDictGr, graph::AbstractPropGraph{StaticType})
-    node_new = agent.node
-    node_old = agent._extras._last_node_loc
-    i = agent._extras._id
-    nodesprops = graph.nodesprops
+function update_nodesprops!(agent::AgentDictGr, graph::AbstractPropGraph{StaticType}, node_new)
+    node_old = agent.node
 
     if node_new != node_old
+        i = agent._extras._id
+        nodesprops = graph.nodesprops
         deleteat!(nodesprops[node_old]._extras._agents, findfirst(x->x==i, nodesprops[node_old]._extras._agents))
         push!(nodesprops[node_new]._extras._agents, i)
-        agent._extras._last_node_loc = node_new  
+        setfield!(agent, :node, node_new)
     end
 end
 
 
-function update_nodesprops!(agent::AgentDictGr, graph::AbstractPropGraph{MortalType})
-    if !graph.nodesprops[agent.node]._extras._active
-        unwrap(agent)[:node] = agent._extras._last_node_loc
+function update_nodesprops!(agent::AgentDictGr, graph::AbstractPropGraph{MortalType}, node_new)
+    if !graph.nodesprops[node_new]._extras._active
         return 
     else
-        node_new = agent.node
-        node_old = agent._extras._last_node_loc
-        i = agent._extras._id
-        nodesprops = graph.nodesprops
+        node_old = agent.node
 
         if node_new != node_old
+            i = agent._extras._id
+            nodesprops = graph.nodesprops
             deleteat!(nodesprops[node_old]._extras._agents, findfirst(x->x==i, nodesprops[node_old]._extras._agents))
             push!(nodesprops[node_new]._extras._agents, i)
-            agent._extras._last_node_loc = node_new  
+            setfield!(agent, :node, node_new)
         end
 
     end 
 end
 
 
-
+function Base.getproperty(d::AgentDictGr, n::Symbol)
+    if n == :node
+        return getfield(d, :node)
+    else
+        return getindex(d, n)
+    end
+end
 
 function Base.setproperty!(agent::AgentDictGr, key::Symbol, x)
-
-    if key == :_extras
-        throw(StaticPropException("Can not modify private property : $key"))
-    end
 
     if !(agent._extras._active)
         return
     end
     
     dict = unwrap(agent)
-    dict_data = unwrap_data(agent)
-
-    dict[key] = x
-
-    if key==:node 
-        update_nodesprops!(agent, agent._extras._graph)
-    end
-
-    if !(key in keys(dict_data)) && !(key == :_extras) && !(key == :keeps_record_of)
-        dict_data[key] = typeof(dict[key])[]
+    
+    if key != :node
+        dict[key] = x
+    else 
+        update_nodesprops!(agent, agent._extras._graph, x)
     end
 
 end
 
 function Base.show(io::IO, ::MIME"text/plain", a::AgentDictGr) # works with REPL
     println(io, "AgentGr:")
+    println(io, " node: ", a.node)
     for (key, value) in unwrap(a)
         if !(key == :_extras)
             println(io, "    ", key, ": ", value)
@@ -93,6 +84,7 @@ end
 
 function Base.show(io::IO, a::AgentDictGr) # works with print
     println(io, "AgentGr:")
+    println(io, " node: ", a.node)
     for (key, value) in unwrap(a)
         if !(key == :_extras)
             println(io, "    ", key, ": ", value)
@@ -121,7 +113,7 @@ Following property names are reserved for some specific agent properties
     - orientation : orientation of agent
     - keeps_record_of : list of properties that the agent records during time evolution. 
 """
-function create_graph_agent(;kwargs...)
+function graph_agent(;node=1,kwargs...)
     dict_agent = Dict{Symbol, Any}(kwargs)
 
     if !haskey(dict_agent, :keeps_record_of)
@@ -131,7 +123,7 @@ function create_graph_agent(;kwargs...)
     dict_agent[:_extras]._graph = nothing
     dict_agent[:_extras]._active = true
 
-    return AgentDictGr(dict_agent)
+    return AgentDictGr(node,dict_agent)
 end
 
 """
@@ -139,10 +131,10 @@ $(TYPEDSIGNATURES)
 
 Creates a list of n graph agents with properties specified as keyword arguments.
 """
-function create_graph_agents(n::Int; kwargs...)
+function graph_agents(n::Int;node=1, kwargs...)
 list = Vector{AgentDictGr{Symbol, Any}}()
 for i in 1:n
-    agent = create_graph_agent(;kwargs...)
+    agent = graph_agent(;node=node, kwargs...)
     push!(list, agent)
 end
 return list
@@ -161,7 +153,8 @@ function create_similar(agent::AgentDictGr, n::Int)
             dc[key] = val
         end
     end
-    agents = create_graph_agents(n; dc...)
+    node = agent.node
+    agents = graph_agents(n;node=node, dc...)
     return agents
 end
 
@@ -177,7 +170,8 @@ function create_similar(agent::AgentDictGr)
             dc[key] = val
         end
     end
-    agent = create_graph_agent(;dc...)
+    node = agent.node
+    agent = graph_agent(;node=node,dc...)
     return agent
 end
 

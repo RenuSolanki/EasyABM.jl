@@ -12,7 +12,25 @@ end
 """
 $(TYPEDSIGNATURES)
 """
+@inline function dotproduct(a::NTuple{N, Union{Integer, AbstractFloat}}, b::NTuple{N, Union{Integer, AbstractFloat}}) where N
+    sum = zero(eltype(a))
+    for (x,y) in zip(a,b)
+        sum+=x*y
+    end
+    return sum
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
 @inline function norm(a::GeometryBasics.Vec)
+    return sqrt(dotproduct(a,a))
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function norm(a::NTuple{N, Union{Integer, AbstractFloat}}) where N
     return sqrt(dotproduct(a,a))
 end
 
@@ -24,19 +42,32 @@ $(TYPEDSIGNATURES)
     return norm(a-b)
 end
 
-Base.:+(x::GeometryBasics.Vec{3,Float64},y::NTuple{3,Union{Float64,Int}} ) = GeometryBasics.Vec(x[1]+y[1], x[2]+y[2], x[3]+y[3])
-Base.:+(x::GeometryBasics.Vec{2,Float64},y::NTuple{2,Union{Float64,Int}} ) = GeometryBasics.Vec(x[1]+y[1], x[2]+y[2])
-Base.:-(x::GeometryBasics.Vec{3,Float64},y::NTuple{3,Union{Float64,Int}} ) = GeometryBasics.Vec(x[1]-y[1], x[2]-y[2], x[3]-y[3])
-Base.:-(x::GeometryBasics.Vec{2,Float64},y::NTuple{2,Union{Float64,Int}} ) = GeometryBasics.Vec(x[1]-y[1], x[2]-y[2])
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function distance(a::NTuple{N, Union{Integer, AbstractFloat}}, b::NTuple{N, Union{Integer, AbstractFloat}}) where N
+    return norm(a .- b)
+end
 
-Base.:+(x::NTuple{3,Union{Float64,Int}},y::GeometryBasics.Vec{3,Float64}) = GeometryBasics.Vec(x[1]+y[1], x[2]+y[2], x[3]+y[3])
-Base.:+(x::NTuple{2,Union{Float64,Int}},y::GeometryBasics.Vec{2,Float64}) = GeometryBasics.Vec(x[1]+y[1], x[2]+y[2])
-Base.:-(x::NTuple{3,Union{Float64,Int}},y::GeometryBasics.Vec{3,Float64}) = GeometryBasics.Vec(x[1]-y[1], x[2]-y[2], x[3]-y[3])
-Base.:-(x::NTuple{2,Union{Float64,Int}},y::GeometryBasics.Vec{2,Float64}) = GeometryBasics.Vec(x[1]-y[1], x[2]-y[2])
-# Base.:+(x::MeshCat.Point,y::MeshCat.Point ) = MeshCat.Point(x[1]+y[1], x[2]+y[2], x[3]+y[3])
+Base.:+(x::GeometryBasics.Vec{N,<:Real},y::NTuple{N,Union{Integer, AbstractFloat}} ) where N = x .+ y
+Base.:-(x::GeometryBasics.Vec{N,<:Real},y::NTuple{N,Union{Integer, AbstractFloat}} ) where N = x .- y
+
+Base.:+(x::NTuple{N,Union{Integer, AbstractFloat}},y::GeometryBasics.Vec{N,<:Real}) where N = x .+ y
+Base.:-(x::NTuple{N,Union{Integer, AbstractFloat}},y::GeometryBasics.Vec{N,<:Real}) where N = x .- y
 
 
-@inline function _create_props_lists(aprops::Vector{Symbol}, pprops::Vector{Symbol}, mprops::Vector{Symbol}, model::AbstractGridModel)
+Base.:+(x::NTuple{N,Union{Integer, AbstractFloat}},y::NTuple{N,Union{Integer, AbstractFloat}} ) where N = x .+ y
+Base.:-(x::NTuple{N,Union{Integer, AbstractFloat}},y::NTuple{N,Union{Integer, AbstractFloat}} ) where N = x .- y 
+
+Base.:*(x::NTuple{N,Union{Integer, AbstractFloat}},y::Real ) where N = x .* y
+Base.:*(x::Real,y::NTuple{N,Union{Integer, AbstractFloat}} ) where N = x .* y 
+
+Base.:/(x::NTuple{N,Union{Integer, AbstractFloat}},y::Real ) where N = x ./ y
+
+
+
+
+@inline function _create_props_lists(aprops::Vector{Symbol}, pprops::Vector{Symbol}, mprops::Vector{Symbol}, model::AbstractSpaceModel)
     for sym in aprops
         if !(sym in model.record.aprops)
             push!(model.record.aprops, sym)
@@ -45,7 +76,7 @@ Base.:-(x::NTuple{2,Union{Float64,Int}},y::GeometryBasics.Vec{2,Float64}) = Geom
 
     if length(model.record.aprops)>0
         for agent in model.agents
-            unwrap(agent)[:keeps_record_of] = copy(model.record.aprops)
+            unwrap(agent)[:keeps_record_of] = model.record.aprops
         end
     end
 
@@ -94,12 +125,12 @@ end
 end
 
 
-@inline function _get_all_agents(model::Union{AbstractGridModel{MortalType}, AbstractGraphModel{T, MortalType} }) where T<:MType
+@inline function _get_all_agents(model::Union{AbstractSpaceModel{MortalType}, AbstractGraphModel{T, MortalType} }) where T<:MType
     return vcat(model.agents, model.parameters._extras._agents_killed)
 
 end
 
-@inline function _get_all_agents(model::Union{AbstractGridModel{StaticType}, AbstractGraphModel{T, StaticType} }) where T<:MType
+@inline function _get_all_agents(model::Union{AbstractSpaceModel{StaticType}, AbstractGraphModel{T, StaticType} }) where T<:MType
     return model.agents
 end
 
@@ -108,7 +139,7 @@ $(TYPEDSIGNATURES)
 
 This function is for use from within the module and is not exported.
 """
-@inline function _permanently_remove_inactive_agents!(model::Union{AbstractGridModel{MortalType}, AbstractGraphModel{T, MortalType} }) where T<:MType
+@inline function _permanently_remove_inactive_agents!(model::Union{AbstractSpaceModel{MortalType}, AbstractGraphModel{T, MortalType} }) where T<:MType
     newly_added = model.parameters._extras._agents_added
     len_dead = length(model.parameters._extras._agents_killed)
     if len_dead>0
@@ -144,7 +175,7 @@ $(TYPEDSIGNATURES)
 
 This function is for use from within the module and is not exported.
 """
-@inline function commit_add_agents!(model::Union{AbstractGridModel{MortalType}, AbstractGraphModel{T, MortalType} }) where T<:MType
+@inline function commit_add_agents!(model::Union{AbstractSpaceModel{MortalType}, AbstractGraphModel{T, MortalType} }) where T<:MType
     agents_to_add = model.parameters._extras._agents_added
     for ag in agents_to_add
         push!(model.agents, ag)
@@ -156,7 +187,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _init_model_record!(model::Union{AbstractGridModel, AbstractGraphModel})
+@inline function _init_model_record!(model::Union{AbstractSpaceModel, AbstractGraphModel})
     if length(model.record.mprops)>0
         model_dict = unwrap(model.parameters)
         model_data = unwrap_data(model.parameters)
@@ -169,7 +200,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _update_model_record!(model::Union{AbstractGridModel, AbstractGraphModel})
+@inline function _update_model_record!(model::Union{AbstractSpaceModel, AbstractGraphModel})
     if length(model.record.mprops)>0
         model_dict = unwrap(model.parameters)
         model_data = unwrap_data(model.parameters)
@@ -195,14 +226,14 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _manage_default_data!(agent::AbstractPropDict, model::AbstractGridModel{MortalType})
+@inline function _manage_default_data!(agent::AbstractPropDict, model::AbstractSpaceModel{MortalType})
     push!(model.parameters._extras._agents_added, agent)
     agent._extras._id = getfield(model,:max_id)[]+1
     agent._extras._active = true
     agent._extras._birth_time = model.tick
     agent._extras._death_time = Inf
-    if model.parameters._extras._random_positions && !haskey(agent, :pos)                    
-        agent.pos = _random_vector(model.size)
+    if model.parameters._extras._random_positions               
+        _set_pos!(agent, model.size...)
     end
 end
 
@@ -219,20 +250,11 @@ $(TYPEDSIGNATURES)
 end
 
 
-"""
-$(TYPEDSIGNATURES)
-"""
-@inline function _recalculate_position!(agent::AbstractPropDict, size, periodic)
-    if haskey(agent, :pos) && periodic
-        agent.pos = mod1.(agent.pos, size)
-    end
-end
-
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _create_agent_record!(agent::AbstractPropDict, model::Union{AbstractGridModel, AbstractGraphModel})
+@inline function _create_agent_record!(agent::AbstractPropDict, model::Union{AbstractSpaceModel, AbstractGraphModel})
     if length(model.record.aprops)>0
         unwrap(agent)[:keeps_record_of] = model.record.aprops
     end
@@ -243,10 +265,9 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _init_agent_record!(agent::AbstractPropDict)
-    agent_dict = unwrap(agent)
     agent_data = unwrap_data(agent)
     for key in agent.keeps_record_of
-        agent_data[key] = [agent_dict[key]]
+        agent_data[key] = [getproperty(agent, key)]
     end
 end
 
@@ -255,18 +276,19 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _update_agent_record!(agent::AbstractPropDict)
-    agent_dict = unwrap(agent)
     agent_data = unwrap_data(agent)
     for key in agent.keeps_record_of
-        push!(agent_data[key], agent_dict[key])
+        push!(agent_data[key], getproperty(agent, key))
     end
 end
+
+
 
 
 """
 $(TYPEDSIGNATURES)
 """
-function _init_agents!(model::AbstractGridModel{MortalType})
+function _init_agents!(model::AbstractSpaceModel{MortalType})
     _permanently_remove_inactive_agents!(model)
     commit_add_agents!(model)
     empty!(model.parameters._extras._agents_killed)
@@ -274,7 +296,6 @@ function _init_agents!(model::AbstractGridModel{MortalType})
     getfield(model,:max_id)[] = len > 0 ? model.agents[len]._extras._id : 0
     for agent in model.agents
         agent._extras._birth_time = 1
-        _recalculate_position!(agent, model.size, model.periodic)
         _init_agent_record!(agent)
     end
 end
@@ -283,9 +304,8 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _init_agents!(model::AbstractGridModel{StaticType})
+function _init_agents!(model::AbstractSpaceModel{StaticType})
     for agent in model.agents
-        _recalculate_position!(agent, model.size, model.periodic)
         _init_agent_record!(agent)
     end
 end
@@ -308,12 +328,10 @@ Sets the agent as inactive thus effectively removing from the model. However, th
 are permanently removed from the list `model.agents` only twice in one step i) After the `agent_step_function` 
 has run for all agents and ii) After the `step_rule`.
 """
-function kill_agent!(agent::AbstractPropDict, model::AbstractGridModel{MortalType})
+function kill_agent!(agent::AbstractPropDict, model::AbstractSpaceModel{MortalType})
     if agent._extras._active
-        if haskey(agent, :pos) && (agent._extras._last_grid_loc!=Inf)
-            gloc = agent._extras._last_grid_loc
-            deleteat!(model.patches[gloc...]._extras._agents, findfirst(m->m==agent._extras._id, model.patches[gloc...]._extras._agents))
-        end
+        gloc = get_grid_loc(agent, model)
+        deleteat!(model.patches[gloc...]._extras._agents, findfirst(m->m==agent._extras._id, model.patches[gloc...]._extras._agents))
         _kill_agent!(agent, model.parameters._extras._agents_killed, model.tick)
         model.parameters._extras._num_agents -= 1
     end
@@ -342,7 +360,7 @@ end
 $(TYPEDSIGNATURES)
 
 """
-@inline function _run_sim!(model::Union{AbstractGridModel, AbstractGraphModel }, steps,
+@inline function _run_sim!(model::Union{AbstractSpaceModel, AbstractGraphModel }, steps,
     step_rule::Function) 
  
     for step in 1:steps

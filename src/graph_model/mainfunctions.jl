@@ -8,7 +8,7 @@ Creates a model with
 - `fix_agent_num` : Set it to true if agents do not die and new agents are not born during simulation. 
 - `static_graph` : Set it to false if graph topology needs to be changed during simulation.
 - `decorated_edges` : Set it to true if edges are to be assigned weights or any other properties.
-- `random_positions` : If this property is true, each agent, which doesn't already have a node property defined, will be given a default random node on the graph. 
+- `random_positions` : If this property is true, each agent will be assigned a random node on the graph. 
 - `kwargs` : Keyword argments used as model parameters. 
 """
 function create_graph_model(agents::Vector{AgentDictGr{Symbol, Any}}, 
@@ -134,24 +134,15 @@ function create_graph_model(agents::Vector{AgentDictGr{Symbol, Any}},
 
         ag_node = random_positions ? verts[rand(1:num_verts)] : default_node
 
-        if random_positions && (!haskey(agent, :node) || !(agent.node in verts))          
-            unwrap(agent)[:node] = ag_node # if random_positions is true, we need to assign a node property
+        if !(agent.node in verts)  
+            setfield!(agent, :node, ag_node)      # if random_positions is true, we need to assign a node property
         end
 
-        manage_default_graphics_data!(agent, graphics, ag_node)
+        manage_default_graphics_data!(agent, graphics)
 
-
-        if haskey(agent, :node)
-            node = agent.node
-            if node in verts
-                push!(graph.nodesprops[node]._extras._agents, i)
-                agent._extras._last_node_loc = node    
-            else
-                push!(graph.nodesprops[ag_node]._extras._agents, i)
-                agent._extras._last_node_loc = ag_node
-                unwrap(agent)[:node] = ag_node
-            end
-        end    
+        
+        push!(graph.nodesprops[agent.node]._extras._agents, i)   
+    
 
         _init_agent_record!(agent)
 
@@ -160,6 +151,21 @@ function create_graph_model(agents::Vector{AgentDictGr{Symbol, Any}},
 
     model = GraphModel(graph, agents, Ref(n), graphics, parameters, (aprops=Symbol[], nprops=Symbol[], eprops=Symbol[], mprops = Symbol[]), Ref(1), gtype = gtype, atype = atype)
 
+    return model
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function create_graph_model(
+    graph::Union{SimplePropGraph,DirPropGraph, SimpleGraph{Int64}, SimpleDiGraph{Int64}}; fix_agents_num=false, 
+    static_graph = true, decorated_edges = false, graphics=true, random_positions=false, kwargs...)
+
+    agents = graph_agents(0)
+    model = create_graph_model(agents, graph; fix_agents_num=fix_agents_num, 
+    static_graph = static_graph, decorated_edges = decorated_edges, 
+    graphics=graphics, random_positions=random_positions, kwargs...)
     return model
 end
 
@@ -282,8 +288,8 @@ end
 $(TYPEDSIGNATURES)
 
 Initiates the simulation with a user defined initialiser function which takes the model as its only argument. 
-Model parameters along with agent and graph properties can be set (or modified if set through the `create_graph_agents` and `create_graph_model` 
-functions) from within a user defined function and then sending it as `initialiser` argument in `init_model!`. The properties of 
+Model parameters along with agent and graph properties can be set (or modified) from within a user defined function and then sending 
+it as `initialiser` argument in `init_model!`. The properties of 
 agents, nodes, edges and the model that are to be recorded during time evolution can be specified through the dictionary argument `props_to_record`. 
 List of agent properties to be recorded are specified with key "agents" and value the list of property names as symbols. If a nonempty list of 
 agents properties is specified, it will replace the `keeps_record_of` list of each agent. Properties of nodes, edges and model are similarly specified
@@ -603,7 +609,7 @@ function create_interactive_app(inmodel::GraphModel; initialiser::Function = nul
         return agent_df, DataFrame(), node_df, model_df
     end
 
-    agent_df, patch_df, node_df, model_df= _init_interactive_model()
+    agent_df, patch_df, node_df, model_df= DataFrame(), DataFrame(), DataFrame(), DataFrame() #_init_interactive_model()
 
     function _save_sim(scl)
         save_sim(model, frames, scl, path= path, show_space=show_graph, backend = backend)

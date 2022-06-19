@@ -24,6 +24,7 @@ makedocs(
 
             "Graph Space Examples" => [
                 "Ising model" => "ising.md",
+                "Nearest Neighbor Graph" => "nearest_neighbor_graph.md",
                 ],
             
             ],

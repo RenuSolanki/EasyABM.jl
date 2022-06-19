@@ -11,8 +11,8 @@ Lets create 200 agents with properties `pos`, `mood` and `color`. The `keeps_rec
 
 ```julia
 @enum agentsfeeling happy sad
-agents = create_3d_agents(200, pos = (1,1,1), color = :red, mood = happy, keeps_record_of=[:pos, :mood])
-model = create_3d_model(agents, grid_size = (7,7,7), min_alike = 8, periodic = false)
+agents = grid_3d_agents(200, pos = (1,1,1), color = :red, mood = happy, keeps_record_of=[:pos, :mood])
+model = create_3d_model(agents, size = (7,7,7), min_alike = 8, periodic = false)
 ```
 
 ## Step 2: Initialise the model
@@ -25,7 +25,7 @@ function initialise!(model)
     for agent in model.agents
         agent.color = [:red, :green][rand(1:2)]
         x,y,z = random_empty_patch(model) 
-        agent.pos = (x-0.5, y-0.5, z-0.5)     
+        agent.pos = (x, y, z)     
     end    
     for agent in model.agents
         nbrs = neighbors(agent, model, 1, metric = :grid)
@@ -64,7 +64,7 @@ function step_rule!(model)
         else
             agent.mood = sad
             x,y,z = random_empty_patch(model) 
-            agent.pos = (x-0.5, y-0.5, z-0.5)
+            agent.pos = (x, y, z)
         end
     end
     return

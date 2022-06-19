@@ -1,6 +1,110 @@
 #####################
 #####################
 
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function _set_pos!(agent::AgentDict2D, xdim, ydim)
+    setfield!(agent, :pos, (rand()*xdim, rand()*ydim) )
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function _set_pos!(agent::AgentDict2DGrid, xdim, ydim)
+    setfield!(agent, :pos, (rand(1:xdim), rand(1:ydim)) )
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function _setup_grid!(agent::AgentDict2D, patches, periodic, i, xdim, ydim)
+    x,y = agent.pos
+    if periodic || (x>0 && x<=xdim && y>0 && y<=ydim )
+        a = mod1(x, xdim)
+        b = mod1(y, ydim)
+        setfield!(agent, :pos, (a,b))
+        a,b = Int(ceil(a)), Int(ceil(b))
+        push!(patches[a,b]._extras._agents, i)
+        agent._extras._last_grid_loc = (a,b)
+    else
+        p = typeof(x)(0.5)
+        setfield!(agent, :pos, (p,p))
+        push!(patches[1,1]._extras._agents, i)
+        agent._extras._last_grid_loc = (1,1)
+    end
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function _setup_grid!(agent::AgentDict2DGrid, patches, periodic, i, xdim, ydim)
+    x,y = agent.pos
+    if periodic || (x>0 && x<=xdim && y>0 && y<=ydim )
+        a = mod1(x, xdim)
+        b = mod1(y, ydim)
+        setfield!(agent, :pos, (a, b))
+        push!(patches[a,b]._extras._agents, i)
+    else
+        setfield!(agent, :pos, (1,1))
+        push!(patches[1,1]._extras._agents, i)
+    end 
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function _set_patches(periodic, grid_size)
+    xdim, ydim = grid_size
+    patches = [PropDataDict(Dict{Symbol, Any}(:color => :white)) for i in 1:xdim, j in 1:ydim]   
+    for j in 1:ydim
+        for i in 1:xdim
+            patches[i,j]._extras._agents = Int[]
+        end
+    end
+    patches[1,1]._extras._periodic = periodic
+    patches[1,1]._extras._size = grid_size
+    return patches
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function _set_parameters(grid_size, n, fix_agents_num, random_positions, st; kwargs...)
+    xdim, ydim = grid_size
+    dict_parameters = Dict{Symbol, Any}(kwargs)
+    parameters = PropDataDict(dict_parameters)
+
+
+    if !fix_agents_num
+        atype = MortalType
+        if st == :c
+            parameters._extras._agents_added = Vector{AgentDict2D{Symbol, Any}}()
+            parameters._extras._agents_killed = Vector{AgentDict2D{Symbol, Any}}()
+        else
+            parameters._extras._agents_added = Vector{AgentDict2DGrid{Symbol, Any}}()
+            parameters._extras._agents_killed = Vector{AgentDict2DGrid{Symbol, Any}}()
+        end
+    else
+        atype =StaticType
+    end
+
+    if st == :c
+        parameters._extras._offset = (0.0,0.0)
+    else
+        parameters._extras._offset = (-0.5,-0.5)
+    end
+
+    parameters._extras._random_positions = random_positions
+    parameters._extras._show_space = true
+    parameters._extras._num_agents = n # number of active agents
+    parameters._extras._len_model_agents = n #number of agents in model.agents
+    parameters._extras._num_patches = xdim*ydim
+    parameters._extras._keep_deads_data = true
+    return parameters, atype
+end
+
 
 """
 $(TYPEDSIGNATURES)
@@ -9,11 +113,10 @@ This function is for use from within the module and is not exported.
 It takes an agent as first argument, and if `graphics` is true, some
 graphics related properties are added to the agent if not already defined. 
 """
-@inline function manage_default_graphics_data!(agent::AgentDict2D, graphics, random_positions, size)
+@inline function manage_default_graphics_data!(agent::AbstractAgent2D, graphics, random_positions, size)
     if graphics
-        if !haskey(agent, :pos)
-            pos = random_positions ? (size[1]*rand(), size[2]*rand()) : (0.0,0.0)
-            agent.pos = pos
+        if random_positions
+            _set_pos!(agent, size[1], size[2])
         end
 
         if !haskey(agent, :shape)
@@ -41,7 +144,7 @@ $(TYPEDSIGNATURES)
 
 Adds the agent to the model.
 """
-function add_agent!(agent, model::GridModel2DDynAgNum)
+function add_agent!(agent, model::SpaceModel2D{MortalType})
     if !haskey(agent._extras, :_id)
         _manage_default_data!(agent, model)
         manage_default_graphics_data!(agent, model.graphics, model.parameters._extras._random_positions, model.size)
@@ -49,23 +152,13 @@ function add_agent!(agent, model::GridModel2DDynAgNum)
         xdim = model.size[1]
         ydim = model.size[2]
 
-        if haskey(agent, :pos)
-            pos = agent.pos
-            if model.periodic || checkbound(pos[1],pos[2],xdim, ydim)
-                x = mod1(Int(ceil(pos[1])), xdim)
-                y = mod1(Int(ceil(pos[2])), ydim)
-                push!(model.patches[x,y]._extras._agents, agent._extras._id)
-                agent._extras._last_grid_loc = (x,y)
-            else
-                agent._extras._last_grid_loc = Inf
-            end
-        end
+        
+        _setup_grid!(agent, model.patches, model.periodic, agent._extras._id, xdim, ydim)
+        
 
         agent._extras._grid = model.patches
 
         _create_agent_record!(agent, model)
-
-        _recalculate_position!(agent, model.size, model.periodic)
         
         _init_agent_record!(agent)
 
@@ -83,9 +176,8 @@ $(TYPEDSIGNATURES)
 
 This function is for use from within the module and is not exported.
 """
-@inline function update_agents_record!(model::GridModel2D) 
+@inline function update_agents_record!(model::SpaceModel2D) 
     for agent in model.agents
-        _recalculate_position!(agent, model.size, model.periodic)
         _update_agent_record!(agent)
     end
 end
@@ -96,7 +188,7 @@ $(TYPEDSIGNATURES)
 
 This function is for use from within the module and is not exported.
 """
-@inline function update_patches_record!(model::GridModel2D)
+@inline function update_patches_record!(model::SpaceModel2D)
     if length(model.record.pprops)>0 
         for j in 1:model.size[2]
             for i in 1:model.size[1]
@@ -122,7 +214,7 @@ $(TYPEDSIGNATURES)
 
 This function is for use from within the module and is not exported. 
 """
-@inline function do_after_model_step!(model::GridModel2DDynAgNum)
+@inline function do_after_model_step!(model::SpaceModel2D{MortalType})
 
     _permanently_remove_inactive_agents!(model)
 
@@ -143,7 +235,7 @@ $(TYPEDSIGNATURES)
 
 This function is for use from within the module and is not exported.
 """
-@inline function do_after_model_step!(model::GridModel2DFixAgNum)
+@inline function do_after_model_step!(model::SpaceModel2D{StaticType})
 
     update_agents_record!(model)
 
@@ -156,40 +248,13 @@ end
 
 
 
-"""
-$(TYPEDSIGNATURES)
 
-This function adds up a list of position 2-tuples. 
-"""
-function sumall(lst::Vector{T}) where {T}
-    sum_x = zero(eltype(T))
-    sum_y = zero(eltype(T))
-    for a in lst
-        x, y = a
-        sum_x+=x
-        sum_y+=y
-    end
-    return sum_x, sum_y        
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-This function finds mean of a list of position 2-tuples. 
-"""
-function avg(lst::Vector{T}) where {T}
-    sum_x, sum_y = sumall(lst)
-    avg_x = (sum_x+0.0)/length(lst)
-    avg_y = (sum_y+0.0)/length(lst)
-    return avg_x, avg_y        
-end
 
 #################
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agents_and_patches(model::GridModel2DDynAgNum, frame, scl, tail_length = 1, tail_condition = agent-> false)
+@inline function draw_agents_and_patches(model::SpaceModel2D{MortalType}, frame, scl, tail_length = 1, tail_condition = agent-> false)
     xdim = model.size[1]
     ydim = model.size[2]
     show_grid = model.parameters._extras._show_space
@@ -210,7 +275,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agents_and_patches(model::GridModel2DFixAgNum, frame, scl, tail_length = 1, tail_condition = agent-> false)
+@inline function draw_agents_and_patches(model::SpaceModel2D{StaticType}, frame, scl, tail_length = 1, tail_condition = agent-> false)
     xdim = model.size[1]
     ydim = model.size[2]
     show_grid = model.parameters._extras._show_space

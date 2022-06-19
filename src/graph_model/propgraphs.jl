@@ -11,7 +11,7 @@ struct SimplePropGraph{T} <: AbstractPropGraph{T}
     nodesprops::Dict{Int, PropDataDict{Symbol, Any} }
     edgesprops::Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}
     SimplePropGraph(w::Type{T}) where T<:MType = new{w}(Vector{Int}(), Dict{Int, Vector{Int}}(), 
-    Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
+    Dict{Int, PropDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
     function SimplePropGraph(structure::Dict{Int, Vector{Int}}, w::Type{T}) where T<:MType
         nodes = sort!(collect(keys(structure)))
         for i in nodes
@@ -20,7 +20,7 @@ struct SimplePropGraph{T} <: AbstractPropGraph{T}
                 return nothing
             end
         end
-        new{w}(nodes, structure, Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
+        new{w}(nodes, structure, Dict{Int, PropDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
     end
 
     function SimplePropGraph(n::Int, w::Type{T}) where T<:MType
@@ -28,7 +28,7 @@ struct SimplePropGraph{T} <: AbstractPropGraph{T}
         for i in 1:n
             structure[i] = Int[]
         end
-        new{w}(collect(1:n), structure, Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
+        new{w}(collect(1:n), structure, Dict{Int, PropDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
     end
 
     function SimplePropGraph(_nodes, structure, nodesprops, edgesprops, w::Type{T}) where T<:MType
@@ -529,7 +529,7 @@ struct DirPropGraph{T}<: AbstractPropGraph{T}
     out_structure::Dict{Int, Vector{Int}}
     nodesprops::Dict{Int, PropDataDict{Symbol, Any}}
     edgesprops::Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}
-    DirPropGraph(w::Type{T}) where T<:MType = new{w}(Vector{Int}(), Dict{Int, Vector{Int}}(), Dict{Int, Vector{Int}}(), Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}())
+    DirPropGraph(w::Type{T}) where T<:MType = new{w}(Vector{Int}(), Dict{Int, Vector{Int}}(), Dict{Int, Vector{Int}}(), Dict{Int,PropDataDict{Symbol, Any}}(), Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}())
     function DirPropGraph(in_structure::Dict{Int, Vector{Int}},w::Type{T}) where T<:MType
         nodes = vcat(collect(keys(in_structure)), collect(Iterators.flatten(values(in_structure))))
         sort!(nodes)
@@ -553,7 +553,7 @@ struct DirPropGraph{T}<: AbstractPropGraph{T}
                 end
             end
         end
-        new{w}(nodes, in_structure, out_structure, Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}())
+        new{w}(nodes, in_structure, out_structure, Dict{Int, PropDataDict{Symbol, Any}}(), Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}())
     end
 
     function DirPropGraph(n::Int,w::Type{T}) where T <: MType
@@ -563,7 +563,7 @@ struct DirPropGraph{T}<: AbstractPropGraph{T}
             dc1[i] = Int[]
             dc2[i] = Int[]
         end
-        new{w}(collect(1:n), dc1, dc2, Dict{Int, Union{PropDataDict{Symbol, Any},Bool}}(), Dict{Tuple{Int,Int}, PropDataDict{Symbol, Any}}())
+        new{w}(collect(1:n), dc1, dc2, Dict{Int, PropDataDict{Symbol, Any}}(), Dict{Tuple{Int,Int}, PropDataDict{Symbol, Any}}())
     end
 
     function DirPropGraph(_nodes, in_structure, out_structure, nodesprops, edgesprops, w::Type{T}) where T<:MType

@@ -40,7 +40,7 @@ function Base.show(io::IO, ::MIME"text/plain", v::GraphModel{T, S}) where {T,S} 
         str = "In a {$T,$S} model graph topology can change and agents number is fixed"
     end
     
-    println(io, "SimpleABM GraphModel{$T,$S}: $str.")
+    println(io, "EasyABM GraphModel{$T,$S}: $str.")
 end
 
 function Base.show(io::IO, v::GraphModel{T,S}) where {T,S} # works with print
@@ -57,5 +57,5 @@ function Base.show(io::IO, v::GraphModel{T,S}) where {T,S} # works with print
         str = "In a {$T,$S} model graph topology can change and agents number is fixed"
     end
     
-    println(io, "SimpleABM GraphModel{$T,$S}: $str.")
+    println(io, "EasyABM GraphModel{$T,$S}: $str.")
 end

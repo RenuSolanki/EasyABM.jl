@@ -2,58 +2,37 @@
 """
 $(TYPEDSIGNATURES)
 
-Creates a model with 
-- agents : list of agents.
-- graphics : if true properties of pos, shape, color, orientation will be assigned to each agent by default, if not already assigned by the user.
-- `fix_agent_num` : Set it to true if agents do not die and new agents are not born during simulation. 
-- `grid_size` : A tuple (dimx, dimy, dimz) which tells the number of blocks the space is to be divided into along x, y and z directions. An agent can take
-positions from 0 to dimx in x-direction, 0 to dimy in y direction and 0 to dimz in z direction in order to stay within grid space. The word `grid` in the function
-`create_grid_model` does not imply that agents will be restricted to move in discrete steps. The agents can move continuously or 
-in discrete steps depending upon how user implements the step rule. Each grid block is called a patch which like agents can be assigned 
-its own properties.  Other than the number of patches in the model, `grid_size` also restricts the domain of `neighbors` function 
-(which when called with either :grid or :euclidean metric option) will only take into account the agents within the grid dimensions and 
-will ignore any agents which have crossed the boundary of grid space(unless periodic is set to true). 
-- periodic : If `periodic` is true the grid space will be periodic in x, y and z directions. 
-- `random_positions` : If this property is true, each agent, which doesn't already have a position defined, will be given a default random continous position. 
-- kwargs : Keyword argments used as model parameters. 
+Creates a 3d model with 
+- `agents` : list of agents.
+- `graphics` : if true, properties of shape, color, orientation will be assigned to each agent by default, if not already assigned by the user.
+- `fix_agent_num` : Set it to true if agents do not die and new agents are not born during simulation.
+- `size` : A tuple (dimx, dimy, dimz) which tells the number of blocks the space is to be divided into along x, y and z directions. An agent can take
+positions from 0 to dimx in x-direction, 0 to dimy in y direction and 0 to dimz in z direction. The agents can move continuously or 
+in discrete steps depending upon how user implements the step rule (unless the agents are of grid type which can only move in dicrete steps). 
+Each unit block of space is called a patch which like agents can be assigned 
+its own properties.  
+- `periodic`` : If `periodic` is true the grid space will be periodic in x, y and z directions. If set to false, agents can not be assigned position outside the 
+space boundaries
+- `random_positions` : If this property is true, each agent, will be assigned a random position. 
+- `kwargs`` : Keyword argments used as model parameters. 
 """
-function create_3d_model(agents::Vector{AgentDict3D{Symbol, Any}}; graphics=true, fix_agents_num=false, 
-    grid_size::NTuple{3,Int}= (10,10,10), periodic = false, random_positions=false, kwargs...)
+function create_3d_model(agents::Union{Vector{AgentDict3D{Symbol, Any}}, Vector{AgentDict3DGrid{Symbol, Any}}}; 
+    graphics=true, fix_agents_num=false, 
+    size::NTuple{3,Int}= (10,10,10), periodic = false, random_positions=false, kwargs...)
 
-    xdim = grid_size[1]
-    ydim = grid_size[2]
-    zdim = grid_size[3]
+    xdim = size[1]
+    ydim = size[2]
+    zdim = size[3]
     n = length(agents)
-    patches = [PropDataDict(Dict{Symbol, Any}(:color => :red)) for i in 1:xdim, j in 1:ydim, k in 1:zdim]
-    for k in 1:zdim
-        for j in 1:ydim
-            for i in 1:xdim
-                patches[i,j,k]._extras._agents= Int[]
-            end
-        end
-    end
-    patches[1,1,1]._extras._periodic = periodic
-    patches[1,1,1]._extras._xdim = xdim
-    patches[1,1,1]._extras._ydim = ydim
-    patches[1,1,1]._extras._zdim = zdim
-    dict_parameters = Dict{Symbol, Any}(kwargs)
-    parameters = PropDataDict(dict_parameters)
+    patches = _set_patches3d(periodic, size)
 
 
-    if !fix_agents_num
-        atype = MortalType
-        parameters._extras._agents_added = Vector{AgentDict3D{Symbol, Any}}()
-        parameters._extras._agents_killed = Vector{AgentDict3D{Symbol, Any}}()
-    else
-        atype =StaticType
+    st = :c
+    if eltype(agents)<:AgentDict3DGrid
+        st = :d
     end
 
-    parameters._extras._random_positions = random_positions
-    parameters._extras._show_space = true
-    parameters._extras._num_agents = n # number of active agents
-    parameters._extras._len_model_agents = n #number of agents in model.agents
-    parameters._extras._num_patches = xdim*ydim*zdim
-    parameters._extras._keep_deads_data = true
+    parameters, atype = _set_parameters3d(size, n, fix_agents_num, random_positions, st; kwargs...)
 
 
     for (i, agent) in enumerate(agents)
@@ -66,27 +45,9 @@ function create_3d_model(agents::Vector{AgentDict3D{Symbol, Any}}; graphics=true
             agent._extras._death_time = Inf
         end
 
-        if random_positions && !haskey(agent, :pos)                    
-            agent.pos = (rand()*xdim, rand()*ydim, rand()*zdim) 
-        end
-
-        manage_default_graphics_data!(agent, graphics, random_positions, grid_size)
-
-
-        if haskey(agent, :pos)
-            pos = agent.pos
-            if periodic || (pos[1]>0 && pos[1]<=xdim && pos[2]>0 && pos[2]<=ydim && pos[3]>0 && pos[3]<=zdim)
-                x = mod1(Int(ceil(pos[1])), xdim)
-                y = mod1(Int(ceil(pos[2])), ydim)
-                z = mod1(Int(ceil(pos[3])), zdim)
-                push!(patches[x,y,z]._extras._agents, i)
-                agent._extras._last_grid_loc = (x,y,z)
-            else
-                agent._extras._last_grid_loc = Inf
-            end
-        end
-
-        _recalculate_position!(agent, grid_size, periodic)
+        manage_default_graphics_data!(agent, graphics, random_positions, size)
+        
+        _setup_grid!(agent,patches, periodic, i, xdim, ydim, zdim)
 
         _init_agent_record!(agent)
 
@@ -95,22 +56,33 @@ function create_3d_model(agents::Vector{AgentDict3D{Symbol, Any}}; graphics=true
     end
 
 
-    model = GridModel3D(grid_size, patches, agents, Ref(n), periodic, graphics, parameters, (aprops = Symbol[], pprops = Symbol[], mprops = Symbol[]), Ref(1), atype = atype)
+    model = SpaceModel3D(size, patches, agents, Ref(n), periodic, graphics, parameters, (aprops = Symbol[], pprops = Symbol[], mprops = Symbol[]), Ref(1), atype = atype)
 
     return model
 
 end
 
-function null_init!(model::GridModel3D)
+"""
+$(TYPEDSIGNATURES)
+"""
+function create_3d_model(; graphics=true, fix_agents_num=false, 
+    size::NTuple{3,Int}= (10,10,10), periodic = false, random_positions=false, kwargs...)
+    agents = con_3d_agents(0)
+    model = create_3d_model(agents; graphics=graphics, fix_agents_num=fix_agents_num, 
+    size= size, periodic = periodic, random_positions=random_positions, kwargs...)
+    return model
+end
+
+function null_init!(model::SpaceModel3D)
     nothing
 end
 
 
-function model_null_step!(model::GridModel3D)
+function model_null_step!(model::SpaceModel3D)
     nothing
 end
 
-function _init_patches!(model::GridModel3D)
+function _init_patches!(model::SpaceModel3D)
     if length(model.record.pprops)>0
         for k in 1:model.size[3]
             for j in 1:model.size[2]
@@ -131,14 +103,13 @@ end
 $(TYPEDSIGNATURES)
 
 Initiates the simulation with a user defined initialiser function which takes the model as its only argument. 
-Model parameters along with agent properties can be set (or modified if set through the `create_3d_agents` and `create_3d_model` 
-functions) from within a user defined function and then sending it as `initialiser` argument in `init_model!`. The properties of 
-agents, patches and model that are to be recorded during time evolution can be specified through the dictionary argument `props_to_record`. 
-List of agent properties to be recorded are specified with key "agents" and value the list of property names as symbols. If a nonempty list of 
-agents properties is specified, it will replace the `keeps_record_of` list of each agent. Properties of patches and model are similarly specified
-with keys "patches" and "model" respectively.
+Model parameters along with agent properties can be set (or modified) from within a user defined function and then sending it as `initialiser` 
+argument in `init_model!`. The properties of agents, patches and model that are to be recorded during time evolution can be specified through 
+the dictionary argument `props_to_record`. List of agent properties to be recorded are specified with key "agents" and value the list of property 
+names as symbols. If a nonempty list of agents properties is specified, it will replace the `keeps_record_of` list of each agent. Properties of 
+patches and model are similarly specified with keys "patches" and "model" respectively.
 """
-function init_model!(model::GridModel3D; initialiser::Function = null_init!, 
+function init_model!(model::SpaceModel3D; initialiser::Function = null_init!, 
     props_to_record::Dict{String, Vector{Symbol}} = Dict{String, Vector{Symbol}}("agents"=>Symbol[], "patches"=>Symbol[], "model"=>Symbol[]),
     keep_deads_data = true)
 
@@ -170,7 +141,7 @@ $(TYPEDSIGNATURES)
 
 Runs the simulation for `steps` number of steps.
 """
-function run_model!(model::GridModel3D; steps=1, step_rule::Function=model_null_step!)
+function run_model!(model::SpaceModel3D; steps=1, step_rule::Function=model_null_step!)
 
     _run_sim!(model, steps, step_rule)
     
@@ -184,7 +155,7 @@ $(TYPEDSIGNATURES)
 Runs the simulation for `num_epochs` number of epochs where each epoch consists of `steps_per_epoch` number of steps.
 The model is saved as .jld2 file and the model.tick is reset to 1 at the end of each epoch.
 """
-function run_model_epochs!(model::GridModel3D; steps_per_epoch = 1, num_epochs=1, 
+function run_model_epochs!(model::SpaceModel3D; steps_per_epoch = 1, num_epochs=1, 
     step_rule::Function=model_null_step!, save_to_folder=_default_folder[])
     
     for epoch in num_epochs
@@ -203,7 +174,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function save_sim(model::GridModel3D, frames::Int = model.tick, scl::Number = 1.0; kwargs...)
+function save_sim(model::SpaceModel3D, frames::Int = model.tick, scl::Number = 1.0; kwargs...)
     println(
     "    The save function for 3D models has not yet been implemented in SimpleABM package. 
     In order to save the video file of simulation do following -
@@ -224,7 +195,7 @@ $(TYPEDSIGNATURES)
 
 Creates a 3d animation from the data collected during the model run.
 """
-function animate_sim(model::GridModel3D, frames::Int=model.tick; show_grid=false, tail=(1, agent->false))
+function animate_sim(model::SpaceModel3D, frames::Int=model.tick; show_grid=false, tail=(1, agent->false))
     if model.graphics
         ticks = getfield(model, :tick)[]
         model.parameters._extras._show_space = show_grid
@@ -266,7 +237,7 @@ $(TYPEDSIGNATURES)
 
 Creates an interactive app for the model.
 """
-function create_interactive_app(inmodel::GridModel3D; initialiser::Function = null_init!, 
+function create_interactive_app(inmodel::SpaceModel3D; initialiser::Function = null_init!, 
     props_to_record::Dict{String, Vector{Symbol}} = Dict{String, Vector{Symbol}}("agents"=>Symbol[], "patches"=>Symbol[], "model"=>Symbol[]),
     step_rule::Function=model_null_step!,
     agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
@@ -335,7 +306,7 @@ function create_interactive_app(inmodel::GridModel3D; initialiser::Function = nu
         return agent_df, patch_df, DataFrame(), model_df
     end
 
-    agent_df, patch_df, node_df, model_df = _init_interactive_model()
+    agent_df, patch_df, node_df, model_df = DataFrame(), DataFrame(), DataFrame(), DataFrame() #_init_interactive_model()
 
     function _draw_interactive_frame(t, scl)
         draw_agents_and_patches(vis, model, t, scl, tail...)

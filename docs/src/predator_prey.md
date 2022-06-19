@@ -19,9 +19,9 @@ We create 200 agents all of type `sheep` to begin with. Our model parameters are
 
 ```julia
 @enum agenttype sheep wolf
-agents = create_2d_agents(200, pos = (1,1), color = :white, atype = sheep, 
+agents = grid_2d_agents(200, pos = (1,1), color = :white, atype = sheep, 
     energy = 10.0, keeps_record_of=[:pos, :energy ])
-model = create_2d_model(agents, grid_size = (20,20), 
+model = create_2d_model(agents, size = (20,20), 
     max_energy = 50, 
     wolf_birth_rate = 0.01,
     sheep_birth_rate = 0.1,
@@ -57,7 +57,7 @@ function initialiser!(model)
             agent.color = :white
         end
         agent.energy = rand(1:model.parameters.max_energy)+0.0
-        agent.pos = (rand(1:model.size[1])-0.5, rand(1:model.size[2])-0.5)
+        agent.pos = (rand(1:model.size[1]), rand(1:model.size[2]))
     end
             
 end

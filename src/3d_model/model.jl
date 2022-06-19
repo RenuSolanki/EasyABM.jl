@@ -1,22 +1,20 @@
 
-struct GridModel3D{T} <:AbstractGridModel{T}
+struct SpaceModel3D{T} <:AbstractSpaceModel{T}
     size::NTuple{3, Int}
     patches:: Array{PropDataDict{Symbol, Any},3}  
-    agents::Vector{AgentDict3D}
+    agents::Union{Vector{AgentDict3D{Symbol, Any}}, Vector{AgentDict3DGrid{Symbol, Any}}}
     max_id::Base.RefValue{Int64}
     periodic::Bool
     graphics::Bool
     parameters::PropDataDict{Symbol, Any}
     record::NamedTuple{(:aprops, :pprops, :mprops), Tuple{Vector{Symbol}, Vector{Symbol}, Vector{Symbol}}}
     tick::Base.RefValue{Int64}
-    GridModel3D(args...; atype::Type{T}) where T<:MType = new{atype}(args...)
+    SpaceModel3D(args...; atype::Type{T}) where T<:MType = new{atype}(args...)
 end
 
-const GridModel3DFixAgNum = GridModel3D{StaticType}
-const GridModel3DDynAgNum = GridModel3D{MortalType}
     
 
-function Base.getproperty(d::T, n::Symbol) where {T<:GridModel3D}
+function Base.getproperty(d::T, n::Symbol) where {T<:SpaceModel3D}
     if (n == :tick) || (n==:max_id)
        return getfield(d, n)[]
     else
@@ -24,22 +22,22 @@ function Base.getproperty(d::T, n::Symbol) where {T<:GridModel3D}
     end
 end
 
-function Base.show(io::IO, ::MIME"text/plain", v::GridModel3D{T}) where T # works with REPL
+function Base.show(io::IO, ::MIME"text/plain", v::SpaceModel3D{T}) where T # works with REPL
     if T==MortalType
         str = "In a $T model agents can take birth or die"
     else
         str = "In a $T model number of agents is fixed"
     end
-    println(io, "SimpleABM GridModel3D{$T}: $str.")
+    println(io, "EasyABM SpaceModel3D{$T}: $str.")
 end
 
-function Base.show(io::IO, v::GridModel3D{T}) where T # works with print
+function Base.show(io::IO, v::SpaceModel3D{T}) where T # works with print
     if T==MortalType
         str = "In a $T model agents can take birth or die"
     else
         str = "In a $T model number of agents is fixed"
     end
-    println(io, "SimpleABM GridModel3D{$T}: $str.")
+    println(io, "EasyABM SpaceModel3D{$T}: $str.")
 end
 
 

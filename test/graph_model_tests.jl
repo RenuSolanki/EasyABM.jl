@@ -2,7 +2,7 @@
 @testset "graph model" begin
     mat = sparse([1,2,2,3,3,4,4,5,5,1],[2,1,3,2,4,3,5,4,1,5],[1,1,1,1,1,1,1,1,1,1]) # pentagon 1--2--3--4--5--1 #
     graph = create_simple_graph(mat)
-    agents = create_graph_agents(5, color=:red, is_sick = false, shape = :circle, keeps_record_of = [:color, :is_sick])
+    agents = graph_agents(5, node=2, color=:red, is_sick = false, shape = :circle, keeps_record_of = [:color, :is_sick])
     model = create_graph_model(agents, graph, static_graph = false, random_positions = true, model_property1 = 0.7, model_property2 = "nice_model")
     function initialiser!(model)
         model.agents[1].shape = :box

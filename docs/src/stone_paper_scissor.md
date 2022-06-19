@@ -7,11 +7,10 @@ using EasyABM
 
 ## Step 1: Create Model
 
-In this model, we work with patches instead of agents. As agents is the first field required in the `create_2d_model` function, so for syntactical correctness we create a list of 0 agents, and use it as first argument of `create_2d_model` function. We set `grid_size` to (50,50), set `periodic` to true and define an additional model parameter `threshold` whose value is set to 2. 
+In this model, we work with patches instead of agents. We set `grid_size` to (50,50), set `periodic` to true and define an additional model parameter `threshold` whose value is set to 2. 
 
 ```julia
-agents = create_2d_agents(0) 
-model = create_2d_model(agents, grid_size = (50,50), threshold = 2, periodic = true)
+model = create_2d_model(size = (50,50), threshold = 2, periodic = true)
 ```
 
 ## Step 2: Initialise the model

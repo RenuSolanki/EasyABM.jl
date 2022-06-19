@@ -47,7 +47,7 @@ const agentpurple = RGBA(0.93, 0.51, 0.93, _aalpha)
 end
 
 
-@inline function draw_patches_static(vis, model::GridModel3D)
+@inline function draw_patches_static(vis, model::SpaceModel3D)
     record = model.record.pprops
     xdim = model.size[1]
     ydim = model.size[2]
@@ -104,7 +104,7 @@ function draw_tail(vis, agent, tail_length)
     end
 end
 
-@inline function draw_agents_static(vis, model::GridModel3D, all_agents, tail_length = 1,  tail_condition = agent -> false)
+@inline function draw_agents_static(vis, model::SpaceModel3D, all_agents, tail_length = 1,  tail_condition = agent -> false)
     
     if length(all_agents)==0
         return
@@ -122,13 +122,14 @@ end
     w = xlen/xdim
     l = ylen/ydim
     h = zlen/zdim 
+    offset = model.parameters._extras._offset
 
 
 
     for agent in all_agents
         record = agent.keeps_record_of
         agent_data = unwrap_data(agent)
-        pos = (:pos in record) ? agent_data[:pos][index] : agent.pos
+        pos = (:pos in record) ? agent_data[:pos][index] + offset : agent.pos + offset
         orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
         pclr = (:color in record) ? agent_data[:color][index] : agent.color
     
@@ -186,7 +187,7 @@ end
 
 
 
-@inline function draw_patches(vis, model::GridModel3D, frame)
+@inline function draw_patches(vis, model::SpaceModel3D, frame)
     for k in 1:model.size[3]            
         for j in 1:model.size[2]
             for i in 1:model.size[1]
@@ -202,7 +203,7 @@ end
 end
 
 
-@inline function draw_agent(vis, agent::AgentDict3D, model::GridModel3D, index::Int, scl::Number=1.0, tail_length = 1, tail_condition= agent-> false)
+@inline function draw_agent(vis, agent::Union{AgentDict3D, AgentDict3DGrid}, model::SpaceModel3D, index::Int, scl::Number=1.0, tail_length = 1, tail_condition= agent-> false)
         record = agent.keeps_record_of
         periodic = model.periodic
         agent_data = unwrap_data(agent)
@@ -216,8 +217,10 @@ end
         w = xlen/xdim
         l = ylen/ydim
         h = zlen/zdim 
-        pos = (:pos in record) ? agent_data[:pos][index] : agent.pos
-        nextpos = (:pos in record)&&(index<model.tick) ? agent_data[:pos][index+1] : agent.pos 
+        offset = model.parameters._extras._offset
+
+        pos = (:pos in record) ? agent_data[:pos][index] + offset : agent.pos + offset
+        nextpos = (:pos in record)&&(index<model.tick) ? agent_data[:pos][index+1] + offset : agent.pos + offset
         orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
         pclr = (:color in record) ? agent_data[:color][index] : agent.color
         clrs = agent._extras._colors
@@ -263,8 +266,8 @@ end
 
         if tail_condition(agent) && index>2
             for i in 1:min(tail_length, index-2)
-                x,y,z = agent_data[:pos][index-i]
-                a,b,c = agent_data[:pos][index-i+1]
+                x,y,z = agent_data[:pos][index-i] + offset
+                a,b,c = agent_data[:pos][index-i+1] + offset
                 sca = sqrt((x-a)^2+(y-b)^2+(z-c)^2)
                 if (x,y,z)==(a,b,c)
                     c = 1.0+c
@@ -283,7 +286,7 @@ end
 end
 
 
-@inline function draw_patches_interact_frame(vis, model::GridModel3D, frame)
+@inline function draw_patches_interact_frame(vis, model::SpaceModel3D, frame)
     record = model.record.pprops
     xdim = model.size[1]
     ydim = model.size[2]
@@ -321,7 +324,7 @@ end
     end
 end
 
-@inline function draw_agent_interact_frame(vis, agent::AgentDict3D, model::GridModel3D, index::Int, scl)
+@inline function draw_agent_interact_frame(vis, agent::AgentDict3D, model::SpaceModel3D, index::Int, scl)
     record = agent.keeps_record_of
     periodic = model.periodic
     agent_data = unwrap_data(agent)
@@ -335,7 +338,8 @@ end
     w = xlen/xdim
     l = ylen/ydim
     h = zlen/zdim 
-    pos = (:pos in record) ? agent_data[:pos][index] : agent.pos
+    offset = model.parameters._extras._offset
+    pos = (:pos in record) ? agent_data[:pos][index] +offset : agent.pos + offset
     orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
     pclr = (:color in record) ? agent_data[:color][index] : agent.color
 

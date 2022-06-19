@@ -4,7 +4,7 @@ const _node_size = 10
 const _scale_graph = 0.95
 const _boundary_frame = 0.025
 
-const gsize = 10
+const gsize = 1
 
 """
 $(TYPEDSIGNATURES)

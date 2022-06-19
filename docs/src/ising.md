@@ -8,14 +8,13 @@ topology as well.
 using EasyABM
 ```
 
-## Step 1: Create Agents and Model
+## Step 1: Create Model
 
-In this model we will work solely with the graph and won't reuire agents. We create a grid graph of size 20x20, an empty list of agents, and then create our graph model as follows. 
+In this model we will work solely with the graph and won't reuire agents. We create a grid graph of size 20x20, and then create our graph model as follows. 
 
 ```julia
 graph = square_grid(20,20); # We could also use graphs generated with Graphs.jl package. 
-agents = create_graph_agents(0);
-model = create_graph_model(agents, graph, temp = 0.1, coupl = 1.0)
+model = create_graph_model(graph, temp = 0.1, coupl = 1.0)
 ```
 
 The model has two parameters temperature `temp` and coupling `coupl`. 

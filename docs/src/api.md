@@ -5,12 +5,16 @@ EasyABM provides following functions for agent based simulations.
 ## Functions for creating agents
 
 ```@docs
-create_2d_agent
-create_2d_agents
-create_3d_agent
-create_3d_agents
-create_graph_agent
-create_graph_agents
+con_2d_agent
+con_2d_agents
+grid_2d_agent
+grid_2d_agents
+con_3d_agent
+con_3d_agents
+grid_3d_agent
+grid_3d_agents
+graph_agent
+graph_agents
 create_similar
 ```
 

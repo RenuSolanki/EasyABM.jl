@@ -221,7 +221,6 @@ $(TYPEDSIGNATURES)
 function get_nodes_avg_props(model::GraphModelDynGrTop, 
     props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
 
-    dict = Dict{Symbol, Vector{Float64}}()
     dead_graph = model.parameters._extras._dead_meta_graph
     verts = getfield(model.graph, :_nodes)
     vertsd = getfield(dead_graph, :_nodes)
@@ -235,13 +234,14 @@ function get_nodes_avg_props(model::GraphModelDynGrTop,
         return DataFrame()
     end
 
+    dict = _get_dict(props, first_node)
 
     for i in 1:length(props)
         fun = props[i]
         name = Symbol(labels[i])
-        dict[name]=Float64[]
+        val = fun(first_node) - fun(first_node)
+        dict[name]=typeof(val/2)[]
         for tick in 1:model.tick
-            val = fun(first_node) - fun(first_node)
             num_alive = 0
             for node in verts
                 birth_time = model.graph.nodesprops[node]._extras._birth_time
@@ -314,22 +314,23 @@ $(TYPEDSIGNATURES)
 function get_nodes_avg_props(model::GraphModelFixGrTop, 
     props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
 
-    dict = Dict{Symbol, Vector{Float64}}()
     verts = getfield(model.graph, :_nodes)
     num_alive = length(verts)
 
     if num_alive==0
-        return DataFrame(dict)
+        return DataFrame()
     end
 
     first_node = model.graph.nodesprops[1]
 
+    dict = _get_dict(props, first_node)
+
     for i in 1:length(props)
         fun = props[i]
         name = Symbol(labels[i])
-        dict[name]=Float64[]
+        val = fun(first_node) - fun(first_node)
+        dict[name]=typeof(val/2)[]
         for tick in 1:model.tick
-            val = fun(first_node) - fun(first_node)
             for node in verts
                 nodecp = create_temp_prop_dict(unwrap(model.graph.nodesprops[node]), unwrap_data(model.graph.nodesprops[node]), model.record.nprops, tick)
                 val += fun(nodecp)
@@ -413,7 +414,6 @@ $(TYPEDSIGNATURES)
 function get_edges_avg_props(model::GraphModelDynGrTop, 
     props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
 
-    dict = Dict{Symbol, Vector{Float64}}()
     dead_graph = model.parameters._extras._dead_meta_graph
     eds = edges(model.graph)
     edsd = edges(dead_graph)
@@ -427,13 +427,15 @@ function get_edges_avg_props(model::GraphModelDynGrTop,
         return DataFrame()
     end
 
+    dict = _get_dict(props, first_edge)
+
 
     for i in 1:length(props)
         fun = props[i]
         name = Symbol(labels[i])
-        dict[name]=Float64[]
+        val = fun(first_edge) - fun(first_edge)
+        dict[name]=typeof(val/2)[]
         for tick in 1:model.tick
-            val = fun(first_edge) - fun(first_edge)
             num_alive = 0
             for edge in eds
                 len = 0
@@ -514,22 +516,23 @@ $(TYPEDSIGNATURES)
 function get_edges_avg_props(model::GraphModelFixGrTop, 
     props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
 
-    dict = Dict{Symbol, Vector{Float64}}()
     eds = edges(model.graph)
     num_alive = length(eds)
 
     if num_alive==0
-        return DataFrame(dict)
+        return DataFrame()
     end
 
     first_edge = model.graph.edgesprops[eds[1]]
 
+    dict = _get_dict(props, first_edge)
+
     for i in 1:length(props)
         fun = props[i]
         name = Symbol(labels[i])
-        dict[name]=Float64[]
+        val = fun(first_edge) - fun(first_edge)
+        dict[name]=typeof(val/2)[]
         for tick in 1:model.tick
-            val = fun(first_edge) - fun(first_edge)
             for edge in eds 
                 edgecp = create_temp_prop_dict(unwrap(model.graph.edgesprops[edge]), unwrap_data(model.graph.edgesprops[edge]), model.record.eprops, tick)
                 val += fun(edgecp)

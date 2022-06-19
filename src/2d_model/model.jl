@@ -1,22 +1,21 @@
 
-struct GridModel2D{T} <:AbstractGridModel{T}
+struct SpaceModel2D{T} <:AbstractSpaceModel{T}
     size::NTuple{2, Int}
-    patches:: Matrix{PropDataDict{Symbol, Any}}  #Dict{Tuple{Int, Int}, Union{PropDataDict{Symbol, Any},Bool,Int}}
-    agents::Vector{AgentDict2D}
+    patches:: Matrix{PropDataDict{Symbol, Any}}  
+    agents::Union{Vector{AgentDict2D{Symbol, Any}}, Vector{AgentDict2DGrid{Symbol, Any}}}
     max_id::Base.RefValue{Int64}
     periodic::Bool
     graphics::Bool
     parameters::PropDataDict{Symbol, Any}
     record::NamedTuple{(:aprops, :pprops, :mprops), Tuple{Vector{Symbol}, Vector{Symbol}, Vector{Symbol}}}
     tick::Base.RefValue{Int64}
-    GridModel2D(args...; atype::Type{T}) where T<:MType = new{atype}(args...)
+    SpaceModel2D(args...; atype::Type{T}) where T<:MType = new{atype}(args...)
 end
 
-const GridModel2DFixAgNum = GridModel2D{StaticType}
-const GridModel2DDynAgNum = GridModel2D{MortalType}
+
     
 
-function Base.getproperty(d::T, n::Symbol) where {T<:GridModel2D}
+function Base.getproperty(d::T, n::Symbol) where {T<:SpaceModel2D}
     if (n == :tick) || (n==:max_id)
        return getfield(d, n)[]
     else
@@ -24,27 +23,21 @@ function Base.getproperty(d::T, n::Symbol) where {T<:GridModel2D}
     end
 end
 
-function Base.show(io::IO, ::MIME"text/plain", v::GridModel2D{T}) where T # works with REPL
+function Base.show(io::IO, ::MIME"text/plain", v::SpaceModel2D{T}) where T # works with REPL
     if T==MortalType
         str = "In a $T model agents can take birth or die"
     else
         str = "In a $T model number of agents is fixed"
     end
-    println(io, "EasyABM GridModel2D{$T}: $str.")
+    println(io, "EasyABM SpaceModel2D{$T}: $str.")
 end
 
-function Base.show(io::IO, v::GridModel2D{T}) where T # works with print
+function Base.show(io::IO, v::SpaceModel2D{T}) where T # works with print
     if T==MortalType
         str = "In a $T model agents can take birth or die"
     else
         str = "In a $T model number of agents is fixed"
     end
-    println(io, "EasyABM GridModel2D{$T}: $str.")
+    println(io, "EasyABM SpaceModel2D{$T}: $str.")
 end
-
-
-
-
-
-
 

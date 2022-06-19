@@ -20,11 +20,11 @@ In our SIR model there will be four type of agents - agentS (susceptible), agent
     agentD=4
 end
 
-agents = create_2d_agents(500, color=:green, 
+agents = grid_2d_agents(500, pos = (1,1), color=:green, 
         atype = agentS, not_well_since = 0, 
         keeps_record_of = [:atype, :color, :pos]);
 
-model = create_2d_model(agents, grid_size=(50,50), 
+model = create_2d_model(agents, size=(50,50), 
         periodic = true, initially_sick = 10, 
         sickness_duration = 21, infection_prob = 0.8, 
         death_prob=0.05);
@@ -48,7 +48,7 @@ function initialiser!(model)
         agent.not_well_since = 0 
         x = rand(1:model.size[1])
         y = rand(1:model.size[2])
-        agent.pos = (x-0.5, y-0.5) # center of a random patch
+        agent.pos = (x, y) # center of a random patch
     end
 end
 init_model!(model, initialiser = initialiser!)
