@@ -34,5 +34,5 @@ makedocs(
         ]
          )
 deploydocs(;
-    repo="github.com/RenuSolanki/EasyABM.jl",
+    repo="github.com/RenuSolanki/EasyABM.jl.git",
 )
