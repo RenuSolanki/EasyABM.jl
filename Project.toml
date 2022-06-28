@@ -1,7 +1,7 @@
 name = "EasyABM"
 uuid = "2ab8e4d3-e1e9-4248-86a3-8419d2d242e9"
 authors = ["Renu Solanki <renusolanki2014@gmail.com>", "Monisha Khanna Kapur <monishaandc@gmail.com>", "Shailly Anand <shailly.anand@gmail.com>", "Anita Gulati <a22.gulati@gmail.com>", "Prateek Kumar <prateek@ramjas.du.ac.in>", "Munendra Kumar <munendrafanswal92@gmail.com>", "Dushyant Kumar <sehrawat.dushyant@gmail.com>"]
-version = "0.3.0"
+version = "1.0.0"
 
 [deps]
 Agents = "46ada45e-f475-11e8-01d0-f70cc89e6671"
