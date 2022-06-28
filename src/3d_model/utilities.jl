@@ -22,35 +22,26 @@ $(TYPEDSIGNATURES)
 
 Returns patches neighboring given agent's patch.
 """
-function neighbor_patches(agent::AgentDict3D, model::SpaceModel3D, dist::Int)
-    x,y,z = Int(ceil(agent.pos[1])), Int(ceil(agent.pos[2])), Int(ceil(agent.pos[3]))
+function neighbor_patches(patch::NTuple{3,Int}, model::SpaceModel3D{T,S,P}, dist::Int) where {T,S,P<:Periodic}
+    x,y,z = patch
     lst = NTuple{3, Int}[]
-    if model.periodic
-        for i in -dist:dist
-            for j in -dist:dist
-                for k in -dist:dist
-                    pnew = (mod1(x+i, model.size[1]), mod1(y+j, model.size[2]), mod1(z+k, model.size[3]))
-                    if pnew != (x,y,z)
-                        push!(lst, pnew)
-                    end
-                end
-            end
-        end
-    else
-        for i in -dist:dist
-            for j in -dist:dist
-                for k in -dist:dist
-                    if (i,j,k)!=(0,0,0)
-                        pnew = (x+i, y+j, z+k)
-                        if all(1 .<= pnew) && all(pnew .<= model.size)
-                            push!(lst, pnew)
-                        end
-                    end
+    for i in -dist:dist
+        for j in -dist:dist
+            for k in -dist:dist
+                pnew = (mod1(x+i, model.size[1]), mod1(y+j, model.size[2]), mod1(z+k, model.size[3]))
+                if pnew != (x,y,z)
+                    push!(lst, pnew)
                 end
             end
         end
     end
-    return unique(lst)
+
+    sz = min(model.size...)
+    if div(sz, 2)+ sz%2 < dist+1
+        unique!(lst)
+    end
+
+    return lst
 end
 
 
@@ -59,167 +50,186 @@ $(TYPEDSIGNATURES)
 
 Returns patches neighboring given agent's patch.
 """
-function neighbor_patches(agent::AgentDict3DGrid, model::SpaceModel3D, dist::Int)
-    x,y,z = agent.pos
-    lst = NTuple{3, Int}[]
-    if model.periodic
-        for i in -dist:dist
-            for j in -dist:dist
-                for k in -dist:dist
-                    pnew = (mod1(x+i, model.size[1]), mod1(y+j, model.size[2]), mod1(z+k, model.size[3]))
-                    if pnew != (x,y,z)
-                        push!(lst, pnew)
-                    end
-                end
-            end
-        end
-    else
-        for i in -dist:dist
-            for j in -dist:dist
-                for k in -dist:dist
-                    if (i,j,k)!=(0,0,0)
-                        pnew = (x+i, y+j, z+k)
-                        if all(1 .<= pnew) && all(pnew .<= model.size)
-                            push!(lst, pnew)
-                        end
-                    end
-                end
-            end
-        end
-    end
-    return unique(lst)
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Returning patches neighboring given patch.
-"""
-function neighbor_patches(patch::Tuple{Int, Int, Int}, model::SpaceModel3D, dist::Int)
+function neighbor_patches(patch::NTuple{3,Int}, model::SpaceModel3D{T,S,P}, dist::Int) where {T,S,P<:NPeriodic}
     x,y,z = patch
     lst = NTuple{3, Int}[]
-    if model.periodic
-        for i in -dist:dist
-            for j in -dist:dist
-                for k in -dist:dist
-                    pnew = (mod1(x+i, model.size[1]), mod1(y+j, model.size[2]), mod1(z+k, model.size[3]))
-                    if pnew != (x,y,z)
+    for i in -dist:dist
+        for j in -dist:dist
+            for k in -dist:dist
+                if (i,j,k)!=(0,0,0)
+                    pnew = (x+i, y+j, z+k)
+                    if all(1 .<= pnew) && all(pnew .<= model.size)
                         push!(lst, pnew)
                     end
                 end
             end
         end
-    else
-        for i in -dist:dist
-            for j in -dist:dist
-                for k in -dist:dist
-                    if (i,j,k)!=(0,0,0)
-                        pnew = (x+i, y+j, z+k)
-                        if all(1 .<= pnew) && all(pnew .<= model.size)
-                            push!(lst, pnew)
-                        end
-                    end
-                end
-            end
-        end
     end
-    return unique(lst)
-     
+
+    sz = min(model.size...)
+    if div(sz, 2)+ sz%2 < dist+1
+        unique!(lst)
+    end
+
+    return lst
 end
 
 
 
 """
 $(TYPEDSIGNATURES)
+
+Returns patches neighboring the given patch.
 """
-@inline function _get_neighbors(agent::AgentDict3D, model::SpaceModel3D, dist)
-    x,y,z = agent.pos
-    xdim = model.size[1]
-    ydim = model.size[2]
-    zdim = model.size[3]
-    neighbors_list = Vector{AgentDict3D{Symbol, Any}}()
-    id_list = Int[]
-    if model.periodic
-        for k in -dist:dist
-            for j in -dist:dist
-                for i in -dist:dist
-                    x_n = mod1(Int(ceil(x+i)), xdim)
-                    y_n = mod1(Int(ceil(y+j)), ydim)
-                    z_n = mod1(Int(ceil(z+k)), zdim)
-                    ags = model.patches[x_n, y_n, z_n]._extras._agents # all these agents are active for any inactive agent is removed from its container
-                    for l in ags
-                        if l !=agent._extras._id
-                            push!(id_list, l)
-                        end
-                    end
-                end
-            end
-        end
-    else
-        for k in -dist:dist
-            for j in -dist:dist
-                for i in -dist:dist
-                    if checkbound(x+i, y+j, z+k, xdim, ydim, zdim)
-                        ags = model.patches[Int(ceil(x+i)), Int(ceil(y+j)), Int(ceil(z+k))]._extras._agents
-                        for l in ags
-                            if l != agent._extras._id
-                                push!(id_list, l)
-                            end
-                        end
-                    end
-                end
-            end
-        end
-    end
+function neighbor_patches(agent::Agent3D{Symbol, Any, <:AbstractFloat}, model::SpaceModel3D, dist::Int)
+    patch = getfield(agent, :last_grid_loc)
+    return neighbor_patches(patch, model, dist)
+end
 
-    unique!(id_list)
 
-    for l in id_list
-        ag = agent_with_id(l,model)
-        push!(neighbors_list, ag)
-    end
+"""
+$(TYPEDSIGNATURES)
 
-    return neighbors_list
+Returns patches neighboring the given patch.
+"""
+function neighbor_patches(agent::Agent3D{Symbol, Any, Int}, model::SpaceModel3D, dist::Int)
+    patch = agent.pos
+    return neighbor_patches(patch, model, dist)
 end
 
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_neighbors(agent::AgentDict3DGrid, model::SpaceModel3D, dist)
-    x,y,z = agent.pos
+@inline function _get_neighbors(agent::Agent3D{Symbol, Any}, model::SpaceModel3D{T,S,P}, dist::Int) where {T, S<:AbstractFloat,P<:Periodic}
+    x,y,z = getfield(agent, :last_grid_loc)
     xdim = model.size[1]
     ydim = model.size[2]
     zdim = model.size[3]
-    neighbors_list = Vector{AgentDict3DGrid{Symbol, Any}}()
+    id = getfield(agent, :id)
     id_list = Int[]
-    if model.periodic
-        for k in -dist:dist
-            for j in -dist:dist
-                for i in -dist:dist
-                    x_n = mod1(x+i, xdim)
-                    y_n = mod1(y+j, ydim)
-                    z_n = mod1(z+k, zdim)
-                    ags = model.patches[x_n, y_n, z_n]._extras._agents # all these agents are active for any inactive agent is removed from its container
+
+    for k in -dist:dist
+        for j in -dist:dist
+            for i in -dist:dist
+                x_n = mod1(x+i, xdim)
+                y_n = mod1(y+j, ydim)
+                z_n = mod1(z+k, zdim)
+                ags = model.patches[x_n, y_n, z_n].agents# all these agents are active for any inactive agent is removed from its container
+                for l in ags
+                    if l != id
+                        push!(id_list, l)
+                    end
+                end
+            end
+        end
+    end
+
+    
+    sz = min(model.size...)
+    if div(sz, 2)+ sz%2 < dist+1
+        unique!(sort!(id_list)) # unique! directly used with Agents list will be highly inefficient
+    end
+
+
+    return (agent_with_id(l,model) for l in id_list)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function _get_neighbors(agent::Agent3D{Symbol, Any}, model::SpaceModel3D{T,S,P}, dist) where {T, S<:AbstractFloat,P<:NPeriodic}
+    x,y,z = getfield(agent, :last_grid_loc)
+    xdim = model.size[1]
+    ydim = model.size[2]
+    zdim = model.size[3]
+    id = getfield(agent, :id)
+    id_list = Int[]
+    for k in -dist:dist
+        for j in -dist:dist
+            for i in -dist:dist
+                if checkbound(x+i, y+j, z+k, xdim, ydim, zdim)
+                    ags = model.patches[x+i, y+j, z+k].agents
                     for l in ags
-                        if l !=agent._extras._id
+                        if l != id
                             push!(id_list, l)
                         end
                     end
                 end
             end
         end
-    else
-        for k in -dist:dist
-            for j in -dist:dist
-                for i in -dist:dist
-                    if checkbound(x+i, y+j, z+k, xdim, ydim, zdim)
-                        ags = model.patches[x+i, y+j, z+k]._extras._agents
-                        for l in ags
-                            if l != agent._extras._id
-                                push!(id_list, l)
-                            end
+    end
+
+    
+    sz = min(model.size...)
+    if div(sz, 2)+ sz%2 < dist+1
+        unique!(sort!(id_list)) # unique! directly used with Agents list will be highly inefficient
+    end
+
+
+    return (agent_with_id(l,model) for l in id_list)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function _get_neighbors(agent::Agent3D{Symbol, Any}, model::SpaceModel3D{T,S,P}, dist) where {T, S<:Int,P<:Periodic}
+    x,y,z = agent.pos
+    xdim = model.size[1]
+    ydim = model.size[2]
+    zdim = model.size[3]
+    id = getfield(agent, :id)
+    id_list = Int[]
+    
+    for k in -dist:dist
+        for j in -dist:dist
+            for i in -dist:dist
+                x_n = mod1(x+i, xdim)
+                y_n = mod1(y+j, ydim)
+                z_n = mod1(z+k, zdim)
+                ags = model.patches[x_n, y_n, z_n].agents# all these agents are active for any inactive agent is removed from its container
+                for l in ags
+                    if l != id
+                        push!(id_list, l)
+                    end
+                end
+            end
+        end
+    end
+
+    
+    sz = min(model.size...)
+    if div(sz, 2)+ sz%2 < dist+1
+        unique!(sort!(id_list)) # unique! directly used with Agents list will be highly inefficient
+    end
+
+    return (agent_with_id(l,model) for l in id_list)
+end
+
+
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function _get_neighbors(agent::Agent3D{Symbol, Any}, model::SpaceModel3D{T,S,P}, dist) where {T, S<:Int,P<:NPeriodic}
+    x,y,z = agent.pos
+    xdim = model.size[1]
+    ydim = model.size[2]
+    zdim = model.size[3]
+    id = getfield(agent, :id)
+    id_list = Int[]
+    
+    for k in -dist:dist
+        for j in -dist:dist
+            for i in -dist:dist
+                if checkbound(x+i, y+j, z+k, xdim, ydim, zdim)
+                    ags = model.patches[x+i, y+j, z+k].agents
+                    for l in ags
+                        if l != id
+                            push!(id_list, l)
                         end
                     end
                 end
@@ -227,14 +237,13 @@ $(TYPEDSIGNATURES)
         end
     end
 
-    unique!(id_list)
-
-    for l in id_list
-        ag = agent_with_id(l,model)
-        push!(neighbors_list, ag)
+    
+    sz = min(model.size...)
+    if div(sz, 2)+ sz%2 < dist+1
+        unique!(sort!(id_list)) # unique! directly used with Agents list will be highly inefficient
     end
 
-    return neighbors_list
+    return (agent_with_id(l,model) for l in id_list)
 end
 
 
@@ -261,30 +270,19 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _find_eu_neighbors(agent, neighbors_list,model::SpaceModel3D,dist )
+function _find_eu_neighbors(agent::Agent3D{Symbol, Any}, neighbors_list, model::SpaceModel3D{T, S, P},dist::Number ) where {T, S<:Union{Int, AbstractFloat}, P<:NPeriodic}
         distsq = dist^2
-        xdim = model.size[1]
-        ydim = model.size[2]
-        zdim = model.size[3]
-        eu_neighbors_list = typeof(agent)[]
-        if !model.periodic
-            for ag in neighbors_list
-                vec = ag.pos - agent.pos
-                if (ag._extras._id != agent._extras._id) && (dotproduct(vec, vec)<distsq)
-                    push!(eu_neighbors_list, ag)
-                end
-            end
-            return eu_neighbors_list
-        else
-            for ag in neighbors_list
-                if (ag._extras._id != agent._extras._id) && (toroidal_distancesq(ag.pos, agent.pos, xdim, ydim, zdim)<distsq)
-                    push!(eu_neighbors_list, ag)
-                end
-            end
+        return Iterators.filter(ag->begin vec = ag.pos .- agent.pos; dotprod(vec,vec)<distsq end, neighbors_list)
+end
 
-            return eu_neighbors_list
 
-        end
+"""
+$(TYPEDSIGNATURES)
+"""
+function _find_eu_neighbors(agent::Agent3D{Symbol, Any}, neighbors_list, model::SpaceModel3D{T, S,P},dist::Number ) where {T, S<:Union{Int, AbstractFloat}, P<:Periodic}
+        distsq = dist^2
+        xdim, ydim, zdim = model.size
+        return Iterators.filter(ag-> toroidal_distancesq(ag.pos, agent.pos, xdim, ydim, zdim)<distsq, neighbors_list)
 end
 
 
@@ -296,9 +294,9 @@ block of the given agent are returned; with dist=1, agents in the current block 
 8 blocks are returned; with dist=2 agents in the current block of given agent, along with agents in 24 nearest blocks are returned, and 
 so on. With metric = `:euclidean` the agents within Euclidean distance `dist` are returned.
 """
-@inline function neighbors(agent, model::SpaceModel3D{MortalType}, dist::Number=1.0; metric::Symbol =:euclidean)
-    if !(agent._extras._active)
-        return typeof(agent)[]
+@inline function neighbors(agent::Agent3D, model::SpaceModel3D{Mortal, S, P}, dist::Number=1.0; metric::Symbol =:euclidean) where {S<:Union{Int, AbstractFloat}, P<:SType}
+    if !(agent._extras._active::Bool)
+        return (ag for ag in Agent3D{Symbol, Any, S, P}[])
     end
     distint = Int(ceil(dist))
     neighbors_list = _get_neighbors(agent, model, distint)
@@ -322,7 +320,7 @@ block of the given agent are returned; with dist=1, agents in the current block 
 8 blocks are returned; with dist=2 agents in the current block of given agent, along with agents in 24 nearest blocks are returned, and 
 so on. With metric = `:euclidean` the agents within Euclidean distance `dist` are returned.
 """
-@inline function neighbors(agent, model::SpaceModel3D{StaticType}, dist::Number=1.0; metric::Symbol =:grid)
+@inline function neighbors(agent::Agent3D, model::SpaceModel3D{Static}, dist::Number=1.0; metric::Symbol =:grid)
     distint = Int(ceil(dist))
     neighbors_list = _get_neighbors(agent, model, distint)
 
@@ -333,6 +331,48 @@ so on. With metric = `:euclidean` the agents within Euclidean distance `dist` ar
         return eu_neighbors
     end
 
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function grid_neighbors(agent::Agent3D, model::SpaceModel3D{Mortal, S, P}, dist::Int=1) where {S<:Union{Int, AbstractFloat}, P<:SType}
+    if !(agent._extras._active::Bool)
+        return (ag for ag in Agent3D{Symbol, Any, S, P}[])
+    end
+    return _get_neighbors(agent, model, dist)
+
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function grid_neighbors(agent::Agent3D, model::SpaceModel3D{Static}, dist::Int=1)
+
+    return _get_neighbors(agent, model, dist)
+
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function euclidean_neighbors(agent::Agent3D, model::SpaceModel3D{Mortal, S, P}, dist::Number=1.0) where {S<:Union{Int, AbstractFloat}, P<:SType}
+    if !(agent._extras._active::Bool)
+        return (ag for ag in Agent3D{Symbol, Any, S, P}[])
+    end
+    distint = Int(ceil(dist))
+    neighbors_list = _get_neighbors(agent, model, distint)
+    return _find_eu_neighbors(agent, neighbors_list, model, dist)
+
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function euclidean_neighbors(agent::Agent3D, model::SpaceModel3D{Static}, dist::Number=1.0)
+    distint = Int(ceil(dist))
+    neighbors_list = _get_neighbors(agent, model, distint)
+    return _find_eu_neighbors(agent, neighbors_list, model, dist)
 end
 
 
@@ -341,19 +381,30 @@ $(TYPEDSIGNATURES)
 
 Returns a random patch where no agents are present. Returns nothing if there is no such patch.
 """
-function random_empty_patch(model::SpaceModel3D)
-    empty_patches = Tuple{Int, Int, Int}[]
-    n = 0
-    for p in CartesianIndices(model.patches)
-        if length(model.patches[p]._extras._agents) == 0
-            push!(empty_patches, Tuple(p))
-            n+=1
+function random_empty_patch(model::SpaceModel3D; search_method = :exact, attempts=*(model.size...))
+    if search_method !=:exact
+        a,b,c = model.size
+        for i in 1:attempts
+            x,y,z = rand(1:a), rand(1:b), rand(1:c)
+            if length(model.patches[x,y,z].agents) == 0
+                return (x,y,z)
+            end
         end
-    end
-    if n>0
-        return rand(empty_patches)
-    else
         return nothing
+    else
+        empty_patches = Tuple{Int, Int, Int}[]
+        n = 0
+        for p in CartesianIndices(model.patches)
+            if length(model.patches[p].agents) == 0
+                push!(empty_patches, Tuple(p))
+                n+=1
+            end
+        end
+        if n>0
+            return rand(empty_patches)
+        else
+            return nothing
+        end
     end
 end
 
@@ -363,13 +414,19 @@ $(TYPEDSIGNATURES)
 
 Returns patches satisfying given condition.
 """
-function get_patches(model::SpaceModel3D, condition::Function=_default_true)
-    patches = [(i,j, k) for i in 1:model.size[1] for j in 1:model.size[2] for k in 1:model.size[3]]
-    if condition == _default_true
-        return patches
-    end
-    req_patches = patches[[ condition(model.patches[pt...]) for pt in patches]]
+function get_patches(model::SpaceModel3D, condition::Function)
+    patches = ((i,j, k) for i in 1:model.size[1] for j in 1:model.size[2] for k in 1:model.size[3])
+    req_patches = Iterators.filter(pt->condition(model.patches[pt...]), patches)
     return req_patches
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns patches satisfying given condition.
+"""
+function get_patches(model::SpaceModel3D)
+    return ((i,j, k) for i in 1:model.size[1] for j in 1:model.size[2] for k in 1:model.size[3])
 end
 
 
@@ -378,8 +435,17 @@ $(TYPEDSIGNATURES)
 
 Returns number of patches satisfying given condition.
 """
-function num_patches(model::SpaceModel3D, condition::Function = _default_true )
-    return length(get_patches(model, condition))
+function num_patches(model::SpaceModel3D, condition::Function)
+    return count(x->true,get_patches(model, condition))
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns number of patches satisfying given condition.
+"""
+function num_patches(model::SpaceModel3D)
+    return model.parameters._extras._num_patches::Int
 end
 
 
@@ -388,8 +454,8 @@ $(TYPEDSIGNATURES)
 
 Returns grid location of the agent.
 """
-function get_grid_loc(agent::AgentDict3D, model::SpaceModel3D)
-    return agent._extras._last_grid_loc
+function get_grid_loc(agent::Agent3D{Symbol, Any, <:AbstractFloat})
+    return getfield(agent, :last_grid_loc)
 end
 
 """
@@ -397,6 +463,108 @@ $(TYPEDSIGNATURES)
 
 Returns grid location of the agent.
 """
-function get_grid_loc(agent::AgentDict3DGrid, model::SpaceModel3D)
+function get_grid_loc(agent::Agent3D{Symbol, Any, Int})
     return agent.pos
 end
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns list of agents at a given patch.
+"""
+function agents_at(patch, model::SpaceModel3D)
+    lst = model.patches[patch...].agents
+    return (agent_with_id(l, model) for l in lst)
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function get_agents(model::SpaceModel3D{Mortal, S, P}, condition::Function) where {S<:Union{Int, <:AbstractFloat}, P<:SType}
+    all_agents = [model.agents, model.agents_added]
+    all_agents_itr = (ag for i in 1:2 for ag in all_agents[i])
+    return Iterators.filter(ag-> (ag._extras._active::Bool)&&(condition(ag)), all_agents_itr)
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function get_agents(model::SpaceModel3D{Mortal, S, P}) where {S<:Union{Int, <:AbstractFloat}, P<:SType}
+    all_agents = [model.agents, model.agents_added]
+    all_agents_itr = (ag for i in 1:2 for ag in all_agents[i])
+    return Iterators.filter(ag-> ag._extras._active::Bool, all_agents_itr)
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function get_agents(model::SpaceModel3D{Static}, condition::Function)
+    return Iterators.filter(ag->condition(ag), model.agents)
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function get_agents(model::SpaceModel3D{Static})
+    return (ag for ag in model.agents)
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns agent having given id.
+"""
+function agent_with_id(i::Int, model::SpaceModel3D{Mortal, S, P}) where {S<:Union{Int, AbstractFloat}, P<:SType}
+    m = model.parameters._extras._len_model_agents::Int
+
+    if i<=m  
+        for j in i:-1:1 # will work if the list of model agents has not been shuffled
+            ag = model.agents[j]
+            if getfield(ag, :id) == i
+                return ag
+            end
+        end
+    end
+
+    for ag in model.agents_added# still assuming that the user will avoid shuffling agents list
+        if getfield(ag, :id) == i
+            return ag
+        end
+    end
+
+    for j in m:-1:1  # check in model.agents list beginning from the end as the initial part has been checked above
+        ag = model.agents[j]
+        if getfield(ag, :id) == i 
+            return ag
+        end
+    end
+
+    for ag in model.agents_killed # finally check in the list of killed agents
+        if getfield(ag, :id) == i
+            return ag
+        end
+    end
+
+    return nothing
+    
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns agent having given id.
+"""
+function agent_with_id(i::Int, model::SpaceModel3D{Static})
+    if getfield(model.agents[i], :id) == i  # will work if agents list has not been shuffled
+        return model.agents[i]
+    end
+
+    for ag in model.agents
+        if getfield(ag, :id) == i 
+            return ag
+        end
+    end
+
+    return nothing
+end
+

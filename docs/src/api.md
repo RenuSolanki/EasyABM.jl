@@ -61,17 +61,22 @@ open_saved_model
 ## Functions for creating and modifying a graph
 
 ```@docs
-create_simple_graph
-create_dir_graph
-hex_grid
-square_grid
-triangular_grid
-double_triangular_grid
+static_simple_graph
+static_dir_graph
+dynamic_simple_graph
+dynamic_dir_graph
+hex_grid_graph
+square_grid_graph
+triangular_grid_graph
+double_triangular_grid_graph
 draw_graph
 add_node!
+add_nodes!
 kill_node!
 create_edge! 
 kill_edge!
+kill_all_edges!
+flush_graph!
 is_digraph
 is_static
 ```
@@ -98,6 +103,8 @@ add_agent!
 neighbors
 in_neighbors
 out_neighbors
+grid_neighbors
+euclidean_neighbors
 ```
 
 ## Helper functions for patches, nodes, edges
@@ -127,8 +134,8 @@ random_empty_patch
 ## Misc. utility functions
 
 ```@docs
-dotproduct
-norm
+dotprod
+veclength
 distance
 calculate_direction
 ```

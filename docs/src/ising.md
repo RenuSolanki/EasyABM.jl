@@ -10,10 +10,10 @@ using EasyABM
 
 ## Step 1: Create Model
 
-In this model we will work solely with the graph and won't reuire agents. We create a grid graph of size 20x20, and then create our graph model as follows. 
+In this model we will work solely with the graph and won't require agents. We create a grid graph of size 20x20, and then create our graph model as follows. 
 
 ```julia
-graph = square_grid(20,20); # We could also use graphs generated with Graphs.jl package. 
+graph = square_grid_graph(20,20); 
 model = create_graph_model(graph, temp = 0.1, coupl = 1.0)
 ```
 
@@ -42,7 +42,7 @@ init_model!(model, initialiser = initialiser!, props_to_record = Dict("nodes"=>[
 ## Step 3: Run the model
 
 In this step we implement the step logic of the Ising model in the `step_rule!` function and run the model for 200 steps. At each step of the simulation we take 
-100 Monte Carlo steps, where in each Monte Carlo step a node is selected at random and its spin and color values are flipped is the Ising energy condition is satisfied. 
+100 Monte Carlo steps, where in each Monte Carlo step a node is selected at random and its spin and color values are flipped if the Ising energy condition is satisfied. 
 
 
 
@@ -79,19 +79,6 @@ animate_sim(model)
 ![png](assets/Ising/IsingAnim1.png)
 
 Note that the scale slider is for changing the size of agents. As we have zero agents in the current model, this slider won't do anything. 
-
-
-Once the model has been run it can be saved to the disk as a jld2 file using following function.
-
-```julia
-save_model(model, model_name = "ising_model", save_as = "ising.jld2", folder = "/path/to/folder/")
-```
-
-A model saved previously as jld2 file, can be fetched as follows 
-
-```julia
-model = open_saved_model(model_name = "ising_model", path = "/path/to/folder/ising.jld2")
-```
 
 After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
 

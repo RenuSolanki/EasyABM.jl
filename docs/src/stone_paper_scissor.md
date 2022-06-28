@@ -7,15 +7,15 @@ using EasyABM
 
 ## Step 1: Create Model
 
-In this model, we work with patches instead of agents. We set `grid_size` to (50,50), set `periodic` to true and define an additional model parameter `threshold` whose value is set to 2. 
+In this model, we work with patches instead of agents. We set `grid_size` to (50,50), set `space_type` to Periodic and define an additional model parameter `threshold` whose value is set to 3. 
 
 ```julia
-model = create_2d_model(size = (50,50), threshold = 2, periodic = true)
+model = create_2d_model(size = (50,50), space_type = Periodic, threshold = 3)
 ```
 
 ## Step 2: Initialise the model
 
-In the second step we initialise the agents by defining `initialiser!` function and sending it as an argument to `init_model!`. In the `initialiser!` function randomly assign `:red` (for stone), `:green` (for paper) and `:blue` (for scissor) color to patches. Then we initialise the model using `init_model!` function, in which through the argument `props_to_record`, we tell EasyABM to record the `:color` property of patches during time evolution. Note that, in EasyABM animations are created with the recorded data, therefore if in the present model, the color of patches is not recorded there will there will be no animation to see. 
+In the second step we initialise the agents by defining `initialiser!` function and sending it as an argument to `init_model!`. In the `initialiser!` function we randomly assign `:red` (for stone), `:green` (for paper) and `:blue` (for scissor) color to patches. Then we initialise the model using `init_model!` function, in which through the argument `props_to_record`, we tell EasyABM to record the `:color` property of patches during time evolution. Note that, in EasyABM animations are created with the recorded data, therefore if in the present model, the color of patches is not recorded there will be no animation to see. 
 
 
 ```julia
@@ -39,7 +39,7 @@ init_model!(model, initialiser = initialiser!, props_to_record = Dict("patches" 
 
 ## Step 3: Run the model
 
-In this step we define the `step_rule!` function and run the model for 400 steps. The rule of the game is very simple. The `:red` color of a patch will change to `:green` if number of neighboring patches with color `:green` exceeds the threshold( which we set to be 2 in the beginning). Similarly, if a `:green` patch finds larger than the threshold number of `:blue` patches in its neighborhood, it will change to `:blue`, and if a `:blue` patch finds larger than threshold number of `:red` patches in its neighborhood it will change to `:red`. Each step of the model consists of 500 Monte-Carlo steps in which a patch is selected at random and the above mentioned rule applied to it. 
+In this step we define the `step_rule!` function and run the model for 400 steps. The rule of the game is very simple. The `:red` color of a patch will change to `:green` if number of neighboring patches with color `:green` exceeds the threshold( which we set to be 3 in the beginning). Similarly, if a `:green` patch finds larger than the threshold number of `:blue` patches in its neighborhood, it will change to `:blue`, and if a `:blue` patch finds larger than threshold number of `:red` patches in its neighborhood it will change to `:red`. Each step of the model consists of 500 Monte-Carlo steps in which a patch is selected at random and the above mentioned rule applied to it. 
 
 ```julia
 const who_wins_against = Dict(:red => :green, :green => :blue, :blue => :red)
@@ -74,17 +74,6 @@ animate_sim(model, show_grid=true)
 
 ![png](assets/StonePaperScissor/SPSAnim1.png)
 
-Once the model has been run it can be saved to the disk as a jld2 file using following function.
-
-```julia
-save_model(model, model_name = "sps_model", save_as = "stone_paper_scissor.jld2", folder = "/path/to/folder/")
-```
-
-A model saved previously as jld2 file, can be fetched as follows 
-
-```julia
-model = open_saved_model(model_name = "sps_model", path = "/path/to/folder/stone_paper_scissor.jld2")
-```
 
 After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
 

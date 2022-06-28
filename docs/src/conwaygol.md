@@ -95,18 +95,6 @@ animate_sim(model, show_grid=true)
 ![png](assets/CGOL/CGOLAnim1.png)
 
 
-Once the model has been run it can be saved to the disk as a jld2 file using following function.
-
-```julia
-save_model(model, model_name = "conways_gol_model", save_as = "conways_gol.jld2", folder = "/path/to/folder/")
-```
-
-A model saved previously as jld2 file, can be fetched as follows 
-
-```julia
-model = open_saved_model(model_name = "conways_gol_model", path = "/path/to/folder/conways_gol.jld2")
-```
-
 After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
 
 ```julia

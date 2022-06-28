@@ -20,12 +20,13 @@ In our SIR model there will be four type of agents - agentS (susceptible), agent
     agentD=4
 end
 
-agents = grid_2d_agents(500, pos = (1,1), color=:green, 
+agents = grid_2d_agents(500, pos = Vect(1,1), color=:green, 
         atype = agentS, not_well_since = 0, 
         keeps_record_of = [:atype, :color, :pos]);
 
 model = create_2d_model(agents, size=(50,50), 
-        periodic = true, initially_sick = 10, 
+        agents_type = Static, # agents don't take birth or die
+        space_type = Periodic, initially_sick = 10, 
         sickness_duration = 21, infection_prob = 0.8, 
         death_prob=0.05);
 ```
@@ -48,7 +49,7 @@ function initialiser!(model)
         agent.not_well_since = 0 
         x = rand(1:model.size[1])
         y = rand(1:model.size[2])
-        agent.pos = (x, y) # center of a random patch
+        agent.pos = Vect(x, y) # center of a random patch
     end
 end
 init_model!(model, initialiser = initialiser!)
@@ -85,13 +86,13 @@ end
 function change_position(agent)
     dx =rand(-1:1)
     dy =rand(-1:1)
-    agent.pos += (dx,dy)
+    agent.pos += Vect(dx,dy)
 end
 
 function step_rule!(model)
     parameters = model.parameters
     for agent in model.agents
-        nbrs = neighbors(agent, model, 1, metric = :grid) #immediate neighbors on grid
+        nbrs = grid_neighbors(agent, model, 1) #immediate neighbors on grid
         if agent.atype == agentI
              agent.not_well_since +=1
             if agent.not_well_since > parameters.sickness_duration
@@ -118,18 +119,6 @@ animate_sim(model)
 
 ![png](assets/SIR/SIRAnim1.png)
 
-
-Once the model has been run it can be saved to the disk as a jld2 file using following function.
-
-```julia
-save_model(model, model_name = "sir_model", save_as = "sir.jld2", folder = "/path/to/folder/")
-```
-
-A model saved previously as jld2 file, can be fetched as follows 
-
-```julia
-model = open_saved_model(model_name = "sir_model", path = "/path/to/folder/sir.jld2")
-```
 
 After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
 
@@ -160,9 +149,9 @@ The function `get_agents_avg_props` averages over all agents the values returned
 
 ```julia
 df = get_agents_avg_props(model, 
-    ag -> ag.atype == agentS ? 1 : 0, # returns 1 if agent is of type agentS, else 0
-    ag -> ag.atype == agentI ? 1 : 0, # returns 1 if agent is of type agentI, else 0
-    ag -> ag.atype == agentR ? 1 : 0, # returns 1 if agent is of type agentR, else 0
+    ag -> ag.atype == agentS ? 1 : 0,
+    ag -> ag.atype == agentI ? 1 : 0, 
+    ag -> ag.atype == agentR ? 1 : 0, 
     labels = ["Susceptible", "Infected", "Recovered"],
     plot_result = true
 )

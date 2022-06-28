@@ -1,7 +1,7 @@
 """
 $(TYPEDSIGNATURES)
 """
-function calculate_direction(vel::NTuple{2,T}) where T<:Real #for 2d and graph
+function calculate_direction(vel::Union{NTuple{2,T}, Vect{2, T}}) where T<:Real #for 2d and graph
     vx, vy = vel
     if (vx ≈ 0.0)
         return 0.0
@@ -18,7 +18,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function calculate_direction(vel::NTuple{3,T}) where T<:Real
+function calculate_direction(vel::Union{NTuple{3,T}, Vect{3, T}}) where T<:Real
     vx, vy, vz = vel
     ln = sqrt(vx^2+vy^2+vz^2)
     if (ln ≈ 0.0)
@@ -61,33 +61,19 @@ end
     return true
 end
 
+
 """
 $(TYPEDSIGNATURES)
 """
-@inline function get_agents(model::Union{AbstractSpaceModel{MortalType}, AbstractGraphModel{T, MortalType} }, condition::Function = _default_true) where T<:MType
-    all_agents = vcat(model.agents, model.parameters._extras._agents_added)
-    return all_agents[[(ag._extras._active)&&(condition(ag)) for ag in all_agents]]
+@inline function num_agents(model::Union{AbstractSpaceModel, AbstractGraphModel }, condition::Function)
+    return count(x->true, get_agents(model, condition))
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function get_agents(model::Union{AbstractSpaceModel{StaticType}, AbstractGraphModel{T, StaticType} }, condition::Function = _default_true) where T<:MType
-    if condition == _default_true
-        return model.agents
-    end
-    return model.agents[[condition(ag) for ag in model.agents]]
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-"""
-@inline function num_agents(model::Union{AbstractSpaceModel, AbstractGraphModel }, condition::Function = _default_true)
-    if condition == _default_true
-        return model.parameters._extras._num_agents # number of active agents
-    end
-    return length(get_agents(model, condition))
+@inline function num_agents(model::Union{AbstractSpaceModel, AbstractGraphModel })
+    return model.parameters._extras._num_agents::Int # number of active agents
 end
 
 
@@ -96,10 +82,8 @@ $(TYPEDSIGNATURES)
 
 Returns agents id.
 """
-function get_id(agent::AbstractPropDict)
-    if haskey(agent._extras,:_id)
-        return agent._extras._id
-    end
+function get_id(agent::AbstractAgent)
+    return getfield(agent, :id)
 end
 
 """
@@ -108,7 +92,7 @@ $(TYPEDSIGNATURES)
 Returns true if agent is alive else returns false.
 """
 function is_alive(agent::AbstractPropDict)
-    return agent._extras._active
+    return agent._extras._active::Bool
 end
 
 
@@ -118,7 +102,7 @@ $(TYPEDSIGNATURES)
 Returns true if a node is alive else returns false.
 """
 function is_alive(node, model::AbstractGraphModel)
-    return model.graph.nodesprops[node]._extras._active
+    return model.graph.nodesprops[node]._extras._active::Bool
 end
 
 
@@ -128,7 +112,7 @@ $(TYPEDSIGNATURES)
 Returns true if a patch is occupied.
 """
 function is_occupied(patch, model::AbstractSpaceModel)
-    return length(model.patches[patch...]._extras._agents) > 0 
+    return length(model.patches[patch...].agents) > 0 
 end
 
 
@@ -138,18 +122,9 @@ $(TYPEDSIGNATURES)
 Returns true if a node is occupied. 
 """
 function is_occupied(node, model::AbstractGraphModel)
-    return length(model.graph.nodesprops[node]._extras._agents) > 0 
+    return length(model.graph.nodesprops[node].agents) > 0 
 end
 
-
-"""
-$(TYPEDSIGNATURES)
-
-Returns node location of the agent.
-"""
-function get_node_loc(agent::AbstractPropDict, model::AbstractGraphModel)
-    return agent.node
-end
 
 """
 $(TYPEDSIGNATURES)
@@ -157,7 +132,7 @@ $(TYPEDSIGNATURES)
 Returns an empty node chosen at random. Returns nothing if there is no empty node. 
 """
 function random_empty_node(model::AbstractGraphModel)
-    verts = get_nodes(model.graph)
+    verts = getfield(model.graph, :_nodes)
     empty_verts = verts[[!(is_occupied(node, model)) for node in verts]]
     n = length(empty_verts)
     if n >0
@@ -173,105 +148,10 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Returns agent having given id.
-"""
-function agent_with_id(i, model::Union{AbstractSpaceModel{MortalType}, AbstractGraphModel{T, MortalType} }) where T<:MType
-    m = model.parameters._extras._len_model_agents
-
-    if i<=m  
-        @inbounds for j in i:-1:1 # will work if the list of model agents has not been shuffled
-            ag = model.agents[j]
-            if ag._extras._id == i
-                return ag
-            end
-        end
-    end
-
-    for ag in model.parameters._extras._agents_added # still assuming that the user will avoid shuffling agents list
-        if ag._extras._id == i
-            return ag
-        end
-    end
-
-    @inbounds for j in m:-1:1  # check in model.agents list beginning from the end as the initial part has been checked above
-        ag = model.agents[j]
-        if ag._extras._id == i 
-            return ag
-        end
-    end
-
-    for ag in model.parameters._extras._agents_killed # finally check in the list of killed agents
-        if ag._extras._id == i
-            return ag
-        end
-    end
-
-    return missing
-    
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Returns agent having given id.
-"""
-function agent_with_id(i, model::Union{AbstractSpaceModel{StaticType}, AbstractGraphModel{T, StaticType} }) where T<:MType
-    if model.agents[i]._extras._id == i  # will work if agents list has not been shuffled
-        @inbounds return model.agents[i]
-    end
-
-    for ag in model.agents
-        if ag._extras._id == i 
-            return ag
-        end
-    end
-
-    return missing
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Returns list of agents at a given patch.
-"""
-function agents_at(patch, model::AbstractSpaceModel)
-    lst = model.patches[patch...]._extras._agents
-    agent_lst = eltype(model.agents)[]
-    for l in lst
-        push!(agent_lst, agent_with_id(l, model))
-    end
-    return agent_lst
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Returns list of agents at a given node. 
-"""
-function agents_at(node, model::AbstractGraphModel)
-    lst = model.graph.nodesprops[node]._extras._agents
-    agent_lst = eltype(model.agents)[]
-
-    if !model.graph.nodesprops[node]._extras._active
-        return agent_lst
-    end
-
-    for l in lst
-        push!(agent_lst, agent_with_id(l, model))
-    end
-    return agent_lst
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
 Returns number of agents at a given patch.
 """
 function num_agents_at(patch, model::AbstractSpaceModel)
-    return length(agents_at(patch, model))
+    return count(x->true, agents_at(patch, model))
 end
 
 
@@ -281,7 +161,7 @@ $(TYPEDSIGNATURES)
 Returns number of agents at a given node. 
 """
 function num_agents_at(node, model::AbstractGraphModel)
-    return length(agents_at(node, model))
+    return count(x->true,agents_at(node, model))
 end
 
 

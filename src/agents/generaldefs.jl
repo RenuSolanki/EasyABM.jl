@@ -9,8 +9,12 @@ Base.showerror(io::IO, e::StaticPropException) = print(io, e.err)
 
 
 abstract type AbstractPropDict{K, V} <: AbstractDict{K, V} end
-abstract type AbstractAgent2D{K, V} <: AbstractPropDict{K, V} end
-abstract type AbstractAgent3D{K, V} <: AbstractPropDict{K, V} end
+abstract type AbstractAgent{K, V} <: AbstractPropDict{K, V} end
+abstract type AbstractAgent2D{K, V, S, P} <: AbstractAgent{K, V} end #S grid or cont, , P periodic 
+abstract type AbstractAgent3D{K, V, S, P} <: AbstractAgent{K, V} end
+
+import Base.==
+==(a::T, b::T) where T<:AbstractAgent = getfield(a, :id)== getfield(b, :id)
 
 unwrap(d::T) where {T<:AbstractPropDict} = getfield(d, :d)
 unwrap_data(d::T) where {T<:AbstractPropDict} = getfield(d, :data)
@@ -24,26 +28,12 @@ Base.length(d::T) where {T<:AbstractPropDict} = length(unwrap(d))
 
 function Base.getproperty(d::Union{AbstractAgent2D, AbstractAgent3D}, n::Symbol)
     if n == :pos
-        return getfield(d, :pos)
+        return getfield(d, n)
     else
         return getindex(d, n)
     end
 end
 
-function Base.setproperty!(agent::Union{AbstractAgent2D, AbstractAgent3D}, key::Symbol, x)
-
-    if !(agent._extras._active)
-        return
-    end
-    
-    dict = unwrap(agent)
-
-    if (key!=:pos)
-        dict[key] = x
-    else
-        update_grid!(agent, agent._extras._grid, x)
-    end
-end
 
 function Base.show(io::IO, ::MIME"text/plain", a::AbstractAgent2D) # works with REPL
     println(io, "Agent2D:")

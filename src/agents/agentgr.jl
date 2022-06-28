@@ -1,54 +1,27 @@
-mutable struct AgentDictGr{K, V} <: AbstractPropDict{K, V}
+mutable struct GraphAgent{K, V, S<:MType} <: AbstractAgent{K, V} #S graph mortality
+    id::Int
     node::Int
     d::Dict{Symbol, Any}
     data::Dict{Symbol, Any}
-    AgentDictGr() = new{Symbol, Any}(1, Dict{Symbol, Any}(:_extras => PropDict(Dict{Symbol,Any}(:_active=>true))), Dict{Symbol, Any}())
-    function AgentDictGr(node, d::Dict{Symbol, Any})
+    model::Union{AbstractGraphModel{S}, Nothing}
+    GraphAgent() = new{Symbol, Any, Mortal}(1, 1, 
+    Dict{Symbol, Any}(:_extras => PropDict(Dict{Symbol,Any}(:_active=>true))), 
+    Dict{Symbol, Any}(), nothing)
+    function GraphAgent{S}(id::Int, node::Int, d::Dict{Symbol, Any}, model) where {S<:MType}
         data = Dict{Symbol, Any}()  
-        new{Symbol, Any}(node, d, data)
+        new{Symbol, Any, S}(id, node, d, data, model)
     end
-end
-
-Base.IteratorSize(::Type{AgentDictGr{T}}) where T = IteratorSize(T)
-Base.IteratorEltype(::Type{AgentDictGr{T}}) where T = IteratorEltype(T)
-
-
-function update_nodesprops!(agent::AgentDictGr, model::Nothing)
-    return
-end
-
-function update_nodesprops!(agent::AgentDictGr, graph::AbstractPropGraph{StaticType}, node_new)
-    node_old = agent.node
-
-    if node_new != node_old
-        i = agent._extras._id
-        nodesprops = graph.nodesprops
-        deleteat!(nodesprops[node_old]._extras._agents, findfirst(x->x==i, nodesprops[node_old]._extras._agents))
-        push!(nodesprops[node_new]._extras._agents, i)
-        setfield!(agent, :node, node_new)
+    function GraphAgent{S}(id::Int, node::Int, d::Dict{Symbol, Any}, data::Dict{Symbol, Any}, model) where {S<:MType}
+        new{Symbol, Any, S}(id, node, d, data, model)
     end
 end
 
 
-function update_nodesprops!(agent::AgentDictGr, graph::AbstractPropGraph{MortalType}, node_new)
-    if !graph.nodesprops[node_new]._extras._active
-        return 
-    else
-        node_old = agent.node
-
-        if node_new != node_old
-            i = agent._extras._id
-            nodesprops = graph.nodesprops
-            deleteat!(nodesprops[node_old]._extras._agents, findfirst(x->x==i, nodesprops[node_old]._extras._agents))
-            push!(nodesprops[node_new]._extras._agents, i)
-            setfield!(agent, :node, node_new)
-        end
-
-    end 
-end
+Base.IteratorSize(::Type{GraphAgent{T}}) where T = IteratorSize(T)
+Base.IteratorEltype(::Type{GraphAgent{T}}) where T = IteratorEltype(T)
 
 
-function Base.getproperty(d::AgentDictGr, n::Symbol)
+function Base.getproperty(d::GraphAgent, n::Symbol)
     if n == :node
         return getfield(d, :node)
     else
@@ -56,24 +29,9 @@ function Base.getproperty(d::AgentDictGr, n::Symbol)
     end
 end
 
-function Base.setproperty!(agent::AgentDictGr, key::Symbol, x)
 
-    if !(agent._extras._active)
-        return
-    end
-    
-    dict = unwrap(agent)
-    
-    if key != :node
-        dict[key] = x
-    else 
-        update_nodesprops!(agent, agent._extras._graph, x)
-    end
-
-end
-
-function Base.show(io::IO, ::MIME"text/plain", a::AgentDictGr) # works with REPL
-    println(io, "AgentGr:")
+function Base.show(io::IO, ::MIME"text/plain", a::GraphAgent) # works with REPL
+    println(io, "GrapgAgent:")
     println(io, " node: ", a.node)
     for (key, value) in unwrap(a)
         if !(key == :_extras)
@@ -82,8 +40,8 @@ function Base.show(io::IO, ::MIME"text/plain", a::AgentDictGr) # works with REPL
     end
 end
 
-function Base.show(io::IO, a::AgentDictGr) # works with print
-    println(io, "AgentGr:")
+function Base.show(io::IO, a::GraphAgent) # works with print
+    println(io, "GraphAgent:")
     println(io, " node: ", a.node)
     for (key, value) in unwrap(a)
         if !(key == :_extras)
@@ -92,12 +50,12 @@ function Base.show(io::IO, a::AgentDictGr) # works with print
     end
 end
 
-function Base.show(io::IO, ::MIME"text/plain", v::Vector{AgentDictGr}) # works with REPL
-    println(io, "AgentGr list with $(length(v)) agents.")
+function Base.show(io::IO, ::MIME"text/plain", v::Vector{GraphAgent}) # works with REPL
+    println(io, "GraphAgent list with $(length(v)) agents.")
 end
 
-function Base.show(io::IO, v::Vector{AgentDictGr}) # works with print
-    println(io, "AgentGr list with $(length(v)) agents.")
+function Base.show(io::IO, v::Vector{GraphAgent}) # works with print
+    println(io, "GraphAgent list with $(length(v)) agents.")
 end
 
 
@@ -113,17 +71,20 @@ Following property names are reserved for some specific agent properties
     - orientation : orientation of agent
     - keeps_record_of : list of properties that the agent records during time evolution. 
 """
-function graph_agent(;node=1,kwargs...)
+function graph_agent(;node=1,
+    graph_mort_type::Type{S} = Static, 
+    kwargs...) where {S<:MType}
+
     dict_agent = Dict{Symbol, Any}(kwargs)
 
     if !haskey(dict_agent, :keeps_record_of)
         dict_agent[:keeps_record_of] = Symbol[]
     end
     dict_agent[:_extras] = PropDict()
-    dict_agent[:_extras]._graph = nothing
     dict_agent[:_extras]._active = true
+    dict_agent[:_extras]._new = true
 
-    return AgentDictGr(node,dict_agent)
+    return GraphAgent{S}(1, node,dict_agent, nothing)
 end
 
 """
@@ -131,49 +92,69 @@ $(TYPEDSIGNATURES)
 
 Creates a list of n graph agents with properties specified as keyword arguments.
 """
-function graph_agents(n::Int;node=1, kwargs...)
-list = Vector{AgentDictGr{Symbol, Any}}()
-for i in 1:n
-    agent = graph_agent(;node=node, kwargs...)
-    push!(list, agent)
-end
-return list
+function graph_agents(n::Int; node=1, 
+    graph_mort_type::Type{S} = Static, 
+    kwargs...) where {S<:MType}
+
+    list = Vector{GraphAgent{Symbol, Any, S}}()
+    for i in 1:n
+        agent = graph_agent(;node=node, graph_mort_type = S, kwargs...)
+        push!(list, agent)
+    end
+    return list
 end
 
 """
 $(TYPEDSIGNATURES)
 
-Returns a list of n graph agents all having same properties as `agent`.  
+Returns a list of n 2d agents all having same properties as `agent`.  
 """
-function create_similar(agent::AgentDictGr, n::Int)
+function create_similar(agent::GraphAgent{Symbol, Any, S}, n::Int) where {S<:MType}
     dc = Dict{Symbol, Any}()
     dc_agent = unwrap(agent)
-    for (key, val) in dc_agent
-        if key != :_extras 
-            dc[key] = val
+    node = getfield(agent, :node)
+    model = getfield(agent, :model)
+    list = Vector{GraphAgent{Symbol, Any, S}}()
+    for i in 1:n
+        for (key, val) in dc_agent
+            if key != :_extras 
+                dc[key] = deepcopy(val)
+            end
         end
+        dc_agent[:_extras] = PropDict()
+        dc_agent[:_extras]._active = true
+        dc_agent[:_extras]._new = true
+        agent = GraphAgent{S}(1, node, dc_agent, model)
+        push!(list, agent)
     end
-    node = agent.node
-    agents = graph_agents(n;node=node, dc...)
-    return agents
+    return list
 end
+
 
 """
 $(TYPEDSIGNATURES)
-Returns an agent with same properties as given `agent`. 
+
+Returns a list of n 2d agents all having same properties as `agent`.  
 """
-function create_similar(agent::AgentDictGr)
+function create_similar(agent::GraphAgent{Symbol, Any, S}) where {S<:MType}
     dc = Dict{Symbol, Any}()
     dc_agent = unwrap(agent)
+    node = getfield(agent, :node)
+    model = getfield(agent, :model)
     for (key, val) in dc_agent
         if key != :_extras 
-            dc[key] = val
+            dc[key] = deepcopy(val)
         end
     end
-    node = agent.node
-    agent = graph_agent(;node=node,dc...)
+    dc_agent[:_extras] = PropDict()
+    dc_agent[:_extras]._active = true
+    dc_agent[:_extras]._new = true
+    agent = GraphAgent{S}(1, node, dc_agent,model)
+
     return agent
 end
+
+
 
 
 

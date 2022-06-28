@@ -1,6 +1,6 @@
 @testset "3d model" begin
     agents = con_3d_agents(5, color=:red, is_sick = false, shape = :sphere, keeps_record_of = [:color, :is_sick])
-    model = create_3d_model(agents, grid_size = (10,10,10), periodic = true, random_positions = true, model_property1 = 0.7, model_property2 = "nice_model")
+    model = create_3d_model(agents, grid_size = (10,10,10), agents_type = Mortal, space_type = Periodic, random_positions = true, model_property1 = 0.7, model_property2 = "nice_model")
     function initialiser!(model)
         model.agents[1].shape = :box
         model.agents[5].is_sick = true

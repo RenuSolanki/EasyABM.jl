@@ -3,14 +3,15 @@ CurrentModule = EasyABM
 ```
 
 # EasyABM.jl
-EasyABM is a performant and easy to use framework for agent-based modeling. 
+A lightweight and easy to use framework for agent-based modelling. 
 
 ## Package Features
-* Intuitive 4 step approach for any agent based model - Create, Initialise, Run, Fetch Data. 
+* Intuitive function based approach for all ABM modelling tasks. 
 * Support for Hetrogeneous agents, where each agent can record its own properties. 
 * Grid blocks, called patches, in 2d and 3d models can be assigned properties like agents.
-* Underlying Graph in a graph model can be chosen to be fully dynamic, in which edges and nodes can be added or removed or assigned properties like agents.
-* Easy to create interactive animation in Jupyter notebook based on data collected during model run.
+* Nodes and edges in a graph based model can also be assigned properties like agents. 
+* Underlying Graph in a graph model can be chosen to be fully dynamic in which edges and nodes can be added or removed during model run.
+* Easy to create and save animation.
 * Live interactive panel can also be easily created in Jupyter in a few lines of code. 
 
 

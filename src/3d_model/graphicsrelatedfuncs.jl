@@ -76,7 +76,7 @@ end
                 if (i>0)&&(j>0)&&(k>0)
                     patch = model.patches[i,j,k]
                     patch_data = unwrap_data(patch)
-                    clrs = (:color in record) ? unique(patch_data[:color]) : [patch.color]
+                    clrs = (:color in record) ? unique(patch_data[:color]::Vector{Symbol}) : [patch.color::Symbol]
                     patch._extras._colors = clrs
                     clrs_rgb = [eval(Symbol("patch"*string(cl))) for cl in clrs]
                     materials = [MeshPhongMaterial(color=cl) for cl in clrs_rgb]
@@ -99,12 +99,12 @@ end
 function draw_tail(vis, agent, tail_length)
     for i in 1:tail_length
         bluel = LineBasicMaterial(color=RGBA(0,0,1,tail_opacity(i, tail_length)))
-        setobject!(vis["tails"]["$(agent._extras._id)"]["$i"],MeshCat.LineSegments([MeshCat.Point(0.0, 0, 0),MeshCat.Point(0, 0, 1.0)], bluel)) 
-        setvisible!(vis["tails"]["$(agent._extras._id)"]["$i"], false)
+        setobject!(vis["tails"]["$(getfield(agent, :id))"]["$i"],MeshCat.LineSegments([MeshCat.Point(0.0, 0, 0),MeshCat.Point(0, 0, 1.0)], bluel)) 
+        setvisible!(vis["tails"]["$(getfield(agent, :id))"]["$i"], false)
     end
 end
 
-@inline function draw_agents_static(vis, model::SpaceModel3D, all_agents, tail_length = 1,  tail_condition = agent -> false)
+@inline function draw_agents_static(vis, model::SpaceModel3D{T, S}, all_agents, tail_length = 1,  tail_condition = agent -> false) where {T, S<:Union{Int, AbstractFloat}}
     
     if length(all_agents)==0
         return
@@ -112,7 +112,7 @@ end
 
     index=1
 
-    periodic = model.periodic
+    periodic = is_periodic(model)
     xlen = gparams3d.xlen+0.0
     ylen = gparams3d.ylen+0.0
     zlen = gparams3d.zlen+0.0
@@ -122,16 +122,16 @@ end
     w = xlen/xdim
     l = ylen/ydim
     h = zlen/zdim 
-    offset = model.parameters._extras._offset
+    offset = model.parameters._extras._offset::NTuple{3, Float64}
 
 
 
     for agent in all_agents
-        record = agent.keeps_record_of
+        record = agent.keeps_record_of::Vector{Symbol}
         agent_data = unwrap_data(agent)
-        pos = (:pos in record) ? agent_data[:pos][index] + offset : agent.pos + offset
+        pos = (:pos in record) ? agent_data[:pos][index]::Vect{3, S} .+ offset : agent.pos .+ offset
         orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
-        pclr = (:color in record) ? agent_data[:color][index] : agent.color
+        pclr = (:color in record) ? agent_data[:color][index]::Symbol : agent.color::Symbol
     
     
         ao,bo,co = orientation
@@ -150,7 +150,7 @@ end
         z =  h*posz
 
         shape = agent.shape
-        clrs = (:color in record) ? unique(agent_data[:color]) : [agent.color]
+        clrs = (:color in record) ? unique(agent_data[:color]::Vector{Symbol}) : [agent.color::Symbol]
         agent._extras._colors = clrs
         clrs_rgb = [eval(Symbol("agent"*string(cl))) for cl in clrs]
         materials = [MeshPhongMaterial(color=cl) for cl in clrs_rgb]
@@ -159,7 +159,7 @@ end
         size = 0.3
 
         if haskey(agent_data, :size)
-            size = (:size in record) ? agent_data[:size][index] : agent.size
+            size = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat} : agent.size::Union{Int, <:AbstractFloat}
         end
 
         if !(shape in [:sphere, :box, :cone, :cylinder])
@@ -168,13 +168,13 @@ end
 
         shape_rendered = shapefunctions3d[shape](size)
         for (i, cl) in enumerate(clrs)
-            setobject!(vis["agents"]["$(agent._extras._id)"][cl],shape_rendered,materials[i]) 
-            setvisible!(vis["agents"]["$(agent._extras._id)"][cl], false)
+            setobject!(vis["agents"]["$(getfield(agent, :id))"][cl],shape_rendered,materials[i]) 
+            setvisible!(vis["agents"]["$(getfield(agent, :id))"][cl], false)
         end
 
         trans = Translation(x, y, z) ∘ LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1), MeshCat.Vec(ao,bo,co+0.0)))
-        settransform!(vis["agents"]["$(agent._extras._id)"], trans)
-        setvisible!(vis["agents"]["$(agent._extras._id)"][pclr], true)
+        settransform!(vis["agents"]["$(getfield(agent, :id))"], trans)
+        setvisible!(vis["agents"]["$(getfield(agent, :id))"][pclr], true)
 
         if tail_condition(agent)
             draw_tail(vis, agent, tail_length)
@@ -191,8 +191,8 @@ end
     for k in 1:model.size[3]            
         for j in 1:model.size[2]
             for i in 1:model.size[1]
-                clrs = model.patches[i,j,k]._extras._colors
-                pclr = unwrap_data(model.patches[i,j,k])[:color][frame]
+                clrs = model.patches[i,j,k]._extras._colors::Vector{Symbol}
+                pclr = unwrap_data(model.patches[i,j,k])[:color][frame]::Symbol
                 for cl in clrs
                     setvisible!(vis["patches"]["($i,$j,$k)"][cl], false) 
                 end
@@ -203,9 +203,9 @@ end
 end
 
 
-@inline function draw_agent(vis, agent::Union{AgentDict3D, AgentDict3DGrid}, model::SpaceModel3D, index::Int, scl::Number=1.0, tail_length = 1, tail_condition= agent-> false)
-        record = agent.keeps_record_of
-        periodic = model.periodic
+@inline function draw_agent(vis, agent::Agent3D, model::SpaceModel3D{T, S}, index::Int, scl::Number=1.0, tail_length = 1, tail_condition= agent-> false) where {T, S<:Union{Int, AbstractFloat}}
+        record = agent.keeps_record_of::Vector{Symbol}
+        periodic = is_periodic(model)
         agent_data = unwrap_data(agent)
 
         xlen = gparams3d.xlen+0.0
@@ -217,16 +217,16 @@ end
         w = xlen/xdim
         l = ylen/ydim
         h = zlen/zdim 
-        offset = model.parameters._extras._offset
+        offset = model.parameters._extras._offset::NTuple{3, Float64}
 
-        pos = (:pos in record) ? agent_data[:pos][index] + offset : agent.pos + offset
-        nextpos = (:pos in record)&&(index<model.tick) ? agent_data[:pos][index+1] + offset : agent.pos + offset
+        pos = (:pos in record) ? agent_data[:pos][index]::Vect{3, S} .+ offset : agent.pos .+ offset
+        nextpos = (:pos in record)&&(index<model.tick) ? agent_data[:pos][index+1]::Vect{3, S} .+ offset : agent.pos .+ offset
         orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
-        pclr = (:color in record) ? agent_data[:color][index] : agent.color
-        clrs = agent._extras._colors
+        pclr = (:color in record) ? agent_data[:color][index]::Symbol : agent.color::Symbol
+        clrs = agent._extras._colors::Vector{Symbol}
 
         
-        sc = (:size in record) ? agent_data[:size][index]/(agent_data[:size][1])  : 1.0
+        sc = (:size in record) ? (agent_data[:size][index]::Union{Int, <:AbstractFloat})/(agent_data[:size][1]::Union{Int, <:AbstractFloat})  : 1.0
 
         sc = sc*scl
 
@@ -252,33 +252,33 @@ end
 
 
         for cl in clrs
-            setvisible!(vis["agents"]["$(agent._extras._id)"][cl], false)
+            setvisible!(vis["agents"]["$(getfield(agent, :id))"][cl], false)
         end
         
         trans = Translation(x, y, z) ∘ LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1), MeshCat.Vec(ao,bo,co+0.0)))
-        settransform!(vis["agents"]["$(agent._extras._id)"], trans)
-        setprop!(vis["agents"]["$(agent._extras._id)"], "scale", MeshCat.Vec(sc, sc, sc))
-        #settransform!(vis["agents"]["$(agent._extras._id)"], Translation(x, y, z))
-        #setprop!(vis["agents"]["$(agent._extras._id)"], "position", MeshCat.Vec(x,y,z))
+        settransform!(vis["agents"]["$(getfield(agent, :id))"], trans)
+        setprop!(vis["agents"]["$(getfield(agent, :id))"], "scale", MeshCat.Vec(sc, sc, sc))
+        #settransform!(vis["agents"]["$(getfield(agent, :id))"], Translation(x, y, z))
+        #setprop!(vis["agents"]["$(getfield(agent, :id))"], "position", MeshCat.Vec(x,y,z))
         if !(periodic && condition)
-            setvisible!(vis["agents"]["$(agent._extras._id)"][pclr], true)
+            setvisible!(vis["agents"]["$(getfield(agent, :id))"][pclr], true)
         end
 
         if tail_condition(agent) && index>2
             for i in 1:min(tail_length, index-2)
-                x,y,z = agent_data[:pos][index-i] + offset
-                a,b,c = agent_data[:pos][index-i+1] + offset
+                x,y,z = agent_data[:pos][index-i]::Vect{3, S} .+ offset
+                a,b,c = agent_data[:pos][index-i+1]::Vect{3, S} .+ offset
                 sca = sqrt((x-a)^2+(y-b)^2+(z-c)^2)
                 if (x,y,z)==(a,b,c)
                     c = 1.0+c
                 end
                 trans = Translation(x, y, z) ∘ LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1.0), MeshCat.Vec(a-x,b-y,c-z)))
-                settransform!(vis["tails"]["$(agent._extras._id)"]["$i"], trans)
-                setprop!(vis["tails"]["$(agent._extras._id)"]["$i"], "scale", MeshCat.Vec(sca, sca, sca))
+                settransform!(vis["tails"]["$(getfield(agent, :id))"]["$i"], trans)
+                setprop!(vis["tails"]["$(getfield(agent, :id))"]["$i"], "scale", MeshCat.Vec(sca, sca, sca))
                 if !(periodic && (sca > 0.5*min(xdim, ydim, zdim)))
-                    setvisible!(vis["tails"]["$(agent._extras._id)"]["$i"], true)
+                    setvisible!(vis["tails"]["$(getfield(agent, :id))"]["$i"], true)
                 else
-                    setvisible!(vis["tails"]["$(agent._extras._id)"]["$i"], false)
+                    setvisible!(vis["tails"]["$(getfield(agent, :id))"]["$i"], false)
                 end
             end
         end
@@ -312,7 +312,7 @@ end
                 if (i>0)&&(j>0)&&(k>0)
                     patch = model.patches[i,j,k]
                     patch_data = unwrap_data(patch)
-                    cl = (:color in record) ? patch_data[:color][frame] : patch.color
+                    cl = (:color in record) ? patch_data[:color][frame]::Symbol : patch.color::Symbol
                     cl_rgb = eval(Symbol("patch"*string(cl)))
                     material = MeshPhongMaterial(color=cl_rgb)
                     box = HyperRectangle(MeshCat.Vec(x-w+g,y-l+g,z-h+g), MeshCat.Vec(w-g,l-g,h-g))
@@ -324,9 +324,9 @@ end
     end
 end
 
-@inline function draw_agent_interact_frame(vis, agent::AgentDict3D, model::SpaceModel3D, index::Int, scl)
-    record = agent.keeps_record_of
-    periodic = model.periodic
+@inline function draw_agent_interact_frame(vis, agent::Agent3D, model::SpaceModel3D{T, S}, index::Int, scl) where {T, S<:Union{Int, AbstractFloat}}
+    record = agent.keeps_record_of::Vector{Symbol}
+    periodic = is_periodic(model)
     agent_data = unwrap_data(agent)
 
     xlen = gparams3d.xlen+0.0
@@ -338,10 +338,10 @@ end
     w = xlen/xdim
     l = ylen/ydim
     h = zlen/zdim 
-    offset = model.parameters._extras._offset
-    pos = (:pos in record) ? agent_data[:pos][index] +offset : agent.pos + offset
+    offset = model.parameters._extras._offset::NTuple{3, Float64}
+    pos = (:pos in record) ? agent_data[:pos][index]::Vect{3, S}  .+ offset : agent.pos .+ offset
     orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
-    pclr = (:color in record) ? agent_data[:color][index] : agent.color
+    pclr = (:color in record) ? agent_data[:color][index]::Symbol : agent.color::Symbol
 
     ao,bo,co = orientation
 
@@ -365,12 +365,12 @@ end
     size = 0.3
 
     if haskey(agent_data, :size)
-        size = (:size in record) ? agent_data[:size][index] : agent.size
+        size = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat} : agent.size::Union{Int, <:AbstractFloat}
     end
 
     size = size*scl
     
-    shape = agent.shape
+    shape = agent.shape::Symbol
 
     if !(shape in [:sphere, :box, :cone, :cylinder])
         shape = :cone
@@ -378,8 +378,8 @@ end
 
     shape_rendered = shapefunctions3d[shape](size)
     
-    setobject!(vis["agents"]["$(agent._extras._id)"],shape_rendered,material) 
-    settransform!(vis["agents"]["$(agent._extras._id)"], LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1), MeshCat.Vec(ao,bo,co+0.0))))
-    setprop!(vis["agents"]["$(agent._extras._id)"], "position", MeshCat.Vec(x,y,z))
+    setobject!(vis["agents"]["$(getfield(agent, :id))"],shape_rendered,material) 
+    settransform!(vis["agents"]["$(getfield(agent, :id))"], LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1), MeshCat.Vec(ao,bo,co+0.0))))
+    setprop!(vis["agents"]["$(getfield(agent, :id))"], "position", MeshCat.Vec(x,y,z))
 end
 

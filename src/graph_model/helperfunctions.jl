@@ -5,7 +5,7 @@ This function is for use from within the module and is not exported.
 It takes an agent as first argument, and if `graphics` is true, some
 graphics related properties are added to the agent if not already defined. 
 """
-function manage_default_graphics_data!(agent::AgentDictGr, graphics)
+function manage_default_graphics_data!(agent::GraphAgent, graphics)
     if graphics
         if !haskey(agent, :shape)
             agent.shape = :circle
@@ -29,21 +29,22 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _create_dead_meta_graph(graph::SimplePropGraph, parameters)
+function _create_dead_meta_graph(graph::SimplePropGraph{S}) where S<:MType
     _nodes =Int[]
     _structure = Dict{Int, Vector{Int}}()
     for i in getfield(graph, :_nodes)
         _structure[i] = Int[]
     end
 
-    parameters._extras._dead_meta_graph = SimplePropGraph(_nodes, _structure, 
-     Dict{Int, PropDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}(),MortalType)
+    dead_meta_graph = SimplePropGraph(_nodes, _structure, 
+     Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}(),S)
+     return dead_meta_graph
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-function _create_dead_meta_graph(graph::DirPropGraph, parameters)
+function _create_dead_meta_graph(graph::DirPropGraph{S}) where S<:MType
     _nodes =Int[]
     _in_structure = Dict{Int, Vector{Int}}()
     _out_structure = Dict{Int, Vector{Int}}()
@@ -51,8 +52,31 @@ function _create_dead_meta_graph(graph::DirPropGraph, parameters)
         _in_structure[i] = Int[]
         _out_structure[i] = Int[]
     end
-    parameters._extras._dead_meta_graph = DirPropGraph(_nodes, _in_structure, _out_structure, 
-     Dict{Int, PropDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}(),MortalType)
+    dead_meta_graph = DirPropGraph(_nodes, _in_structure, _out_structure, 
+     Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}(),S)
+     return dead_meta_graph
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function _refill_dead_meta_graph!(dead_graph::SimplePropGraph, graph::SimplePropGraph)
+    _structure = dead_graph.structure
+    for i in getfield(graph, :_nodes)
+        _structure[i] = Int[]
+    end
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function _refill_dead_meta_graph(dead_graph::DirPropGraph, graph::DirPropGraph)
+    _in_structure = dead_graph.in_structure
+    _out_structure = dead_graph.out_structure
+    for i in getfield(graph, :_nodes)
+        _in_structure[i] = Int[]
+        _out_structure[i] = Int[]
+    end
 end
 
 
@@ -60,17 +84,16 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _create_a_node!(model::GraphModelDynGrTop) #used only when model.graph is empty
-    num = model.parameters._extras._max_node_id+1
+    num = model.parameters._extras._max_node_id::Int+1
     _create_node_structure!(num, model.graph, model)
-    madict = PropDataDict() 
-    madict._extras._agents = Int[]
+    madict = ContainerDataDict() 
     madict._extras._active = true
     madict._extras._birth_time = model.tick
-    madict._extras._death_time = Inf
+    madict._extras._death_time = typemax(Int)
     model.graph.nodesprops[num] = madict
     empty!(model.record.nprops)
-    model.parameters._extras._num_verts += 1
-    model.parameters._extras._num_all_verts += 1
+    model.parameters._extras._num_verts::Int += 1
+    model.parameters._extras._num_all_verts::Int += 1
     model.parameters._extras._max_node_id = num
 end
 
@@ -80,14 +103,13 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _create_a_node!(model::GraphModelFixGrTop) #used only when model.graph is empty
-    num = model.parameters._extras._max_node_id+1
+    num = model.parameters._extras._max_node_id::Int+1
     _create_node_structure!(num, model.graph, model)
-    madict = PropDataDict()
-    madict._extras._agents = Int[]
+    madict = ContainerDataDict()
     model.graph.nodesprops[num] = madict
     empty!(model.record.nprops)
-    model.parameters._extras._num_verts += 1
-    model.parameters._extras._num_all_verts += 1
+    model.parameters._extras._num_verts::Int += 1
+    model.parameters._extras._num_all_verts::Int += 1
     model.parameters._extras._max_node_id = num
 end
 
@@ -100,14 +122,14 @@ $(TYPEDSIGNATURES)
 Adds the agent to the model.
 """
 function add_agent!(agent, model::GraphModelDynAgNum)
-    if !haskey(agent._extras, :_id)
-        if model.parameters._extras._num_verts == 0
+    if agent._extras._new::Bool
+        if model.parameters._extras._num_verts::Int == 0
             _create_a_node!(model)
         end
     
         verts = get_nodes(model)
-        len_verts = model.parameters._extras._num_verts #number of active verts
-        random_positions = model.parameters._extras._random_positions
+        len_verts = model.parameters._extras._num_verts::Int #number of active verts
+        random_positions = model.parameters._extras._random_positions::Bool
 
         if !(agent.node in verts)
             if random_positions
@@ -123,16 +145,16 @@ function add_agent!(agent, model::GraphModelDynAgNum)
 
         node = agent.node 
 
-        push!(model.graph.nodesprops[node]._extras._agents, agent._extras._id)
+        push!(model.graph.nodesprops[node].agents, getfield(agent, :id))
 
-        agent._extras._model = model
+        setfield!(agent, :model, model)
 
         _create_agent_record!(agent, model)
 
         _init_agent_record!(agent)
 
         getfield(model,:max_id)[] +=1
-        model.parameters._extras._num_agents += 1 #active agents
+        model.parameters._extras._num_agents::Int += 1 #active agents
     end
 end
 
@@ -143,8 +165,8 @@ $(TYPEDSIGNATURES)
 @inline function _create_node_structure!(node, graph::SimplePropGraph, model)
     push!(getfield(graph, :_nodes), node)
     graph.structure[node] = Int[]
-    if model.parameters._extras._keep_deads_data
-        dead_graph = model.parameters._extras._dead_meta_graph
+    if model.parameters._extras._keep_deads_data::Bool
+        dead_graph = model.dead_meta_graph
         dead_graph.structure[node]=Int[]
     end
 end
@@ -156,8 +178,8 @@ $(TYPEDSIGNATURES)
     push!(getfield(graph, :_nodes), node)
     graph.in_structure[node] = Int[]
     graph.out_structure[node] = Int[]
-    if model.parameters._extras._keep_deads_data
-        dead_graph = model.parameters._extras._dead_meta_graph
+    if model.parameters._extras._keep_deads_data::Bool
+        dead_graph = model.dead_meta_graph
         dead_graph.in_structure[node]=Int[]
         dead_graph.out_structure[node]=Int[]
     end
@@ -169,28 +191,51 @@ $(TYPEDSIGNATURES)
 Adds a node with properties specified in `kwargs` to the model's graph.
 """
 function add_node!(model::GraphModelDynGrTop; kwargs...)
-    node = model.parameters._extras._max_node_id+1
+    node = model.parameters._extras._max_node_id::Int+1
     _create_node_structure!(node, model.graph, model)
-    madict = PropDataDict(Dict{Symbol, Any}(kwargs))
-    madict._extras._agents=Int[]
+    madict = ContainerDataDict(Dict{Symbol, Any}(kwargs))
     madict._extras._active=true
     madict._extras._birth_time = model.tick
-    madict._extras._death_time=Inf
+    madict._extras._death_time=typemax(Int)
     model.graph.nodesprops[node] = madict
-    model.parameters._extras._num_verts +=1
-    model.parameters._extras._num_all_verts+=1
-    model.parameters._extras._max_node_id = node
-    if model.graphics && !haskey(model.graph.nodesprops[node], :pos) && !haskey(model.graph.nodesprops[node]._extras, :_pos)
+    model.parameters._extras._num_verts::Int +=1
+    model.parameters._extras._num_all_verts::Int+=1
+    model.parameters._extras._max_node_id::Int = node
+    if model.graphics && !haskey(model.graph.nodesprops[node], :pos) && !haskey(model.graph.nodesprops[node]._extras::PropDict, :_pos)
         model.graph.nodesprops[node]._extras._pos = (rand()*gsize, rand()*gsize)
     end
     if length(model.record.nprops)>0
         node_dict = unwrap(model.graph.nodesprops[node])
         node_data = unwrap_data(model.graph.nodesprops[node])
         for key in model.record.nprops
-            push!(node_data[key], node_dict[key])
+            node_data[key] = [node_dict[key]]
         end
     end
     return node
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Adds n nodes with properties specified in `kwargs` to the model's graph.
+"""
+function add_nodes!(n, model::GraphModelDynGrTop; kwargs...)
+    for i in 1:n
+        add_node!(model; kwargs...)
+    end
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Removes the graph and all of related data completely. 
+"""
+function flush_graph!(model::GraphModelDynGrTop) 
+    empty!(model.graph)
+    empty!(model.dead_meta_graph)
+    model.parameters._extras._num_verts::Int =0
+    model.parameters._extras._num_all_verts::Int=0
+    model.parameters._extras._max_node_id::Int = 0
 end
 
 
@@ -231,7 +276,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _checkout_dead_graph(i,j,graph::SimplePropGraph)
+@inline function _checkout_dead_graph(i,j,graph::SimplePropGraph{Mortal})
     condition = (j in graph.structure[i])
     if condition 
         deleteat!(graph.structure[i], findfirst(x-> x==j, graph.structure[i]))
@@ -244,7 +289,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _checkout_dead_graph(i,j,graph::DirPropGraph)
+@inline function _checkout_dead_graph(i,j,graph::DirPropGraph{Mortal})
     condition = (j in graph.out_structure[i])
     if condition 
         deleteat!(graph.out_structure[i], findfirst(x-> x==j, graph.out_structure[i]))
@@ -265,26 +310,23 @@ function create_edge!(i, j, model::GraphModelDynGrTop; kwargs...)
     nodes = getfield(model.graph, :_nodes)
     i,j,condition = _add_edge_condition(nodes,i,j,model.graph)
     if condition
-        if (i,j) in keys(model.graph.edgesprops)
-        
-        end
         _update_edge_structure!(i, j, model.graph)
         madict = PropDataDict(Dict{Symbol, Any}(kwargs))
-        con = _checkout_dead_graph(i,j, model.parameters._extras._dead_meta_graph)
+        con = _checkout_dead_graph(i,j, model.dead_meta_graph)
         if con
             madict = model.graph.edgesprops[(i,j)]
-            push!(madict._extras._bd_times, (model.tick, typemax(Int)))
+            push!(madict._extras._bd_times::Vector{Tuple{Int, Int}}, (model.tick, typemax(Int)))
         else
             madict._extras._bd_times = [(model.tick, typemax(Int))]
         end
         madict._extras._active=true
-        model.parameters._extras._num_edges +=1
+        model.parameters._extras._num_edges::Int +=1
         model.graph.edgesprops[(i,j)] = madict
         if length(model.record.eprops)>0
             edge_dict = unwrap(model.graph.edgesprops[(i,j)])
             edge_data = unwrap_data(model.graph.edgesprops[(i,j)])
             for key in model.record.eprops
-                push!(edge_data[key], edge_dict[key])
+                edge_data[key] = [edge_dict[key]]
             end
         end
     end
@@ -311,7 +353,7 @@ $(TYPEDSIGNATURES)
         i,k = j>node ? (node, j) : (j, node)
         _shift_edge_from_alive_to_dead(graph, dead_graph, i,k) 
         graph.edgesprops[(i,k)]._extras._active = false
-        bt, dt = graph.edgesprops[(i,k)]._extras._bd_times[end]
+        bt, dt = graph.edgesprops[(i,k)]._extras._bd_times[end]::Tuple{Int, Int}
         graph.edgesprops[(i,k)]._extras._bd_times[end] = (bt, tick)
         n+=1
     end
@@ -330,14 +372,14 @@ Adds an edge with properties `kwargs` to model graph.
     for j in in_structure
         _shift_edge_from_alive_to_dead(graph, dead_graph, j,node) 
         graph.edgesprops[(j,node)]._extras._active = false
-        bt, dt = graph.edgesprops[(j,node)]._extras._bd_times[end]
+        bt, dt = graph.edgesprops[(j,node)]._extras._bd_times[end]::Tuple{Int, Int}
         graph.edgesprops[(j,node)]._extras._bd_times[end] = (bt, tick)
         n+=1
     end
     for j in out_structure
         _shift_edge_from_alive_to_dead(graph, dead_graph, node, j) 
         graph.edgesprops[(node,j)]._extras._active = false
-        bt, dt = graph.edgesprops[(node,j)]._extras._bd_times[end]
+        bt, dt = graph.edgesprops[(node,j)]._extras._bd_times[end]::Tuple{Int, Int}
         graph.edgesprops[(node,j)]._extras._bd_times[end] = (bt, tick)
         n+=1
     end
@@ -351,14 +393,14 @@ $(TYPEDSIGNATURES)
 adds an edge with properties `kwargs` to model graph. 
 """
 @inline function _clear_node!(node, model::GraphModelDynAgNum)
-    ids = copy(model.graph.nodesprops[node]._extras._agents) #agents present in a container must be all active as inactive agents are removed from the agent list at their node
+    ids = copy(model.graph.nodesprops[node].agents) #agents present in a container must be all active as inactive agents are removed from the agent list at their node
     for id in ids
         agent = agent_with_id(id, model)
-        deleteat!(model.graph.nodesprops[node]._extras._agents, findfirst(m->m==id, model.graph.nodesprops[node]._extras._agents))
+        deleteat!(model.graph.nodesprops[node].agents, findfirst(m->m==id, model.graph.nodesprops[node].agents))
         agent._extras._active = false
         agent._extras._death_time = model.tick
-        model.parameters._extras._num_agents -= 1 # number of active agents
-        push!(model.parameters._extras._agents_killed, agent)
+        model.parameters._extras._num_agents::Int -= 1 # number of active agents
+        push!(model.agents_killed, agent)
     end
     return true
 end
@@ -370,7 +412,7 @@ $(TYPEDSIGNATURES)
 adds an edge with properties `kwargs` to model graph. 
 """
 @inline function _clear_node!(node, model::GraphModelFixAgNum)
-    if length(model.graph.nodesprops[node]._extras._agents)>0
+    if length(model.graph.nodesprops[node].agents)>0
         return false
     end
     return true
@@ -385,18 +427,18 @@ throw an error if the user tries to delete a node which is not there. Also the n
 can not be killed and the number of agents at the given node is nonzero.
 """
 function kill_node!(node, model::GraphModelDynGrTop)
-    if model.graph.nodesprops[node]._extras._active # we keep a reference of dead node
-        if !model.parameters._extras._keep_deads_data
+    if model.graph.nodesprops[node]._extras._active::Bool # we keep a reference of dead node
+        if !(model.parameters._extras._keep_deads_data::Bool)
             condition = _clear_node!(node, model)     
             if !condition
                 return
             end  
             n = _rem_vertex_f!(model.graph, node)
-            model.parameters._extras._num_all_verts -=1
-            model.parameters._extras._num_verts -=1
-            model.parameters._extras._num_edges -=n
-            if model.parameters._extras._num_all_verts >0
-                model.parameters._extras._max_node_id = getfield(model.graph, :_nodes)[model.parameters._extras._num_all_verts]
+            model.parameters._extras._num_all_verts::Int -=1
+            model.parameters._extras._num_verts::Int -=1
+            model.parameters._extras._num_edges::Int -=n
+            if model.parameters._extras._num_all_verts::Int >0
+                model.parameters._extras._max_node_id = getfield(model.graph, :_nodes)[model.parameters._extras._num_all_verts::Int]
             else
                 model.parameters._extras._max_node_id = 0 
             end
@@ -406,13 +448,13 @@ function kill_node!(node, model::GraphModelDynGrTop)
         if !condition
             return
         end  
-        dead_graph = model.parameters._extras._dead_meta_graph
+        dead_graph = model.dead_meta_graph
         n = _kill_edges_and_shift!(node, model.graph,dead_graph, model.tick)
         _shift_node_from_alive_to_dead(model.graph, dead_graph, node)
         model.graph.nodesprops[node]._extras._active = false
         model.graph.nodesprops[node]._extras._death_time= model.tick
-        model.parameters._extras._num_verts -= 1
-        model.parameters._extras._num_edges -= n
+        model.parameters._extras._num_verts::Int -= 1
+        model.parameters._extras._num_edges::Int -= n
     end
 end
 
@@ -445,18 +487,18 @@ $(TYPEDSIGNATURES)
 @inline function _kill_edge_condition(i,j,graph::SimplePropGraph, model::GraphModelDynGrTop)
     i, j = i>j ? (j,i) : (i,j)
     condition = (i in graph.structure[j])
-    dead_graph = model.parameters._extras._dead_meta_graph
-    keep_deads_data = model.parameters._extras._keep_deads_data
+    dead_graph = model.dead_meta_graph
+    keep_deads_data = model.parameters._extras._keep_deads_data::Bool
     if condition 
         if !keep_deads_data
             _rem_edge_f!(graph, i,j)
-            model.parameters._extras._num_edges -= 1
+            model.parameters._extras._num_edges::Int -= 1
             return
         end
         graph.edgesprops[(i,j)]._extras._active = false
-        bt, dt = graph.edgesprops[(i,j)]._extras._bd_times[end]
+        bt, dt = graph.edgesprops[(i,j)]._extras._bd_times[end]::Tuple{Int, Int}
         graph.edgesprops[(i,j)]._extras._bd_times[end] = (bt, model.tick)
-        model.parameters._extras._num_edges -= 1
+        model.parameters._extras._num_edges::Int -= 1
         # remove edges from graph and move them to dead_graph and don't remove edgesprops.
         _shift_edge_from_alive_to_dead(graph, dead_graph, i,j)  
     end
@@ -467,17 +509,17 @@ $(TYPEDSIGNATURES)
 """
 @inline function _kill_edge_condition(i,j,graph::DirPropGraph, model::GraphModelDynGrTop)
     condition = (j in graph.out_structure[i])
-    dead_graph = model.parameters._extras._dead_meta_graph
-    keep_deads_data = model.parameters._extras._keep_deads_data
+    dead_graph = model.dead_meta_graph
+    keep_deads_data = model.parameters._extras._keep_deads_data::Bool
     if condition
         if !keep_deads_data
             _rem_edge_f!(graph, i,j)
             return
         end
         graph.edgesprops[(i,j)]._extras._active = false
-        bt, dt = graph.edgesprops[(i,j)]._extras._bd_times[end]
+        bt, dt = graph.edgesprops[(i,j)]._extras._bd_times[end]::Tuple{Int, Int}
         graph.edgesprops[(i,j)]._extras._bd_times[end] = (bt, model.tick)
-        model.parameters._extras._num_edges -= 1
+        model.parameters._extras._num_edges::Int -= 1
         # remove edges from graph and move them to dead_graph and don't remove edgesprops.
         _shift_edge_from_alive_to_dead(graph, dead_graph, i,j)  
     end
@@ -506,18 +548,32 @@ end
 
 """
 $(TYPEDSIGNATURES)
+
+Removes all edges from the model graph.
+"""
+function kill_all_edges!(model::GraphModelDynGrTop)
+    for edge in edges(model.graph)
+        kill_edge!(edge, model)
+    end
+end
+
+
+"""
+$(TYPEDSIGNATURES)
 """
 function _permanently_remove_dead_graph_data!(model::GraphModelDynGrTop)
-    if !model.parameters._extras._keep_deads_data
-        model.parameters._extras._dead_meta_graph = SimplePropGraph(MortalType)
+    if !(model.parameters._extras._keep_deads_data::Bool)
+        empty!(model.dead_meta_graph)
     else
-        for node in keys(model.parameters._extras._dead_meta_graph.nodesprops)
+        for node in keys(model.dead_meta_graph.nodesprops)
             delete!(model.graph.nodesprops, node)
         end
-        for edge in keys(model.parameters._extras._dead_meta_graph.edgesprops)
+        for edge in keys(model.dead_meta_graph.edgesprops)
             delete!(model.graph.edgesprops, edge)
         end
-        _create_dead_meta_graph(model.graph, model.parameters)
+        empty!(model.dead_meta_graph)
+        _refill_dead_meta_graph!(model.dead_meta_graph, model.graph)
+
         nodes = getfield(model.graph, :_nodes)
         len_nodes = length(nodes)
         model.parameters._extras._num_verts = len_nodes
@@ -530,16 +586,16 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _reshift_node_numbers(model::GraphModelDynGrTop)
-
-end
-
+_permanently_remove_dead_graph_data!(model::GraphModelFixGrTop) = nothing
 
 
 """
 $(TYPEDSIGNATURES)
 """
-_permanently_remove_dead_graph_data!(model::GraphModelFixGrTop) = nothing
+function _reshift_node_numbers(model::GraphModelDynGrTop)
+
+end
+
 
 
 """
@@ -646,11 +702,11 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_active_out_structure(graph::AbstractPropGraph{MortalType}, vert, out_structure, frame)
+@inline function _get_active_out_structure(graph::AbstractPropGraph{Mortal}, vert, out_structure, frame)
     active_out_structure = Int[]
     indices = Int[]
     for nd in out_structure
-        bd_times = graph.edgesprops[(vert, nd)]._extras._bd_times
+        bd_times = graph.edgesprops[(vert, nd)]._extras._bd_times::Vector{Tuple{Int, Int}}
         len = 0 # if initial data is stored there will be atleast 1 element 
         for (birth_time,death_time) in bd_times
             if (birth_time<=frame)&&(frame<=death_time)
@@ -669,14 +725,14 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_active_out_structure(graph::AbstractPropGraph{StaticType}, vert, out_structure, frame)
+@inline function _get_active_out_structure(graph::AbstractPropGraph{Static}, vert, out_structure, frame)
     return out_structure
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _draw_da_vert(graph::AbstractPropGraph{MortalType}, vert, node_size, frame, nprops)
+@inline function _draw_da_vert(graph::AbstractPropGraph{Mortal}, vert, node_size, frame, nprops)
     vert_pos = _get_vert_pos(graph, vert, frame, nprops)
     vert_col = _get_vert_col(graph, vert, frame, nprops)
     out_structure = out_links(graph, vert)
@@ -685,7 +741,7 @@ $(TYPEDSIGNATURES)
     draw_vert(vert_pos, vert_col, node_size, neighs_pos, is_digraph(graph))
 end
 
-@inline function _draw_da_vert(graph::AbstractPropGraph{StaticType}, vert, node_size, frame, nprops)
+@inline function _draw_da_vert(graph::AbstractPropGraph{Static}, vert, node_size, frame, nprops)
     vert_pos = _get_vert_pos(graph, vert, frame, nprops)
     vert_col = _get_vert_col(graph, vert, frame, nprops)
     out_structure = out_links(graph, vert)
@@ -696,8 +752,8 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _draw_graph(graph::AbstractPropGraph{MortalType}, verts, node_size, frame, nprops)
-    alive_verts = verts[[(graph.nodesprops[nd]._extras._birth_time <=frame)&&(frame<=graph.nodesprops[nd]._extras._death_time) for nd in verts]]
+@inline function _draw_graph(graph::AbstractPropGraph{Mortal}, verts, node_size, frame, nprops)
+    alive_verts = verts[[(graph.nodesprops[nd]._extras._birth_time::Int <=frame)&&(frame<=graph.nodesprops[nd]._extras._death_time::Int) for nd in verts]]
     @sync for vert in alive_verts
         @async _draw_da_vert(graph, vert, node_size, frame, nprops) 
     end
@@ -707,7 +763,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _draw_graph(graph::AbstractPropGraph{StaticType}, verts, node_size, frame, nprops)
+@inline function _draw_graph(graph::AbstractPropGraph{Static}, verts, node_size, frame, nprops)
     nothing
 end
 
@@ -715,15 +771,15 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function draw_agents_and_graph(model::GraphModelDynAgNum, graph, verts, node_size, frame, scl)
-    if model.parameters._extras._show_space
+    if model.parameters._extras._show_space::Bool
         _draw_graph(graph, verts, node_size, frame, model.record.nprops)
     end
 
-    all_agents = vcat(model.agents, model.parameters._extras._agents_killed)
+    all_agents = vcat(model.agents, model.agents_killed)
 
     @sync for agent in all_agents
-        if (agent._extras._birth_time <= frame)&&(frame<= agent._extras._death_time)
-            @async draw_agent(agent, model, graph, node_size, scl, frame - agent._extras._birth_time + 1, frame)
+        if (agent._extras._birth_time::Int <= frame)&&(frame<= agent._extras._death_time::Int)
+            @async draw_agent(agent, model, graph, node_size, scl, frame - agent._extras._birth_time::Int + 1, frame)
         end
     end
 end
@@ -733,7 +789,7 @@ $(TYPEDSIGNATURES)
 """
 @inline function draw_agents_and_graph(model::GraphModelFixAgNum, graph, verts, node_size, frame, scl)
 
-    if model.parameters._extras._show_space
+    if model.parameters._extras._show_space::Bool
         _draw_graph(graph, verts, node_size, frame, model.record.nprops)
     end
 

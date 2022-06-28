@@ -16,47 +16,61 @@ space boundaries
 - `random_positions` : If this property is true, each agent, will be assigned a random position. 
 - `kwargs`` : Keyword argments used as model parameters. 
 """
-function create_3d_model(agents::Union{Vector{AgentDict3D{Symbol, Any}}, Vector{AgentDict3DGrid{Symbol, Any}}}; 
-    graphics=true, fix_agents_num=false, 
-    size::NTuple{3,Int}= (10,10,10), periodic = false, random_positions=false, kwargs...)
+function create_3d_model(agents::Vector{Agent3D{Symbol, Any, S, A}}; 
+    graphics=true, agents_type::Type{T} = Static, 
+    size::NTuple{3,Int}= (10,10,10), random_positions=false, 
+    space_type::Type{P} = Periodic,
+    kwargs...) where {S<:Union{Int, AbstractFloat}, T<:MType, P<:SType, A<:SType}
 
     xdim = size[1]
     ydim = size[2]
     zdim = size[3]
     n = length(agents)
-    patches = _set_patches3d(periodic, size)
 
+    patches = _set_patches3d(size)
 
-    st = :c
-    if eltype(agents)<:AgentDict3DGrid
-        st = :d
+    agents_new = Vector{Agent3D{Symbol, Any, S, P}}()
+
+    for agent in agents
+        dc = unwrap(agent)
+        dcd = unwrap_data(agent)
+        pos = getfield(agent, :pos)
+        ag = Agent3D{P}(1, pos, dc, dcd, nothing)
+        push!(agents_new, ag)
     end
 
-    parameters, atype = _set_parameters3d(size, n, fix_agents_num, random_positions, st; kwargs...)
+    agents = agents_new
+    
 
+    parameters = _set_parameters3d(size, n, random_positions; kwargs...)
+
+
+    model = SpaceModel3D{T, S, P}(size, patches, agents, Ref(n), graphics, parameters, (aprops = Symbol[], pprops = Symbol[], mprops = Symbol[]), Ref(1))
 
     for (i, agent) in enumerate(agents)
 
-        agent._extras._id = i
+        setfield!(agent, :id, i)
+        agent._extras._new = false
 
-        if !fix_agents_num
-            agent._extras._active = true
-            agent._extras._birth_time = 1 
-            agent._extras._death_time = Inf
+        if random_positions
+            _set_pos!(agent, xdim, ydim, zdim)
         end
 
-        manage_default_graphics_data!(agent, graphics, random_positions, size)
+        manage_default_graphics_data!(agent, graphics, size)
+
+        if T<:Mortal
+            agent._extras._active = true
+            agent._extras._birth_time = 1 
+            agent._extras._death_time = typemax(Int)
+        end
         
-        _setup_grid!(agent,patches, periodic, i, xdim, ydim, zdim)
+        _setup_grid!(agent, model, i, xdim, ydim, zdim)
 
         _init_agent_record!(agent)
 
-        agent._extras._grid = patches
+        setfield!(agent, :model, model)
 
     end
-
-
-    model = SpaceModel3D(size, patches, agents, Ref(n), periodic, graphics, parameters, (aprops = Symbol[], pprops = Symbol[], mprops = Symbol[]), Ref(1), atype = atype)
 
     return model
 
@@ -65,11 +79,15 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function create_3d_model(; graphics=true, fix_agents_num=false, 
-    size::NTuple{3,Int}= (10,10,10), periodic = false, random_positions=false, kwargs...)
-    agents = con_3d_agents(0)
-    model = create_3d_model(agents; graphics=graphics, fix_agents_num=fix_agents_num, 
-    size= size, periodic = periodic, random_positions=random_positions, kwargs...)
+function create_3d_model(;
+    graphics=true, 
+    size::NTuple{3,Int}= (10,10,10), random_positions=false, 
+    space_type::Type{P} = Periodic,
+    kwargs...) where {P<:SType}
+
+    agents = Agent3D{Symbol, Any, Float64, P}[]
+    model = create_3d_model(agents; graphics=graphics, agents_type=Static, 
+    size= size, random_positions=random_positions, space_type=space_type, kwargs...)
     return model
 end
 
@@ -119,9 +137,9 @@ function init_model!(model::SpaceModel3D; initialiser::Function = null_init!,
     pprops = get(props_to_record, "patches", Symbol[])
     mprops = get(props_to_record, "model", Symbol[])
 
-    _create_props_lists(aprops, pprops, mprops, model)
-
     initialiser(model) 
+
+    _create_props_lists(aprops, pprops, mprops, model)
 
     getfield(model, :tick)[] = 1
 
@@ -176,7 +194,7 @@ $(TYPEDSIGNATURES)
 """
 function save_sim(model::SpaceModel3D, frames::Int = model.tick, scl::Number = 1.0; kwargs...)
     println(
-    "    The save function for 3D models has not yet been implemented in SimpleABM package. 
+    "    The save function for 3D models has not yet been implemented in EasyABM package. 
     In order to save the video file of simulation do following -
         1. Run the model for required number of steps using run_model! function.
         2. Animate the simulation using animate_sim. 

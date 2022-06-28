@@ -5,13 +5,17 @@
 ####################################
 
 
-struct SimplePropGraph{T} <: AbstractPropGraph{T}
+struct SimplePropGraph{T, G<:SimG} <: AbstractPropGraph{T, G}
     _nodes::Vector{Int}
     structure:: Dict{Int, Vector{Int}}
-    nodesprops::Dict{Int, PropDataDict{Symbol, Any} }
+    nodesprops::Dict{Int, ContainerDataDict{Symbol, Any} }
     edgesprops::Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}
-    SimplePropGraph(w::Type{T}) where T<:MType = new{w}(Vector{Int}(), Dict{Int, Vector{Int}}(), 
-    Dict{Int, PropDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
+
+    SimplePropGraph{T}() where {T<:MType} = new{T, SimG}(Vector{Int}(), Dict{Int, Vector{Int}}(), 
+    Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
+
+    SimplePropGraph(structure::Nothing = nothing, w::Type{T}=Static) where T<:MType = new{T, SimG}(Vector{Int}(), Dict{Int, Vector{Int}}(), 
+    Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
     function SimplePropGraph(structure::Dict{Int, Vector{Int}}, w::Type{T}) where T<:MType
         nodes = sort!(collect(keys(structure)))
         for i in nodes
@@ -20,7 +24,7 @@ struct SimplePropGraph{T} <: AbstractPropGraph{T}
                 return nothing
             end
         end
-        new{w}(nodes, structure, Dict{Int, PropDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
+        new{T, SimG}(nodes, structure, Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
     end
 
     function SimplePropGraph(n::Int, w::Type{T}) where T<:MType
@@ -28,43 +32,33 @@ struct SimplePropGraph{T} <: AbstractPropGraph{T}
         for i in 1:n
             structure[i] = Int[]
         end
-        new{w}(collect(1:n), structure, Dict{Int, PropDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
+        new{T, SimG}(collect(1:n), structure, Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
     end
 
     function SimplePropGraph(_nodes, structure, nodesprops, edgesprops, w::Type{T}) where T<:MType
-        return new{w}(_nodes, structure, nodesprops, edgesprops)
+        return new{T, SimG}(_nodes, structure, nodesprops, edgesprops)
     end
 end
 
-function Base.getproperty(g::T, key::Symbol) where T<:AbstractPropGraph
-    if key == :_nodes 
-        return nothing
-    else
-        return getfield(g, key)
-    end
+function Base.empty!(graph::SimplePropGraph)
+    empty!(graph._nodes)
+    empty!(graph.structure)
+    empty!(graph.nodesprops)
+    empty!(graph.edgesprops)
 end
-
 
 """
 $(TYPEDSIGNATURES)
 """
-vertices(g::SimplePropGraph) = copy(getfield(g, :_nodes))
+vertices(g::SimplePropGraph) = (node for node in getfield(g, :_nodes))
 
 function edges(g::SimplePropGraph)
-    _edges = Vector{Tuple{Int, Int}}()
-    for i in keys(g.structure)
-        for j in g.structure[i]
-            if (i<j)
-                push!(_edges, (i,j))
-            end
-        end
-    end
-    return _edges
+    return ((i,j) for i in keys(g.structure) for j in g.structure[i] if j>i)
 end
 
 nv(g::SimplePropGraph) = length(getfield(g, :_nodes))
 
-ne(g::SimplePropGraph) = length(edges(g))
+ne(g::SimplePropGraph) = count(x->true,edges(g))
 
 
 function Base.show(io::IO, ::MIME"text/plain", g::SimplePropGraph) # works with REPL
@@ -86,14 +80,8 @@ function Base.show(io::IO, g::SimplePropGraph) # works with print
 end
 
 function out_links(g::SimplePropGraph, i)
-    out_structure = Int[]
     structure = g.structure[i]
-    for k in structure
-        if k>i
-            push!(out_structure, k)
-        end
-    end
-    return out_structure
+    return (k for k in structure if k>i)
 end
 
 
@@ -183,7 +171,7 @@ function _add_vertex_with_props!(g::SimplePropGraph, i::Int; kwargs...)
     if !(i in nodes)
         g.structure[i] = Int[]
         dict = Dict{Symbol, Any}(kwargs)
-        g.nodesprops[i] = PropDataDict(dict) 
+        g.nodesprops[i] = ContainerDataDict(dict) 
         push!(nodes, i)
     end
 end
@@ -191,7 +179,7 @@ end
 function _add_vertex_with_props_f!(g::SimplePropGraph, i::Int; kwargs...) # f= checks !(i in nodes) done before calling function
     g.structure[i] = Int[]
     dict = Dict{Symbol, Any}(kwargs)
-    g.nodesprops[i] = PropDataDict(dict)
+    g.nodesprops[i] = ContainerDataDict(dict)
     push!(getfield(g, :_nodes), i)
 end
 
@@ -261,7 +249,7 @@ function _rem_edge_f!(g::SimplePropGraph, i::Int, j::Int) #f = checks Set([i, j]
 end
 
 all_neighbors(g::SimplePropGraph, i::Int) = g.structure[i]
-in_neighbors(g::SimplePropGraph, i::Int) = g.structure[i]
+in_neighbors(g::SimplePropGraph, i::Int) =  g.structure[i]
 out_neighbors(g::SimplePropGraph, i::Int) = g.structure[i]
 
 function _set_edgeprops!(g::SimplePropGraph, i::Int, j::Int; kwargs...)
@@ -303,7 +291,7 @@ function _set_vertexprops!(g::SimplePropGraph, i::Int; kwargs...)
             dc[key] = value
         end
     elseif i in getfield(g, :_nodes)
-        g.nodesprops[i] = PropDataDict(dprop)
+        g.nodesprops[i] = ContainerDataDict(dprop)
     end
 end
 
@@ -315,7 +303,7 @@ function _set_vertexprops_f!(g::SimplePropGraph, i::Int; kwargs...) # f = checks
             dc[key] = value
         end
     else
-        g.nodesprops[i] = PropDataDict(dprop)
+        g.nodesprops[i] = ContainerDataDict(dprop)
     end
 end
 
@@ -353,13 +341,13 @@ is_digraph(g::SimplePropGraph) = false
 """
 $(TYPEDSIGNATURES)
 """
-is_static(g::SimplePropGraph) = typeof(g) <: SimplePropGraph{StaticType}
+is_static(g::SimplePropGraph{T}) where T<:MType = T <: Static
 
 
 """
 $(TYPEDSIGNATURES)
 """
-mortal_type(g::SimplePropGraph) = is_static(g) ? StaticType : MortalType
+mortal_type(g::SimplePropGraph{T}) where T<:MType = T
 
 
 """
@@ -367,7 +355,14 @@ $(TYPEDSIGNATURES)
 
 Creates a simple prop graph with n vertices. 
 """
-create_simple_graph(n::Int; gtype::Type{T}=StaticType) where T<:MType = SimplePropGraph(n,gtype)
+static_simple_graph(n::Int) = SimplePropGraph(n,Static)
+
+"""
+$(TYPEDSIGNATURES)
+
+Creates a simple prop graph with n vertices. 
+"""
+dynamic_simple_graph(n::Int) = SimplePropGraph(n,Mortal)
 
 
 """
@@ -375,7 +370,15 @@ $(TYPEDSIGNATURES)
 
 Creates a simple prop graph with given structure. 
 """
-create_simple_graph(structure::Dict{Int, Vector{Int}}; gtype::Type{T}=StaticType) where T<: MType = SimplePropGraph(structure,gtype)
+static_simple_graph(structure::Dict{Int, Vector{Int}}) = SimplePropGraph(structure,Static)
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Creates a simple prop graph with given structure. 
+"""
+dynamic_simple_graph(structure::Dict{Int, Vector{Int}}) = SimplePropGraph(structure,Mortal)
 
 
 """
@@ -385,13 +388,7 @@ function convert_type(graph::SimplePropGraph, w::Type{T}) where T<:MType
     return SimplePropGraph(getfield(graph, :_nodes), graph.structure, graph.nodesprops, graph.edgesprops, w)
 end
 
-
-"""
-$(TYPEDSIGNATURES)
-
-Creates a simple prop graph for given Adjacency matrix. 
-"""
-function create_simple_graph(A::Matrix{Int}; gtype::Type{T}=StaticType) where T<: MType
+@inline function _structure_from_mat(A::Matrix{Int})
     n, m = size(A)
     if (n != m)||(A != A')
         print("Adjacency matrix needs to be symmetric for a simple graph")
@@ -403,16 +400,32 @@ function create_simple_graph(A::Matrix{Int}; gtype::Type{T}=StaticType) where T<
         mask = Bool.(A[:,j])
         structure[j] = copy(nodes[mask])
     end
-    SimplePropGraph(structure,gtype)
+    return structure
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Creates a simple prop graph for given Adjacency matrix. 
+"""
+function static_simple_graph(A::Matrix{Int}) 
+    structure = _structure_from_mat(A) 
+    SimplePropGraph(structure,Static)
 end
 
 
 """
 $(TYPEDSIGNATURES)
 
-Creates a simple prop graph for adjacency_matrix given as a Sparse Matrix. 
+Creates a simple prop graph for given Adjacency matrix. 
 """
-function create_simple_graph(A::SparseArrays.SparseMatrixCSC{Int64, Int64}; gtype::Type{T}=StaticType) where T<:MType
+function dynamic_simple_graph(A::Matrix{Int}) 
+    structure = _structure_from_mat(A) 
+    SimplePropGraph(structure,Mortal)
+end
+
+
+@inline function _structure_from_smat(A::SparseArrays.SparseMatrixCSC{Int64, Int64})
     m = A.m
     n = A.n
     rowsa, colsa, vals = findnz(A)
@@ -435,7 +448,29 @@ function create_simple_graph(A::SparseArrays.SparseMatrixCSC{Int64, Int64}; gtyp
             structure[i] = copy(cols[mask])
         end
     end
-    SimplePropGraph(structure,gtype)
+    return structure
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Creates a simple prop graph for adjacency_matrix given as a Sparse Matrix. 
+"""
+function static_simple_graph(A::SparseArrays.SparseMatrixCSC{Int64, Int64})
+    structure = _structure_from_smat(A)
+    SimplePropGraph(structure,Static)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Creates a simple prop graph for adjacency_matrix given as a Sparse Matrix. 
+"""
+function dynamic_simple_graph(A::SparseArrays.SparseMatrixCSC{Int64, Int64})
+    structure = _structure_from_smat(A)
+    SimplePropGraph(structure,Mortal)
 end
 
 """
@@ -443,9 +478,20 @@ $(TYPEDSIGNATURES)
 
 Creates a simple prop graph from a given simple graph created with Graphs.jl. 
 """
-function create_simple_graph(g::SimpleGraph{Int64}; gtype::Type{T}=StaticType) where T<:MType
+function static_simple_graph(g::SimpleGraph{Int64})
     ad_mat = Graphs.adjacency_matrix(g)
-    create_simple_graph(ad_mat, gtype=gtype)
+    static_simple_graph(ad_mat)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Creates a simple prop graph from a given simple graph created with Graphs.jl. 
+"""
+function dynamic_simple_graph(g::SimpleGraph{Int64})
+    ad_mat = Graphs.adjacency_matrix(g)
+    dynamic_simple_graph(ad_mat)
 end
 
 
@@ -523,13 +569,15 @@ end
 ####################################
 ####################################
 
-struct DirPropGraph{T}<: AbstractPropGraph{T}
+struct DirPropGraph{T, G<:DirG}<: AbstractPropGraph{T, G}
     _nodes::Vector{Int}
     in_structure::Dict{Int, Vector{Int}}
     out_structure::Dict{Int, Vector{Int}}
-    nodesprops::Dict{Int, PropDataDict{Symbol, Any}}
+    nodesprops::Dict{Int, ContainerDataDict{Symbol, Any}}
     edgesprops::Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}
-    DirPropGraph(w::Type{T}) where T<:MType = new{w}(Vector{Int}(), Dict{Int, Vector{Int}}(), Dict{Int, Vector{Int}}(), Dict{Int,PropDataDict{Symbol, Any}}(), Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}())
+    DirPropGraph(in_structure::Nothing = nothing, w::Type{T}=Static) where T<:MType = new{T, DirG}(Vector{Int}(), Dict{Int, Vector{Int}}(), Dict{Int, Vector{Int}}(), 
+    Dict{Int,ContainerDataDict{Symbol, Any}}(), Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}())
+
     function DirPropGraph(in_structure::Dict{Int, Vector{Int}},w::Type{T}) where T<:MType
         nodes = vcat(collect(keys(in_structure)), collect(Iterators.flatten(values(in_structure))))
         sort!(nodes)
@@ -553,7 +601,7 @@ struct DirPropGraph{T}<: AbstractPropGraph{T}
                 end
             end
         end
-        new{w}(nodes, in_structure, out_structure, Dict{Int, PropDataDict{Symbol, Any}}(), Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}())
+        new{T,DirG}(nodes, in_structure, out_structure, Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}())
     end
 
     function DirPropGraph(n::Int,w::Type{T}) where T <: MType
@@ -563,36 +611,38 @@ struct DirPropGraph{T}<: AbstractPropGraph{T}
             dc1[i] = Int[]
             dc2[i] = Int[]
         end
-        new{w}(collect(1:n), dc1, dc2, Dict{Int, PropDataDict{Symbol, Any}}(), Dict{Tuple{Int,Int}, PropDataDict{Symbol, Any}}())
+        new{T, DirG}(collect(1:n), dc1, dc2, Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int,Int}, PropDataDict{Symbol, Any}}())
     end
 
     function DirPropGraph(_nodes, in_structure, out_structure, nodesprops, edgesprops, w::Type{T}) where T<:MType
-        return new{w}(_nodes, in_structure, out_structure, nodesprops, edgesprops)
+        return new{T, DirG}(_nodes, in_structure, out_structure, nodesprops, edgesprops)
     end
 end
 
+function Base.empty!(graph::DirPropGraph)
+    empty!(graph._nodes)
+    empty!(graph.in_structure)
+    empty!(graph.out_structure)
+    empty!(graph.nodesprops)
+    empty!(graph.edgesprops)
+end
 
-out_links(g::DirPropGraph, i) = g.out_structure[i]
+
+out_links(g::DirPropGraph, i) = (nd for nd in g.out_structure[i])
 
 
 """
 $(TYPEDSIGNATURES)
 """
-vertices(g::DirPropGraph) = copy(getfield(g, :_nodes))
+vertices(g::DirPropGraph) = (node for node in getfield(g, :_nodes))
 
 function edges(g::DirPropGraph)
-    eds = Vector{Tuple{Int, Int}}()
-    for i in getfield(g, :_nodes)
-        for j in g.in_structure[i]
-            push!(eds, (j, i))
-        end
-    end 
-    return eds 
+    return ((j,i) for i in getfield(g, :_nodes) for j in g.in_structure[i]) 
 end
 
 nv(g::DirPropGraph) = length(getfield(g, :_nodes))
 
-ne(g::DirPropGraph) = length(edges(g))
+ne(g::DirPropGraph) = count(x->true,edges(g))
 
 
 function Base.show(io::IO, ::MIME"text/plain", g::DirPropGraph) # works with REPL
@@ -690,7 +740,7 @@ function _add_vertex_with_props!(g::DirPropGraph, i::Int; kwargs...)
     if !(i in nodes)
         g.in_structure[i] = Int[]
         g.out_structure[i] = Int[]
-        g.nodesprops[i] = PropDataDict(dict)
+        g.nodesprops[i] = ContainerDataDict(dict)
         push!(nodes, i)
     end
 end
@@ -699,7 +749,7 @@ function _add_vertex_with_props_f!(g::DirPropGraph, i::Int; kwargs...) # f = che
     dict = Dict{Symbol, Any}(kwargs)
     g.in_structure[i] = Int[]
     g.out_structure[i] = Int[]
-    g.nodesprops[i] = PropDataDict(dict)
+    g.nodesprops[i] = ContainerDataDict(dict)
     push!(getfield(g, :_nodes), i)
 end
 
@@ -779,9 +829,9 @@ function _rem_edge_f!(g::DirPropGraph, i::Int, j::Int) # f = checks (i,j) in g.e
     end
 end
 
-in_neighbors(g::DirPropGraph, i::Int) = g.in_structure[i]
+in_neighbors(g::DirPropGraph, i::Int) = g.in_structure[i] # we don't send generator as these arrays are already stored in memory and user has access to them
 out_neighbors(g::DirPropGraph, i::Int) = g.out_structure[i]
-all_neighbors(g::DirPropGraph, i::Int) = unique!(sort!(vcat(g.in_structure[i], g.out_structure[i])))
+all_neighbors(g::DirPropGraph, i::Int) = unique!(sort!(vcat(g.in_structure[i], g.out_structure[i]))) 
 
 function _set_edgeprops!(g::DirPropGraph, i::Int, j::Int; kwargs...)
     dprop = Dict{Symbol, Any}(kwargs)
@@ -816,7 +866,7 @@ function _set_vertexprops!(g::DirPropGraph, i::Int; kwargs...)
             dc[key] = value
         end    
     elseif i in getfield(g, :_nodes)
-        g.nodesprops[i]=PropDataDict(dprop)
+        g.nodesprops[i]=ContainerDataDict(dprop)
     end
 end
 
@@ -828,7 +878,7 @@ function _set_vertexprops_f!(g::DirPropGraph, i::Int; kwargs...) #f = checks i i
             dc[key] = value
         end    
     else
-        g.nodesprops[i]=PropDataDict(dprop)
+        g.nodesprops[i]=ContainerDataDict(dprop)
     end
 end
 
@@ -860,13 +910,13 @@ is_digraph(g::DirPropGraph) = true
 """
 $(TYPEDSIGNATURES)
 """
-is_static(g::DirPropGraph) = typeof(g) <: DirPropGraph{StaticType}
+is_static(g::DirPropGraph{T}) where T<:MType = T <: Static
 
 
 """
 $(TYPEDSIGNATURES)
 """
-mortal_type(g::DirPropGraph) = is_static(g) ? StaticType : MortalType
+mortal_type(g::DirPropGraph{T}) where T<:MType = T
 
 
 """
@@ -874,14 +924,30 @@ $(TYPEDSIGNATURES)
 
 Creates a directed prop graph with n vertices. 
 """
-create_dir_graph(n::Int;gtype::Type{T}=StaticType) where T <: MType = DirPropGraph(n,gtype)
+static_dir_graph(n::Int) = DirPropGraph(n,Static)
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Creates a directed prop graph with n vertices. 
+"""
+dynamic_dir_graph(n::Int) = DirPropGraph(n,Mortal)
 
 """
 $(TYPEDSIGNATURES)
 
 Creates a directed prop graph with given structure. 
 """
-create_dir_graph(in_structure::Dict{Int, Vector{Int}}; gtype::Type{T}=StaticType) where T <: MType = DirPropGraph(in_structure, gtype)
+static_dir_graph(in_structure::Dict{Int, Vector{Int}}) = DirPropGraph(in_structure, Static)
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Creates a directed prop graph with given structure. 
+"""
+dynamic_dir_graph(in_structure::Dict{Int, Vector{Int}}) = DirPropGraph(in_structure, Mortal)
 
 
 """
@@ -892,12 +958,7 @@ function convert_type(graph::DirPropGraph, w::Type{T}) where T<:MType
 end
 
 
-"""
-$(TYPEDSIGNATURES)
-
-Creates a directed prop graph for given Adjacency matrix. 
-"""
-function create_dir_graph(A::Matrix{Int}; gtype::Type{T}=StaticType) where T <: MType
+@inline function _in_structure_from_mat(A::Matrix{Int})
     n, m = size(A)
     if (n != m)
         print("Adjacency matrix needs to be a square matrix")
@@ -909,16 +970,32 @@ function create_dir_graph(A::Matrix{Int}; gtype::Type{T}=StaticType) where T <: 
         mask = Bool.(A[:,j])
         in_structure[j] = copy(nodes[mask])
     end
-    DirPropGraph(in_structure, gtype)
+    return in_structure
 end
 
 
 """
 $(TYPEDSIGNATURES)
 
-Creates a directed prop graph for adjacency matrix given as a Sparse Matrix. 
+Creates a directed prop graph for given Adjacency matrix. 
 """
-function create_dir_graph(A::SparseArrays.SparseMatrixCSC{Int64, Int64}; gtype::Type{T}=StaticType) where T <: MType
+function static_dir_graph(A::Matrix{Int})
+    in_structure = _in_structure_from_mat(A)  
+    DirPropGraph(in_structure, Static)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Creates a directed prop graph for given Adjacency matrix. 
+"""
+function dynamic_dir_graph(A::Matrix{Int})
+    in_structure = _in_structure_from_mat(A)  
+    DirPropGraph(in_structure, Mortal)
+end
+
+@inline function _in_structure_from_smat(A::SparseArrays.SparseMatrixCSC{Int64, Int64})
     m = A.m
     n = A.n
     rowsa, colsa, vals = findnz(A)
@@ -941,18 +1018,49 @@ function create_dir_graph(A::SparseArrays.SparseMatrixCSC{Int64, Int64}; gtype::
             in_structure[i] = copy(rows[mask])
         end
     end
-    DirPropGraph(in_structure,gtype)
+    return in_structure
 end
 
 
 """
 $(TYPEDSIGNATURES)
 
+Creates a directed prop graph for adjacency matrix given as a Sparse Matrix. 
+"""
+function static_dir_graph(A::SparseArrays.SparseMatrixCSC{Int64, Int64})    
+    in_structure = _in_structure_from_smat(A)
+    DirPropGraph(in_structure,Static)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Creates a directed prop graph for adjacency matrix given as a Sparse Matrix. 
+"""
+function dynamic_dir_graph(A::SparseArrays.SparseMatrixCSC{Int64, Int64})    
+    in_structure = _in_structure_from_smat(A)
+    DirPropGraph(in_structure,Mortal)
+end
+
+"""
+$(TYPEDSIGNATURES)
+
 Creates a directed prop graph for a given directed graph created with Graphs.jl. 
 """
-function create_dir_graph(g::SimpleDiGraph{Int64}; gtype::Type{T}=StaticType) where T <: MType
+function static_dir_graph(g::SimpleDiGraph{Int64})
     ad_mat = Graphs.adjacency_matrix(g)
-    create_dir_graph(ad_mat, gtype = gtype)
+    static_dir_graph(ad_mat)
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Creates a directed prop graph for a given directed graph created with Graphs.jl. 
+"""
+function dynamic_dir_graph(g::SimpleDiGraph{Int64})
+    ad_mat = Graphs.adjacency_matrix(g)
+    dynamic_dir_graph(ad_mat)
 end
 
 
@@ -1063,8 +1171,8 @@ end
 ####################################
 ####################################
 
-const PropGraphDynTop = Union{SimplePropGraph{MortalType}, DirPropGraph{MortalType}}
-const PropGraphFixTop = Union{SimplePropGraph{StaticType}, DirPropGraph{StaticType}}
+const PropGraphDynTop = Union{SimplePropGraph{Mortal}, DirPropGraph{Mortal}}
+const PropGraphFixTop = Union{SimplePropGraph{Static}, DirPropGraph{Static}}
 
 
 ####################################

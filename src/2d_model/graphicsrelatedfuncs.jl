@@ -3,21 +3,27 @@
 
 @inline function _get_grid_colors(model::SpaceModel2D, t)
     if :color in model.record.pprops
-        colors = [unwrap_data(model.patches[i,j])[:color][t] for i in 1:model.size[1] for j in 1:model.size[2]]
+        colors = [unwrap_data(model.patches[i,j])[:color][t]::Symbol for i in 1:model.size[1] for j in 1:model.size[2]]
     else
-        colors = [model.patches[i,j].color for i in 1:model.size[1] for j in 1:model.size[2]]
+        colors = [model.patches[i,j].color::Symbol for i in 1:model.size[1] for j in 1:model.size[2]]
     end
     return colors
 end
 
-@inline function _get_tail(agent, model::SpaceModel2D{MortalType}, t, tail_length)
+@inline function _get_tail(agent, model::SpaceModel2D{Mortal, S}, t, tail_length) where S<:AbstractFloat # we don't have tails for grid agents
+    agent_tail = GeometryBasics.Vec2{S}[]
+    if !(:pos in agent.keeps_record_of)
+        push!(agent_tail, GeometryBasics.Vec(agent.pos...))
+        return agent_tail
+    end
     agent_data = unwrap_data(agent)
-    agent_tail = GeometryBasics.Vec2{Float64}[][]
-    offset = model.parameters._extras._offset
-    if (agent._extras._birth_time<= t)&&(t<= agent._extras._death_time)
-        index = t - agent._extras._birth_time +1
+    offset = model.parameters._extras._offset::Tuple{Float64, Float64}
+    birth_time = agent._extras._birth_time::Int
+    death_time = agent._extras._death_time::Int
+    if (birth_time<= t)&&(t<= death_time)
+        index = t - birth_time +1
         for i in max(1, index-tail_length):index
-            v = agent_data[:pos][i]+offset
+            v = agent_data[:pos][i]::Vect{2, S} .+ offset
             push!(agent_tail, GeometryBasics.Vec(v...))
         end   
     end
@@ -28,13 +34,17 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_tail(agent, model::SpaceModel2D{StaticType}, t, tail_length)
+@inline function _get_tail(agent, model::SpaceModel2D{Static, S}, t::Int, tail_length) where S<:AbstractFloat
+    agent_tail = GeometryBasics.Vec2{S}[]
+    if !(:pos in agent.keeps_record_of)
+        push!(agent_tail, GeometryBasics.Vec(agent.pos...))
+        return agent_tail
+    end
     agent_data = unwrap_data(agent)
-    agent_tail = GeometryBasics.Vec2{Float64}[]
     index = t 
-    offset = model.parameters._extras._offset
+    offset = model.parameters._extras._offset::Tuple{Float64, Float64}
     for i in max(1, index-tail_length):index
-        v = agent_data[:pos][i]+offset
+        v = agent_data[:pos][i]::Vect{2, S} .+ offset
         push!(agent_tail, GeometryBasics.Vec(v...))
     end   
     return agent_tail
@@ -97,7 +107,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_patches(model::SpaceModel2D, frame)
+@inline function draw_patches(model::SpaceModel2D, frame::Int)
     xdim = model.size[1]
     ydim = model.size[2]
     width = gparams.width
@@ -109,7 +119,7 @@ $(TYPEDSIGNATURES)
     box(Luxor.Point(0, 0), width, height, 0.0001, :fill)
                 
     @sync for j in 1:model.size[2], i in 1:model.size[1]
-        @async _draw_a_patch(i, j, w, h, unwrap_data(model.patches[i,j])[:color][frame], width, height)
+        @async _draw_a_patch(i, j, w, h, unwrap_data(model.patches[i,j])[:color][frame]::Symbol, width, height)
     end
 end
 
@@ -117,20 +127,20 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function draw_agent(agent, model::SpaceModel2D, xdim::Int, ydim::Int, scl, index::Int, tail_length, tail_condition)
-    record = agent.keeps_record_of
-    periodic = model.periodic
+    record = agent.keeps_record_of::Vector{Symbol}
+    periodic = is_periodic(model)
     agent_data = unwrap_data(agent)
-    offset = model.parameters._extras._offset
+    offset = model.parameters._extras._offset::Tuple{Float64, Float64}
 
     width = gparams.width
     height = gparams.height
     w = width/xdim
     h = height/ydim
 
-    pos = (:pos in record) ? agent_data[:pos][index] + offset : agent.pos + offset
-    orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
-    shape = (:shape in record) ? agent_data[:shape][index] : agent.shape
-    shape_color = (:color in record) ? agent_data[:color][index] : agent.color
+    pos = (:pos in record) ? agent_data[:pos][index]::Vect{2, <:Real} .+ offset : agent.pos .+ offset
+    orientation = (:orientation in record) ? agent_data[:orientation][index]::Float64 : agent.orientation::Float64
+    shape = (:shape in record) ? agent_data[:shape][index]::Symbol : agent.shape::Symbol
+    shape_color = (:color in record) ? agent_data[:color][index]::Symbol : agent.color::Symbol
 
     if !(shape in keys(shapefunctions2d))
         shape = :circle
@@ -139,22 +149,14 @@ $(TYPEDSIGNATURES)
     size = xdim/50
 
     if haskey(agent_data, :size)
-        size = (:size in record) ? agent_data[:size][index] : agent.size
+        size = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat} : agent.size::Union{Int, <:AbstractFloat}
     end
    
     size = size*scl*w
 
     posx,posy = pos
-    if periodic
-        posx = mod1(posx, xdim)
-        posy = mod1(posy, ydim)
-    end
     x =  w*posx #- w/2
     y =  h*posy #-h/2
-                
-    #posx, posy coordinate system is centered at lower left corner of the grid
-    #with + POSX to right and +POSY upwards; Except for scale, the x, y coordinate 
-    #system coincides with posx, post system. 
 
     
     #First thre lines in following, translate and transform, 
@@ -170,7 +172,7 @@ $(TYPEDSIGNATURES)
     setline(1)   
     if shape==:bug
         gsave()
-        b1 = cos(pi * (index+agent._extras._id)/10) - 1
+        b1 = cos(pi * (index+getfield(agent, :id))/10) - 1
         a1 = (0.4 - 0.08* b1)*size
         a2 =  (0.9 + 0.18* b1)*size
         blnd = blend(Luxor.Point(0, 0), size/18, Luxor.Point(0, 0), size/4, "white", String(shape_color))

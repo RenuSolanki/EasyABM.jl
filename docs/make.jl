@@ -25,9 +25,11 @@ makedocs(
             "Graph Space Examples" => [
                 "Ising model" => "ising.md",
                 "Nearest Neighbor Graph" => "nearest_neighbor_graph.md",
+                "Ising on a nearest neighbor graph" => "NNSIsing.md",
                 ],
             
             ],
+         "Do's and Don'ts" => "tips.md",
          "API" => "api.md",
         ]
          )

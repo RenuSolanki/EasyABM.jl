@@ -1,6 +1,8 @@
 module EasyABM
 
-export  StaticType, MortalType, PropDict, gparams, gparams3d,
+export  Static, Mortal, PropDict, Vect,
+        Periodic, NPeriodic,
+        gparams, gparams3d,
         #create agents and models
         con_2d_agent, con_2d_agents, 
         grid_2d_agent, grid_2d_agents,
@@ -21,11 +23,13 @@ export  StaticType, MortalType, PropDict, gparams, gparams3d,
         get_nodes_avg_props, get_edges_avg_props,
         
         #helpers graph
-        create_simple_graph, create_dir_graph, 
-        hex_grid, square_grid, triangular_grid, 
-        double_triangular_grid, draw_graph,
-        adjacency_matrix, add_node!, kill_node!, 
-        create_edge!, kill_edge!, is_digraph, is_static,
+        static_simple_graph, static_dir_graph, 
+        dynamic_simple_graph, dynamic_dir_graph,
+        hex_grid_graph, square_grid_graph, triangular_grid_graph, 
+        double_triangular_grid_graph, draw_graph,
+        adjacency_matrix, add_node!, add_nodes!, kill_node!, 
+        create_edge!, kill_edge!, kill_all_edges!, flush_graph!,
+        is_digraph, is_static,
         vertices,
 
 
@@ -44,13 +48,12 @@ export  StaticType, MortalType, PropDict, gparams, gparams3d,
         random_empty_node, random_empty_patch, 
 
         #neighbor agents
-        neighbors, in_neighbors, out_neighbors, 
+        neighbors, in_neighbors, out_neighbors, grid_neighbors, euclidean_neighbors,
 
         #misc utilities
-        dotproduct, norm, distance, calculate_direction,
+        dotprod, veclength, distance, calculate_direction
 
         #inbuilt models
-        SIR
     
         
 
@@ -72,11 +75,13 @@ using CairoMakie
 
 
 include("abstracttypes.jl")
+include("vec.jl")
 include("savejld2.jl")
 
 include("agents/generaldefs.jl")
 include("agents/propdict.jl")
 include("agents/propdatadict.jl")
+include("agents/containerdatadict.jl")
 include("agents/agent2d.jl")
 include("agents/agent2dgrid.jl")
 include("agents/agentgr.jl")
@@ -114,7 +119,6 @@ include("graph_model/graphplotlayouts.jl")
 include("graph_model/datahandling.jl")
 include("graph_model/mainfunctions.jl")
 
-include("models_library/SIR.jl")
 
 end # end of module
 

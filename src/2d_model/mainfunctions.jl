@@ -16,45 +16,58 @@ space boundaries
 - `random_positions` : If this property is true, each agent, will be assigned a random position. 
 - `kwargs`` : Keyword argments used as model parameters. 
 """
-function create_2d_model(agents::Union{Vector{AgentDict2D{Symbol, Any}}, Vector{AgentDict2DGrid{Symbol, Any}}}; 
-    graphics=true, fix_agents_num=false, 
-    size::NTuple{2,Int}= (10,10), periodic = false, random_positions=false, kwargs...)
+function create_2d_model(agents::Vector{Agent2D{Symbol, Any, S, A}}; 
+    graphics=true, agents_type::Type{T} = Static, 
+    size::NTuple{2,Int}= (10,10), random_positions=false, 
+    space_type::Type{P} = Periodic,
+    kwargs...) where {T<:MType, S<:Union{Int, AbstractFloat}, P<:SType, A<:SType}
 
     xdim, ydim = size 
     n = length(agents)
 
-    patches = _set_patches(periodic, size)
-    
-    st = :c
-    if eltype(agents)<:AgentDict2DGrid
-        st = :d
+    patches = _set_patches(size)
+
+    agents_new = Vector{Agent2D{Symbol, Any, S, P}}()
+
+    for agent in agents
+        dc = unwrap(agent)
+        dcd = unwrap_data(agent)
+        pos = getfield(agent, :pos)
+        ag = Agent2D{P}(1, pos, dc, dcd, nothing)
+        push!(agents_new, ag)
     end
 
-    parameters, atype = _set_parameters(size, n, fix_agents_num, random_positions, st; kwargs...)
+    agents = agents_new
+       
+
+    parameters = _set_parameters(size, n, random_positions; kwargs...)
+
+    model = SpaceModel2D{T, S, P}(size, patches, agents, Ref(n), graphics, parameters, (aprops = Symbol[], pprops = Symbol[], mprops = Symbol[]), Ref(1))
 
     for (i, agent) in enumerate(agents)
 
-        agent._extras._id = i
+        setfield!(agent, :id, i)
+        agent._extras._new = false
 
-        if !fix_agents_num
-            agent._extras._active = true
-            agent._extras._birth_time = 1 
-            agent._extras._death_time = Inf
+        if random_positions
+            _set_pos!(agent, xdim, ydim)
         end
 
-        manage_default_graphics_data!(agent, graphics, random_positions, size)
+        manage_default_graphics_data!(agent, graphics, size)
 
-        
-        _setup_grid!(agent, patches, periodic, i, xdim, ydim)
+        if T<:Mortal
+            agent._extras._active = true
+            agent._extras._birth_time = 1 
+            agent._extras._death_time = typemax(Int)
+        end
+  
+        _setup_grid!(agent, model, i, xdim, ydim)
         
         _init_agent_record!(agent)
-
-        agent._extras._grid = patches
+         
+        setfield!(agent, :model, model)
 
     end
-
-
-    model = SpaceModel2D(size, patches, agents, Ref(n), periodic, graphics, parameters, (aprops = Symbol[], pprops = Symbol[], mprops = Symbol[]), Ref(1), atype = atype)
 
     return model
 
@@ -66,11 +79,15 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function create_2d_model(; graphics=true, fix_agents_num=false, 
-    size::NTuple{2,Int}= (10,10), periodic = false, random_positions=false, kwargs...)
-    agents = con_2d_agents(0)
-    model = create_2d_model(agents; graphics=graphics, fix_agents_num=fix_agents_num, 
-    size=size, periodic = periodic, random_positions=random_positions, kwargs...)   
+function create_2d_model(; 
+    graphics=true,
+    size::NTuple{2,Int}= (10,10), random_positions=false, 
+    space_type::Type{P} = Periodic,
+    kwargs...) where {P<:SType}
+
+    agents = Agent2D{Symbol, Any, Float64, P}[]
+    model = create_2d_model(agents; graphics=graphics, agents_type=Static, 
+    size=size, random_positions=random_positions, space_type = space_type, kwargs...)   
     return model
 end
 
@@ -117,9 +134,9 @@ function init_model!(model::SpaceModel2D; initialiser::Function = null_init!,
     pprops = get(props_to_record, "patches", Symbol[])
     mprops = get(props_to_record, "model", Symbol[])
 
-    _create_props_lists(aprops, pprops, mprops, model)
-
     initialiser(model) 
+
+    _create_props_lists(aprops, pprops, mprops, model)
 
     getfield(model, :tick)[] = 1
 

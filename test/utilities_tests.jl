@@ -1,45 +1,45 @@
 @testset "utilities_neighbors" begin
-    agents = con_2d_agents(5, pos = (1.0,1.0))
-    model = create_2d_model(agents, grid_size = (10,10),periodic=false)
+    agents = con_2d_agents(5, pos = Vect(1.0,1.0))
+    model = create_2d_model(agents, grid_size = (10,10),space_type = NPeriodic)
     @test Set(neighbors(model.agents[1], model))==Set(model.agents[2:5])   
     @test Set(neighbor_patches(model.agents[1], model, 1)) == Set([(1,2),(2,1),(2,2)])
-    model = create_2d_model(agents, grid_size = (10,10),periodic=true)
+    model = create_2d_model(agents, grid_size = (10,10),space_type = Periodic)
     @test Set(neighbor_patches(model.agents[1], model, 1)) == Set([(1,2),(2,1),(2,2),(10,1),(1,10),(10,10),(2,10),(10,2)])
-    model.agents[1].pos = (5.0,5.0)
-    model.agents[2].pos = (5.0,6.0)
-    model.agents[3].pos = (6.0,5.0)
-    @test model.patches[5,6]._extras._agents == [2]
+    model.agents[1].pos = Vect(5.0,5.0)
+    model.agents[2].pos = Vect(5.0,6.0)
+    model.agents[3].pos = Vect(6.0,5.0)
+    @test model.patches[5,6].agents == [2]
     @test Set(neighbors(model.agents[1], model, 1.5)) == Set(model.agents[2:3])
     @test Set(neighbors(model.agents[1], model, 1.5, metric = :euclidean)) == Set(model.agents[2:3])
 
-    agents = con_3d_agents(5, pos = (1.0,1.0,1.0))
-    model = create_3d_model(agents, grid_size = (5,5,5),periodic=false)
+    agents = con_3d_agents(5, pos = Vect(1.0,1.0,1.0))
+    model = create_3d_model(agents, grid_size = (5,5,5),space_type = NPeriodic)
     @test Set(neighbors(model.agents[1], model))==Set(model.agents[2:5])   
     @test Set(neighbor_patches(model.agents[1], model, 1)) == Set([(1,1,2),(1,2,1),(2,1,1),(1,2,2),(2,1,2),(2,2,1),(2,2,2)])
     #model = create_3d_model(agents, grid_size = (5,5,5),periodic=true)
     # @test Set(neighbor_patches(model.agents[1], model, 1)) == Set([(1,1,2),(1,2,1),(2,1,1),(1,2,2),(2,1,2),(2,2,1),(2,2,2), (5,1,1),(1,5,1),(1,1,5),(5,2,2),(2,5,2),(2,2,5),(5,5,5)])
-    model.agents[1].pos = (4.0,4.0,4.0)
-    model.agents[2].pos = (4.0,4.0,3.0)
-    model.agents[3].pos = (3.0,4.0,4.0)
-    @test model.patches[4,4,3]._extras._agents == [2]
+    model.agents[1].pos = Vect(4.0,4.0,4.0)
+    model.agents[2].pos = Vect(4.0,4.0,3.0)
+    model.agents[3].pos = Vect(3.0,4.0,4.0)
+    @test model.patches[4,4,3].agents == [2]
     @test Set(neighbors(model.agents[1], model, 1.1)) == Set(model.agents[2:3])
     @test Set(neighbors(model.agents[1], model, 1.1, metric = :euclidean)) == Set(model.agents[2:3])
 
 
 
     mat = sparse([1,2,2,3,3,4,4,5,5,1],[2,1,3,2,4,3,5,4,1,5],[1,1,1,1,1,1,1,1,1,1]) # pentagon 1--2--3--4--5--1 #
-    graph = create_simple_graph(mat)
+    graph = dynamic_simple_graph(mat)
     agents = graph_agents(5, color=:red, node = 1)
-    model = create_graph_model(agents, graph, static_graph = false)
+    model = create_graph_model(agents, graph)
     model.agents[2].node = 3
     @test Set(neighbor_nodes(model.agents[2], model)) == Set([2,4])
     @test Set(neighbor_nodes(3, model)) == Set([2,4])
     kill_node!(2, model)
     @test neighbor_nodes(model.agents[2], model) == [4]
     mat = sparse([1,3,3,5,5,1],[2,2,4,4,1,5],[1,1,1,1,1,0]) # pentagon 1-->2<--3-->4<--5-->1 #
-    graph = create_dir_graph(mat)
+    graph = dynamic_dir_graph(mat)
     agents = graph_agents(5, color=:red, node = 3)
-    model = create_graph_model(agents, graph, static_graph = false)
+    model = create_graph_model(agents, graph)
     @test Set(neighbor_nodes(model.agents[1], model)) == Set([2,4])
     @test Set(neighbor_nodes(3, model)) == Set([2,4])
     @test in_neighbor_nodes(3, model) == Int[]
@@ -56,14 +56,14 @@ end
 
 
 @testset "utilities_more" begin
-    agents = con_2d_agents(5, pos = (0.5,0.5), color=:red)
-    model = create_2d_model(agents, grid_size = (2,2),periodic=false)
-    model.agents[5].pos = (1.5,1.5)
-    @test get_grid_loc(model.agents[5], model) == (2,2)
+    agents = con_2d_agents(5, pos = Vect(0.5,0.5), color=:red)
+    model = create_2d_model(agents, agents_type = Mortal, grid_size = (2,2), space_type = Periodic)
+    model.agents[5].pos = Vect(1.5,1.5)
+    @test get_grid_loc(model.agents[5]) == (2,2)
     @test is_occupied((2,2), model) == true
-    @test agents_at((2,2), model)[1] == model.agents[5]
+    @test collect(agents_at((2,2), model))[1] == model.agents[5]
     @test num_agents_at((2,2), model) == 1
-    model.agents[5].pos = (1.5,0.5)
+    model.agents[5].pos = Vect(1.5,0.5)
     @test is_occupied((2,1), model) == true
     @test is_occupied((2,2), model) == false
     for i in 1:3
@@ -84,14 +84,14 @@ end
     @test num_patches(model, patch->patch.color == :blue) == 2
     @test Set(get_patches(model, patch->patch.color == :blue)) == Set([(1,1),(2,2)])
 
-    agents = con_3d_agents(5, pos = (0.5,0.5,0.5))
-    model = create_3d_model(agents, grid_size = (2,2,2),periodic=false)
-    model.agents[5].pos = (1.5,1.5,1.5)
-    @test get_grid_loc(model.agents[5], model) == (2,2,2)
+    agents = con_3d_agents(5, pos = Vect(0.5,0.5,0.5))
+    model = create_3d_model(agents, agents_type = Mortal, grid_size = (2,2,2),space_type = NPeriodic)
+    model.agents[5].pos = Vect(1.5,1.5,1.5)
+    @test get_grid_loc(model.agents[5]) == (2,2,2)
     @test is_occupied((2,2,2), model) == true
-    @test agents_at((2,2,2), model)[1] == model.agents[5]
+    @test collect(agents_at((2,2,2), model))[1] == model.agents[5]
     @test num_agents_at((2,2,2), model) == 1
-    model.agents[5].pos = (1.5,0.5,0.5)
+    model.agents[5].pos = Vect(1.5,0.5,0.5)
     @test is_occupied((2,1,1), model) == true
     @test is_occupied((2,2,2), model) == false
     for i in 1:3
@@ -117,13 +117,13 @@ end
     @test Set(get_patches(model, patch->patch.color == :blue)) == Set([(1,1,1),(1,1,2),(1,2,1),(1,2,2)])
 
     mat = sparse([1,2,2,3,3,4,4,5,5,1],[2,1,3,2,4,3,5,4,1,5],[1,1,1,1,1,1,1,1,1,1]) # pentagon 1--2--3--4--5--1 #
-    graph = create_simple_graph(mat)
+    graph = dynamic_simple_graph(mat)
     agents = graph_agents(5, color=:red, node = 1)
-    model = create_graph_model(agents, graph, static_graph = false)
+    model = create_graph_model(agents, graph)
     model.agents[5].node = 2
-    @test get_node_loc(model.agents[5], model) == 2
+    @test get_node_loc(model.agents[5]) == 2
     @test is_occupied(2, model) == true
-    @test agents_at(2, model)[1] == model.agents[5]
+    @test collect(agents_at(2, model))[1] == model.agents[5]
     @test num_agents_at(2, model) == 1
     model.agents[5].node = 3
     @test is_occupied(3, model) == true
@@ -154,13 +154,13 @@ end
 
 
     mat = sparse([1,3,3,5,5,1],[2,2,4,4,1,5],[1,1,1,1,1,0]) # pentagon 1-->2<--3-->4<--5-->1 #
-    graph = create_dir_graph(mat)
+    graph = dynamic_dir_graph(mat)
     agents = graph_agents(5, color=:red, node = 1)
-    model = create_graph_model(agents, graph, static_graph = false)
+    model = create_graph_model(agents, graph)
     model.agents[5].node = 2
-    @test get_node_loc(model.agents[5], model) == 2
+    @test get_node_loc(model.agents[5]) == 2
     @test is_occupied(2, model) == true
-    @test agents_at(2, model)[1] == model.agents[5]
+    @test collect(agents_at(2, model))[1] == model.agents[5]
     @test num_agents_at(2, model) == 1
     model.agents[5].node = 3
     @test is_occupied(3, model) == true
@@ -205,7 +205,7 @@ end
 # get_nodes_avg_props, get_edges_avg_props,
 
 # #helpers graph
-# create_simple_graph, create_dir_graph, 
+# static_simple_graph, static_dir_graph, 
 # hex_grid, square_grid, triangular_grid, 
 # double_triangular_grid, draw_graph,
 # adjacency_matrix, add_node!, kill_node!, 
@@ -230,4 +230,4 @@ end
 # neighbors, in_neighbors, out_neighbors, 
 
 # #misc utilities
-# dotproduct, norm, distance, calculate_direction,
+# dotprod, veclength, distance, calculate_direction,

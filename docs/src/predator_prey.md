@@ -9,32 +9,33 @@ using EasyABM
 
 We create 200 agents all of type `sheep` to begin with. Our model parameters are 
 
-* max_energy : The maximum energy that an agent (sheep or wolf) can have. 
-* wolf_birth_rate : Probabality of a wolf agent to reproduce once its energy is greater than max_energy/2.  
-* sheep_birth_rate : Probabality of a wolf agent to reproduce once its energy is greater than max_energy/2. 
-* wolves_kill_ability : The probability of a wolf to kill a neighboring sheep.
-* grass_grow_prob : The probability of one unit of grass growing on a patch at a given timestep.
-* max_grass : Max grass a patch can have.
-* initial_wolf_percent : The percent of agents which are wolf initially. 
+* `max_energy` : The maximum energy that an agent (sheep or wolf) can have. 
+* `wolf_birth_rate` : Probabality of a wolf agent to reproduce once its energy is greater than max_energy/2.  
+* `sheep_birth_rate` : Probabality of a wolf agent to reproduce once its energy is greater than max_energy/2. 
+* `wolves_kill_ability` : The probability of a wolf to kill a neighboring sheep.
+* `grass_grow_prob` : The probability of one unit of grass growing on a patch at a given timestep.
+* `max_grass` : Max grass a patch can have.
+* `initial_wolf_percent` : The percent of agents which are wolf initially. 
 
 ```julia
 @enum agenttype sheep wolf
-agents = grid_2d_agents(200, pos = (1,1), color = :white, atype = sheep, 
+agents = grid_2d_agents(200, pos = Vect(1,1), color = :white, atype = sheep, 
     energy = 10.0, keeps_record_of=[:pos, :energy ])
 model = create_2d_model(agents, size = (20,20), 
+    agents_type = Mortal, # agents are mortal, can take birth or die
+    space_type = NPeriodic, # nonperiodic space
     max_energy = 50, 
     wolf_birth_rate = 0.01,
     sheep_birth_rate = 0.1,
     wolves_kill_ability = 0.2,
     max_grass = 5,
     initial_wolf_percent = 0.2,
-    grass_grow_prob = 0.2,
-    periodic = true)
+    grass_grow_prob = 0.2)
 ```
 
 ## Step 2: Initialise the model
 
-In the second step we initialise the agents by defining `initialiser!` function and sending it as an argument to `init_model!`. In the `initialiser!` function we randomly set amount of grass and accordingly color at each patch. We also set a fraction `initial_wolf_percent` of agents to be of type wolf. We set color of sheeps to white and that of wolves to black. We also randomly set the energy and positions of agents. In the `init_model!` function through argument `props_to_record` we tell EasyABM to record the color property of patches during model run. 
+In the second step we initialise the agents by defining `initialiser!` function and sending it as an argument to `init_model!`. In the `initialiser!` function we randomly set amount of grass and accordingly color of each patch. We also set a fraction `initial_wolf_percent` of agents to be of type wolf. We set color of sheeps to white and that of wolves to black. We also randomly set the energy and positions of agents. In the `init_model!` function through argument `props_to_record` we tell EasyABM to record the color property of patches during model run. 
 
 
 ```julia
@@ -57,7 +58,7 @@ function initialiser!(model)
             agent.color = :white
         end
         agent.energy = rand(1:model.parameters.max_energy)+0.0
-        agent.pos = (rand(1:model.size[1]), rand(1:model.size[2]))
+        agent.pos = Vect(rand(1:model.size[1]), rand(1:model.size[2]))
     end
             
 end
@@ -75,7 +76,7 @@ In this step we implement the step logic of the predator prey model in the `step
 function change_pos!(agent)
     dx = rand(-1:1)
     dy = rand(-1:1)
-    agent.pos += (dx, dy)
+    agent.pos += Vect(dx, dy)
 end
 
 function reproduce!(agent, model)
@@ -101,7 +102,7 @@ function act_asa_wolf!(agent, model)
             reproduce!(agent, model)
         end
     elseif energy > 0 
-        nbrs = neighbors(agent, model, 1, metric = :grid)
+        nbrs = collect(grid_neighbors(agent, model, 1))
         n = length(nbrs)
         if n>0
             nbr = nbrs[rand(1:n)]
@@ -180,18 +181,6 @@ animate_sim(model, show_grid=true)
 
 ![png](assets/PPrey/PPreyAnim1.png)
 
-
-Once the model has been run it can be saved to the disk as a jld2 file using following function.
-
-```julia
-save_model(model, model_name = "predator_prey_model", save_as = "predator_prey.jld2", folder = "/path/to/folder/")
-```
-
-A model saved previously as jld2 file, can be fetched as follows 
-
-```julia
-model = open_saved_model(model_name = "predator_prey_model", path = "/path/to/folder/predator_prey.jld2")
-```
 
 After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
 

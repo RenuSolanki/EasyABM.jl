@@ -18,7 +18,7 @@ Base.IteratorEltype(::Type{PropDataDict{T}}) where T = IteratorEltype(T)
 
 function Base.setproperty!(d::PropDataDict, key::Symbol, x)
 
-    if !(d._extras._active)
+    if !(d._extras._active::Bool)
         return
     end
 

@@ -17,8 +17,8 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_vert_pos(graph::AbstractPropGraph{MortalType}, vert, frame, nprops)
-    birth_time = graph.nodesprops[vert]._extras._birth_time
+@inline function _get_vert_pos(graph::AbstractPropGraph{Mortal}, vert, frame, nprops)
+    birth_time = graph.nodesprops[vert]._extras._birth_time::Int
     index = frame-birth_time +1 
     if haskey(graph.nodesprops[vert], :pos)
         vert_pos = (:pos in nprops) ? unwrap_data(graph.nodesprops[vert])[:pos][index] : graph.nodesprops[vert].pos
@@ -33,7 +33,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_vert_pos(graph::AbstractPropGraph{StaticType}, vert, frame, nprops)
+@inline function _get_vert_pos(graph::AbstractPropGraph{Static}, vert, frame, nprops)
     index = frame
     if haskey(graph.nodesprops[vert], :pos)
         vert_pos = (:pos in nprops) ? unwrap_data(graph.nodesprops[vert])[:pos][index] : graph.nodesprops[vert].pos
@@ -47,11 +47,11 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_vert_col(graph::AbstractPropGraph{MortalType}, vert, frame, nprops)
-    birth_time = graph.nodesprops[vert]._extras._birth_time
+@inline function _get_vert_col(graph::AbstractPropGraph{Mortal}, vert, frame, nprops)
+    birth_time = graph.nodesprops[vert]._extras._birth_time::Int
     index = frame-birth_time +1 
     if haskey(graph.nodesprops[vert], :color)
-        vert_col = (:color in nprops) ? unwrap_data(graph.nodesprops[vert])[:color][index] : graph.nodesprops[vert].color
+        vert_col = (:color in nprops) ? unwrap_data(graph.nodesprops[vert])[:color][index]::Symbol : graph.nodesprops[vert].color::Symbol
     else 
         vert_col = :white
     end
@@ -62,10 +62,10 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_vert_col(graph::AbstractPropGraph{StaticType}, vert, frame, nprops)
+@inline function _get_vert_col(graph::AbstractPropGraph{Static}, vert, frame, nprops)
     index = frame
     if haskey(graph.nodesprops[vert], :color)
-        vert_col = (:color in nprops) ? unwrap_data(graph.nodesprops[vert])[:color][index] : graph.nodesprops[vert].color
+        vert_col = (:color in nprops) ? unwrap_data(graph.nodesprops[vert])[:color][index]::Symbol : graph.nodesprops[vert].color::Symbol
     else 
         vert_col = :white
     end
@@ -81,18 +81,12 @@ end
 
 @inline function out_links(graph::PropDict, vert)
     if haskey(graph, :structure)
-        out_structure = Int[]
         structure = graph.structure[vert]
-        for k in structure
-            if k>vert
-                push!(out_structure, k)
-            end
-        end
-        return out_structure
+        return (k for k in structure if k>vert)
     elseif haskey(graph, :out_structure)
-        return graph.out_structure[vert]
+        return (nd for nd in graph.out_structure[vert])
     else
-        return Int[]
+        return (i for i in 1:0)
     end
 end
 
@@ -102,19 +96,19 @@ $(TYPEDSIGNATURES)
 """
 @inline function _get_graph_layout_info(model::GraphModelDynGrTop, graph, frame)
     verts = vertices(graph)
-    alive_verts = verts[[(graph.nodesprops[nd]._extras._birth_time <=frame)&&(frame<=graph.nodesprops[nd]._extras._death_time) for nd in verts]]
+    alive_verts = Iterators.filter(nd-> (graph.nodesprops[nd]._extras._birth_time::Int <=frame)&&(frame<=graph.nodesprops[nd]._extras._death_time::Int), verts)
     verts_pos = Vector{GeometryBasics.Point2{Float64}}()
     verts_dir = Vector{GeometryBasics.Vec2{Float64}}()
     verts_color = Vector{Symbol}()
     for vert in alive_verts
-        index = frame-graph.nodesprops[vert]._extras._birth_time + 1
-        out_structure = out_links(graph, vert)
+        index = frame-graph.nodesprops[vert]._extras._birth_time::Int + 1
+        out_structure = collect(out_links(graph, vert))
         active_out_structure, indices = _get_active_out_structure(graph, vert, out_structure, frame)
         pos = _get_vert_pos(graph, vert, frame, model.record.nprops)
         pos_p = GeometryBasics.Point(pos)
         vert_col = :black 
         if haskey(graph.nodesprops[vert], :color)
-            vert_col = (:color in model.record.nprops) ? unwrap_data(graph.nodesprops[vert])[:color][index] : graph.nodesprops[vert].color
+            vert_col = (:color in model.record.nprops) ? unwrap_data(graph.nodesprops[vert])[:color][index]::Symbol : graph.nodesprops[vert].color::Symbol
         end
         push!(verts_pos, pos_p)
         push!(verts_dir, GeometryBasics.Vec(0.0,0))
@@ -147,7 +141,7 @@ $(TYPEDSIGNATURES)
 
         vert_col = :black 
         if haskey(graph.nodesprops[vert], :color)
-            vert_col = (:color in model.record.nprops) ? unwrap_data(graph.nodesprops[vert])[:color][index] : graph.nodesprops[vert].color
+            vert_col = (:color in model.record.nprops) ? unwrap_data(graph.nodesprops[vert])[:color][index]::Symbol : graph.nodesprops[vert].color::Symbol
         end
 
         push!(verts_pos, pos_p)
@@ -169,12 +163,12 @@ $(TYPEDSIGNATURES)
 """
 @inline function _get_agents_pos(model::GraphModelDynAgNum, graph, frame)
     posits = Vector{GeometryBasics.Vec2{Float64}}()
-    all_agents = vcat(model.agents, model.parameters._extras._agents_killed)
+    all_agents = vcat(model.agents, model.agents_killed)
     for agent in all_agents
         agent_data = unwrap_data(agent)
-        if (agent._extras._birth_time<= frame)&&(frame<= agent._extras._death_time)
-            index = frame - agent._extras._birth_time +1
-            node = (:node in agent.keeps_record_of) ? agent_data[:node][index] : agent.node
+        if (agent._extras._birth_time::Int<= frame)&&(frame<= agent._extras._death_time::Int)
+            index = frame - agent._extras._birth_time::Int +1
+            node = (:node in agent.keeps_record_of::Vector{Symbol}) ? agent_data[:node][index]::Int : agent.node
             pos = _get_vert_pos(graph, node, frame, model.record.nprops)+GeometryBasics.Vec(0.05-0.1*rand(), 0.05-0.1*rand())
             push!(posits, pos)
         end
@@ -191,7 +185,7 @@ $(TYPEDSIGNATURES)
     for agent in model.agents
         agent_data = unwrap_data(agent)
         index = frame 
-        node = (:node in agent.keeps_record_of) ? agent_data[:node][index] : agent.node
+        node = (:node in agent.keeps_record_of::Vector{Symbol}) ? agent_data[:node][index]::Int : agent.node
         pos = _get_vert_pos(graph, node, frame, model.record.nprops)+GeometryBasics.Vec(0.05-0.1*rand(), 0.05-0.1*rand())
         push!(posits, pos)
     end
@@ -219,7 +213,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_vert(pos, col, node_size, neighs_pos, oriented) 
+@inline function draw_vert(pos, col, node_size, neighs_pos, oriented::Bool) 
 
     width = gparams.width
     height = gparams.height
@@ -290,8 +284,8 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agent(agent::AgentDictGr, model::GraphModel, graph, node_size, scl, index, frame) # the check 0<index< length(data) has been made before calling the function.
-    record = agent.keeps_record_of
+@inline function draw_agent(agent::GraphAgent, model::GraphModel, graph, node_size, scl, index::Int, frame::Int) # the check 0<index< length(data) has been made before calling the function.
+    record = agent.keeps_record_of::Vector{Symbol}
     agent_data = unwrap_data(agent)   
     
     width = gparams.width
@@ -301,14 +295,14 @@ $(TYPEDSIGNATURES)
     node_size = node_size*w
 
 
-    node = (:node in record) ? agent_data[:node][index] : agent.node
+    node = (:node in record) ? agent_data[:node][index]::Int : agent.node
 
     
     pos = _get_vert_pos(graph, node, frame, model.record.nprops) #model.graph.nodesprops[node]._extras._pos
 
-    orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
-    shape = (:shape in record) ? agent_data[:shape][index] : agent.shape
-    shape_color = (:color in record) ? agent_data[:color][index] : agent.color
+    orientation = (:orientation in record) ? agent_data[:orientation][index]::Float64 : agent.orientation::Float64
+    shape = (:shape in record) ? agent_data[:shape][index]::Symbol : agent.shape::Symbol
+    shape_color = (:color in record) ? agent_data[:color][index]::Symbol : agent.color::Symbol
 
     if !(shape in keys(shapefunctions2d))
         shape = :circle
@@ -317,7 +311,7 @@ $(TYPEDSIGNATURES)
     size = node_size
     
     if haskey(agent_data, :size)
-        size = (:size in record) ? agent_data[:size][index] : agent.size
+        size = (:size in record) ? agent_data[:size][index]::Union{Int, Float64} : agent.size::Union{Int, Float64}
     end
     size = size*scl
     
@@ -325,7 +319,7 @@ $(TYPEDSIGNATURES)
 
     x =  w*posx #- w/2
     y =  h*posy #-h/2
-    k1 = agent._extras._id
+    k1 = getfield(agent, :id)
     k2 = agent.node
     pairing_number = Int(((k1+k2)*(k1+k2+1)/2) + k2) # Cantor pairing
     rng= Random.MersenneTwister(pairing_number)
@@ -371,12 +365,12 @@ $(TYPEDSIGNATURES)
 """
 function draw_graph(graph)
     if typeof(graph)<:SimpleGraph
-        graph = create_simple_graph(graph)
+        graph = static_simple_graph(graph)
     end
     if typeof(graph)<:SimpleDiGraph
-        graph = create_dir_graph(graph)
+        graph = static_dir_graph(graph)
     end
-    verts = sort!(vertices(graph))
+    verts = sort!(collect(vertices(graph)))
     if length(verts)==0
         return 
     end

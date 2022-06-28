@@ -3,7 +3,7 @@
     for i in 1:length(props)
         fun=props[i]
         val = fun(obj)
-        push!(typelst, Vector{typeof(val/2)})
+        push!(typelst, Vector{typeof(val./2)})
     end
     return Dict{Symbol, Union{typelst...}}()
 end
@@ -13,21 +13,21 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_agent_data(agent::AbstractPropDict, model::Union{AbstractSpaceModel{MortalType}, AbstractGraphModel{T, MortalType}}, props = agent.keeps_record_of) where T<:MType
+function get_agent_data(agent::AbstractAgent, model::Union{AbstractSpaceModel{Mortal}, AbstractGraphModel{T, Mortal}}, props = agent.keeps_record_of) where T<:MType
     datadict=Dict{Symbol,Any}()
-    uptick = agent._extras._death_time == Inf ? model.tick+1 : agent._extras._death_time+1
-    downtick = agent._extras._birth_time-1
+    uptick = agent._extras._death_time::Int == typemax(Int) ? model.tick+1 : agent._extras._death_time::Int+1
+    downtick = agent._extras._birth_time::Int-1
     for key in props
-        datadict[key] = vcat(fill(missing, downtick),unwrap_data(agent)[key], fill(missing, model.tick-uptick+1))
+        datadict[key] = vcat(fill(missing, downtick),unwrap_data(agent)[key]::Vector, fill(missing, model.tick-uptick+1))
     end
     df = DataFrame(datadict)
-    return (birthtime = agent._extras._birth_time, deathtime = agent._extras._death_time, record = df)   
+    return (birthtime = agent._extras._birth_time::Int, deathtime = agent._extras._death_time::Int, record = df)   
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-function get_agent_data(agent::AbstractPropDict, model::Union{AbstractSpaceModel{StaticType}, AbstractGraphModel{T, StaticType}}, props = agent.keeps_record_of) where T<:MType
+function get_agent_data(agent::AbstractAgent, model::Union{AbstractSpaceModel{Static}, AbstractGraphModel{T, Static}}, props = agent.keeps_record_of) where T<:MType
     datadict=Dict{Symbol,Any}()
     for key in props
         datadict[key] = unwrap_data(agent)[key]
@@ -47,7 +47,7 @@ function get_patch_data(patch, model::AbstractSpaceModel, props = model.record.p
     end
     datadict=Dict{Symbol,Any}()
     for key in props
-        datadict[key] = unwrap_data(model.patches[patch...])[key]
+        datadict[key] = unwrap_data(model.patches[patch...])[key]::Vector
     end
     df = DataFrame(datadict)
     return (record=df,)  
@@ -95,7 +95,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function propnames(obj::AgentDictGr)
+@inline function propnames(obj::GraphAgent)
     names = [:node]
     for key in keys(unwrap(obj))
         if (key!=:_extras)&&(key!=:keeps_record_of)
@@ -129,7 +129,7 @@ $(TYPEDSIGNATURES)
 function get_model_data(model::Union{AbstractSpaceModel, AbstractGraphModel}, props = model.record.mprops)
     datadict=Dict{Symbol,Any}()
     for key in props
-        datadict[key] = unwrap_data(model.parameters)[key]
+        datadict[key] = unwrap_data(model.parameters)[key]::Vector
     end
     df = DataFrame(datadict)
     return (record=df,)  
@@ -165,12 +165,12 @@ end
     if !(:pos in record)
         temp_dict[:pos] = obj.pos
     else
-        temp_dict[:pos] = objdata[:pos][index]
+        temp_dict[:pos] = objdata[:pos][index]::Vect
     end
     return PropDict(temp_dict)
 end
 
-@inline function create_temp_prop_dict(obj::AgentDictGr, objdata::Dict{Symbol, Any}, record::Vector{Symbol}, index::Int)
+@inline function create_temp_prop_dict(obj::GraphAgent, objdata::Dict{Symbol, Any}, record::Vector{Symbol}, index::Int)
     temp_dict = Dict{Symbol,Any}()
     objdict = unwrap(obj)
     for key in keys(objdict)
@@ -183,7 +183,7 @@ end
     if !(:node in record)
         temp_dict[:node] = obj.node
     else
-        temp_dict[:node] = objdata[:node][index]
+        temp_dict[:node] = objdata[:node][index]::Int
     end
     return PropDict(temp_dict)
 end
@@ -191,11 +191,11 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_nums_agents(model::Union{AbstractSpaceModel{MortalType}, AbstractGraphModel{T, MortalType}}, 
+function get_nums_agents(model::Union{AbstractSpaceModel{Mortal}, AbstractGraphModel{T, Mortal}}, 
     conditions::Function...; labels::Vector{String} = string.(collect(1:length(conditions))), plot_result = false ) where T<: MType
 
     dict = Dict{Symbol, Vector{Int}}()
-    all_agents = vcat(model.agents, model.parameters._extras._agents_killed)
+    all_agents = vcat(model.agents, model.agents_killed)
     for i in 1:length(conditions)
         name = Symbol(labels[i])
         condition = conditions[i]
@@ -203,9 +203,9 @@ function get_nums_agents(model::Union{AbstractSpaceModel{MortalType}, AbstractGr
         for tick in 1:model.tick
             num=0
             for agent in all_agents
-                if (tick>=agent._extras._birth_time)&&(tick<=agent._extras._death_time)
-                    index = tick-agent._extras._birth_time+1
-                    agentcp = create_temp_prop_dict(agent, unwrap_data(agent), agent.keeps_record_of, index)
+                if (tick>=agent._extras._birth_time::Int)&&(tick<=agent._extras._death_time::Int)
+                    index = tick-agent._extras._birth_time::Int+1
+                    agentcp = create_temp_prop_dict(agent, unwrap_data(agent), agent.keeps_record_of::Vector{Symbol}, index)
 
                     if condition(agentcp)
                         num+=1
@@ -226,10 +226,10 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_agents_avg_props(model::Union{AbstractSpaceModel{MortalType}, AbstractGraphModel{T, MortalType}}, 
+function get_agents_avg_props(model::Union{AbstractSpaceModel{Mortal}, AbstractGraphModel{T, Mortal}}, 
     props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
 
-    all_agents = vcat(model.agents, model.parameters._extras._agents_killed)
+    all_agents = vcat(model.agents, model.agents_killed)
 
     if length(all_agents)==0
         return DataFrame()
@@ -242,20 +242,20 @@ function get_agents_avg_props(model::Union{AbstractSpaceModel{MortalType}, Abstr
     for i in 1:length(props)
         fun = props[i]
         name = Symbol(labels[i])
-        val = fun(first_agent) - fun(first_agent)
-        dict[name]=typeof(val/2)[]
+        val = fun(first_agent) .- fun(first_agent)
+        dict[name]=typeof(val./2)[]
         for tick in 1:model.tick
             num_alive = 0
             for agent in all_agents
-                if (tick>=agent._extras._birth_time)&&(tick<=agent._extras._death_time)
-                    index = tick-agent._extras._birth_time+1
-                    agentcp = create_temp_prop_dict(agent, unwrap_data(agent), agent.keeps_record_of, index)
-                    val += fun(agentcp)
+                if (tick>=agent._extras._birth_time::Int)&&(tick<=agent._extras._death_time::Int)
+                    index = tick-agent._extras._birth_time::Int+1
+                    agentcp = create_temp_prop_dict(agent, unwrap_data(agent), agent.keeps_record_of::Vector{Symbol}, index)
+                    val = val .+ fun(agentcp)
                     num_alive+=1
                 end
             end
             if num_alive >0
-                val = val/num_alive
+                val = val./num_alive
             end
             push!(dict[name], val)
         end
@@ -271,7 +271,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_nums_agents(model::Union{AbstractSpaceModel{StaticType}, AbstractGraphModel{T, StaticType}}, 
+function get_nums_agents(model::Union{AbstractSpaceModel{Static}, AbstractGraphModel{T, Static}}, 
     conditions::Function...; labels::Vector{String} = string.(collect(1:length(conditions))), plot_result = false ) where T<: MType
 
     dict = Dict{Symbol, Vector{Int}}()
@@ -282,7 +282,7 @@ function get_nums_agents(model::Union{AbstractSpaceModel{StaticType}, AbstractGr
         for tick in 1:model.tick
             num=0
             for agent in model.agents
-                agentcp = create_temp_prop_dict(agent, unwrap_data(agent), agent.keeps_record_of, tick)
+                agentcp = create_temp_prop_dict(agent, unwrap_data(agent), agent.keeps_record_of::Vector{Symbol}, tick)
                 if condition(agentcp)
                     num+=1
                 end
@@ -301,7 +301,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_agents_avg_props(model::Union{AbstractSpaceModel{StaticType}, AbstractGraphModel{T, StaticType}}, 
+function get_agents_avg_props(model::Union{AbstractSpaceModel{Static}, AbstractGraphModel{T, Static}}, 
     props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
 
     all_agents = model.agents
@@ -318,15 +318,15 @@ function get_agents_avg_props(model::Union{AbstractSpaceModel{StaticType}, Abstr
     for i in 1:length(props)
         fun = props[i]
         name = Symbol(labels[i])
-        val = fun(first_agent) - fun(first_agent)
-        dict[name]=typeof(val/2)[]
+        val = fun(first_agent) .- fun(first_agent)
+        dict[name]=typeof(val./2)[]
         for tick in 1:model.tick
             for agent in all_agents
-                agentcp = create_temp_prop_dict(agent, unwrap_data(agent), agent.keeps_record_of, tick)
-                val += fun(agentcp)
+                agentcp = create_temp_prop_dict(agent, unwrap_data(agent), agent.keeps_record_of::Vector{Symbol}, tick)
+                val = val .+ fun(agentcp)
             end
 
-            val = val/num_alive
+            val = val./num_alive
 
             push!(dict[name], val)
         end
@@ -388,14 +388,14 @@ function get_patches_avg_props(model::AbstractSpaceModel,
     for i in 1:length(props)
         fun = props[i]
         name = Symbol(labels[i])
-        val = fun(first_patch) - fun(first_patch)
-        dict[name]=typeof(val/2)[]
+        val = fun(first_patch) .- fun(first_patch)
+        dict[name]=typeof(val./2)[]
         for tick in 1:model.tick
             for patch in model.patches
                 patchcp = create_temp_prop_dict(unwrap(patch), unwrap_data(patch), model.record.pprops, tick)       
-                val += fun(patchcp)                
+                val = val .+ fun(patchcp)                
             end
-            val = val/num_patches
+            val = val./num_patches
 
             push!(dict[name], val)
         end

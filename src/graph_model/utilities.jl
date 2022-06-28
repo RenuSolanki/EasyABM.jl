@@ -14,7 +14,7 @@ $(TYPEDSIGNATURES)
 
 Returns nodes neighboring node of the given agent.
 """
-function neighbor_nodes(agent::AgentDictGr, model::GraphModel)
+function neighbor_nodes(agent::GraphAgent, model::GraphModel)
 
     return all_neighbors(model.graph, agent.node)  
 end
@@ -35,7 +35,7 @@ $(TYPEDSIGNATURES)
 
 Returns nodes of incoming edges at given agent's node.
 """
-function in_neighbor_nodes(agent::AgentDictGr, model::GraphModel)
+function in_neighbor_nodes(agent::GraphAgent, model::GraphModel)
     return  in_neighbors(model.graph, agent.node)
 end
 
@@ -56,7 +56,7 @@ $(TYPEDSIGNATURES)
 
 Returns nodes of outgoing edges at given agent's node.
 """
-function out_neighbor_nodes(agent::AgentDictGr, model::GraphModel)
+function out_neighbor_nodes(agent::GraphAgent, model::GraphModel)
     return out_neighbors(model.graph, agent.node)
 end
 
@@ -67,30 +67,24 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _agents_at_nodes(nbr_nodes, model::GraphModel)
-    neighbors_list = Vector{AgentDictGr{Symbol, Any}}()
-    for node in nbr_nodes
-        ids = model.graph.nodesprops[node]._extras._agents # all these are active for inactive ones are removed
-        for id in ids
-            ag = agent_with_id(id, model)
-            push!(neighbors_list, ag)
-        end
-    end
-    return neighbors_list
+    return (agent_with_id(id, model) for node in nbr_nodes for id in model.graph.nodesprops[node].agents)
 end
 
 @inline function _agents_node_mates(agent, model)
+    i = getfield(agent, :id)
+    ids = model.graph.nodesprops[agent.node].agents
+    return (agent_with_id(l, model) for l in ids if l!=i)
 
-    ag_node = agent.node
-    agents_ids = deepcopy(model.graph.nodesprops[ag_node]._extras._agents)
-    deleteat!(agents_ids , findfirst(m->m==agent._extras._id, agents_ids ))
-    agents_ag_node = Vector{AgentDictGr{Symbol, Any}}()
-    for id in agents_ids
-        ag = agent_with_id(id, model)
-        push!(agents_ag_node, ag)
+end
+
+@inline function _append_agents_node_mates!(agent, model, neighbors_list::Vector{GraphAgent{Symbol, Any, S}}) where S<:MType
+    i = getfield(agent, :id)
+    for l in model.graph.nodesprops[agent.node].agents
+        if l !=i
+            ag = agent_with_id(l, model)::GraphAgent
+            push!(neighbors_list, ag)
+        end
     end
-
-    return agents_ag_node
-
 end
 
 
@@ -100,16 +94,15 @@ $(TYPEDSIGNATURES)
 
 Returns agents on neighboring nodes of given agent.
 """
-function neighbors(agent::AgentDictGr, model::GraphModelDynAgNum)
-    if !(agent._extras._active)
-        return Vector{AgentDictGr{Symbol, Any}}()
+function neighbors(agent::GraphAgent, model::GraphModelDynAgNum)
+    if !(agent._extras._active::Bool)
+        return (j for j in 1:0)
     end
     nbr_nodes = neighbor_nodes(agent, model)
     neighbors_list = _agents_at_nodes(nbr_nodes, model)
-    agents_ag_node = _agents_node_mates(agent, model)
-    
-
-    return vcat(neighbors_list, agents_ag_node)
+    node_mates = _agents_node_mates(agent, model)
+    allmates = [neighbors_list, node_mates]
+    return (j for i in 1:2 for j in allmates[i]) 
 
 end
 
@@ -119,14 +112,12 @@ $(TYPEDSIGNATURES)
 
 Returns agents on neighboring nodes of given agent.
 """
-function neighbors(agent::AgentDictGr, model::GraphModelFixAgNum)
+function neighbors(agent::GraphAgent, model::GraphModelFixAgNum)
     nbr_nodes = neighbor_nodes(agent, model)
     neighbors_list = _agents_at_nodes(nbr_nodes, model)
-    agents_ag_node = _agents_node_mates(agent, model)
-    
-
-    return vcat(neighbors_list, agents_ag_node)
-
+    node_mates = _agents_node_mates(agent, model)
+    allmates = [neighbors_list, node_mates]
+    return (j for i in 1:2 for j in allmates[i]) 
 end
 
 ####################
@@ -137,16 +128,15 @@ $(TYPEDSIGNATURES)
 
 Returns agents on neighboring outgoing nodes of given agent.
 """
-function out_neighbors(agent::AgentDictGr, model::GraphModelDynAgNum)
-    if !(agent._extras._active)
-        return Vector{AgentDictGr{Symbol, Any}}()
+function out_neighbors(agent::GraphAgent, model::GraphModelDynAgNum)
+    if !(agent._extras._active::Bool)
+        return (j for j in 1:0)
     end
     nbr_nodes = out_neighbor_nodes(agent, model)
     neighbors_list = _agents_at_nodes(nbr_nodes, model)
-    agents_ag_node = _agents_node_mates(agent, model)
-    
-
-    return vcat(neighbors_list, agents_ag_node)
+    node_mates = _agents_node_mates(agent, model)
+    allmates = [neighbors_list, node_mates]
+    return (j for i in 1:2 for j in allmates[i]) 
 
 end
 
@@ -155,14 +145,12 @@ $(TYPEDSIGNATURES)
 
 Returns agents on neighboring outgoing nodes of given agent.
 """
-function out_neighbors(agent::AgentDictGr, model::GraphModelFixAgNum)
+function out_neighbors(agent::GraphAgent, model::GraphModelFixAgNum)
     nbr_nodes = out_neighbor_nodes(agent, model)
     neighbors_list = _agents_at_nodes(nbr_nodes, model)
-    agents_ag_node = _agents_node_mates(agent, model)
-    
-
-    return vcat(neighbors_list, agents_ag_node)
-
+    node_mates = _agents_node_mates(agent, model)
+    allmates = [neighbors_list, node_mates]
+    return (j for i in 1:2 for j in allmates[i]) 
 end
 
 
@@ -174,16 +162,15 @@ $(TYPEDSIGNATURES)
 
 Returns agents on neighboring incoming nodes of given agent.
 """
-function in_neighbors(agent::AgentDictGr, model::GraphModelDynAgNum)
-    if !(agent._extras._active)
-        return Vector{AgentDictGr{Symbol, Any}}()
+function in_neighbors(agent::GraphAgent, model::GraphModelDynAgNum)
+    if !(agent._extras._active::Bool)
+        return (j for j in 1:0)
     end
     nbr_nodes = in_neighbor_nodes(agent, model)
     neighbors_list = _agents_at_nodes(nbr_nodes, model)
-    agents_ag_node = _agents_node_mates(agent, model)
-    
-
-    return vcat(neighbors_list, agents_ag_node)
+    node_mates = _agents_node_mates(agent, model)
+    allmates = [neighbors_list, node_mates]
+    return (j for i in 1:2 for j in allmates[i]) 
 
 end
 
@@ -192,14 +179,12 @@ $(TYPEDSIGNATURES)
 
 Returns agents on neighboring incoming nodes of given agent.
 """
-function in_neighbors(agent::AgentDictGr, model::GraphModelFixAgNum)
+function in_neighbors(agent::GraphAgent, model::GraphModelFixAgNum)
     nbr_nodes = in_neighbor_nodes(agent, model)
     neighbors_list = _agents_at_nodes(nbr_nodes, model)
-    agents_ag_node = _agents_node_mates(agent, model)
-    
-
-    return vcat(neighbors_list, agents_ag_node)
-
+    node_mates = _agents_node_mates(agent, model)
+    allmates = [neighbors_list, node_mates]
+    return (j for i in 1:2 for j in allmates[i]) 
 end
 
 
@@ -282,56 +267,205 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function get_nodes(model::GraphModel, condition::Function = _default_true) # choose from active nodes
+@inline function get_nodes(model::GraphModel, condition::Function ) # choose from active nodes
     verts = getfield(model.graph, :_nodes)
-    if condition == _default_true
-        return verts
-    end
-    return verts[[condition(model.graph.nodesprops[vt]) for vt in verts]]
+    return Iterators.filter(vt->condition(model.graph.nodesprops[vt]),verts)
 end
 
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function num_nodes(model::GraphModel, condition::Function = _default_true)
-    if condition == _default_true
-        return model.parameters._extras._num_verts # number of active verts
-    end
-    return length(get_nodes(model, condition))
+@inline function get_nodes(model::GraphModel) # choose from active nodes
+    return (vt for vt in getfield(model.graph, :_nodes))
 end
 
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function get_edges(model::GraphModel, condition::Function = _default_true)
+@inline function num_nodes(model::GraphModel, condition::Function )
+    return count(x->true,get_nodes(model, condition))
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function num_nodes(model::GraphModel)
+    return model.parameters._extras._num_verts::Int # number of active verts
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function get_edges(model::GraphModel, condition::Function)
     eds = edges(model.graph)
-    if condition == _default_true # for edges may not have properties assigned to them
-        return eds
-    end
-    return eds[[condition(model.graph.edgesprops[ed]) for ed in eds]]
+    return Iterators.filter(ed->condition(model.graph.edgesprops[ed]), eds) 
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function get_edges(model::GraphModel)
+    return edges(model.graph)
 end
 
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function num_edges(model::GraphModel, condition::Function = _default_true)
-    if condition == _default_true
-        return model.parameters._extras._num_edges # num of active edges
-    end
-    return length(get_edges(model, condition))
+@inline function num_edges(model::GraphModel, condition::Function)
+    return count(x->true,get_edges(model, condition))
 end
 
 
 """
 $(TYPEDSIGNATURES)
 """
-function square_grid(n, k; periodic = false)
+@inline function num_edges(model::GraphModel)
+    return model.parameters._extras._num_edges::Int # num of active edges
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns node location of the agent.
+"""
+function get_node_loc(agent::GraphAgent)
+    return agent.node
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns list of agents at a given node. 
+"""
+function agents_at(node, model::GraphModel{Mortal, T}) where T<:MType #modifiable graph
+    lst = model.graph.nodesprops[node].agents
+
+    if !(model.graph.nodesprops[node]._extras._active::Bool)
+        return (ag for ag in GraphAgent{Symbol, Any}[])
+    end
+    return (agent_with_id(l, model) for l in lst)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns list of agents at a given node. 
+"""
+function agents_at(node, model::GraphModel{Static, T}) where T<:MType #unmodifiable graph
+    lst = model.graph.nodesprops[node].agents
+ 
+    return (agent_with_id(l, model) for l in lst)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function get_agents(model::GraphModel{T, Mortal}, condition::Function) where {T<:MType}
+    all_agents = [model.agents, model.agents_added]
+    all_agents_itr = (ag for i in 1:2 for ag in all_agents[i])
+    return Iterators.filter(ag-> (ag._extras._active::Bool)&&(condition(ag)), all_agents_itr)
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function get_agents(model::GraphModel{T, Mortal}) where {T<:MType}
+    all_agents = [model.agents, model.agents_added]
+    all_agents_itr = (ag for i in 1:2 for ag in all_agents[i])
+    return Iterators.filter(ag-> ag._extras._active::Bool, all_agents_itr)
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function get_agents(model::GraphModel{T, Static}, condition::Function) where {T<:MType}
+    return Iterators.filter(ag-> condition(ag), model.agents)
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function get_agents(model::GraphModel{T, Static}) where {T<:MType}
+    return (ag for ag in model.agents)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns agent having given id.
+"""
+function agent_with_id(i::Int, model::GraphModel{T, Mortal}) where T<:MType
+    m = model.parameters._extras._len_model_agents::Int
+
+    if i<=m  
+        for j in i:-1:1 # will work if the list of model agents has not been shuffled
+            ag = model.agents[j]
+            if getfield(ag, :id) == i
+                return ag
+            end
+        end
+    end
+
+    for ag in model.agents_added # still assuming that the user will avoid shuffling agents list
+        if getfield(ag, :id) == i
+            return ag
+        end
+    end
+
+    for j in m:-1:1  # check in model.agents list beginning from the end as the initial part has been checked above
+        ag = model.agents[j]
+        if getfield(ag, :id) == i 
+            return ag
+        end
+    end
+
+    for ag in model.agents_killed # finally check in the list of killed agents
+        if getfield(ag, :id) == i
+            return ag
+        end
+    end
+
+    return nothing
+    
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns agent having given id.
+"""
+function agent_with_id(i::Int, model::GraphModel{T, Static}) where T<:MType
+    if getfield(model.agents[i],:id) == i  # will work if agents list has not been shuffled
+        return model.agents[i]
+    end
+
+    for ag in model.agents
+        if getfield(ag, :id) == i 
+            return ag
+        end
+    end
+
+    return nothing
+end
+
+
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function square_grid_graph(n, k; periodic = false)
     m = n*k
     nodenum(i,j) = (j-1)*k+i
-    gr = create_simple_graph(m)
+    gr = static_simple_graph(m)
     if n>=2
         _add_edge_f!(gr,nodenum(1,1),nodenum(1,2))
         _add_edge_f!(gr,nodenum(k,1),nodenum(k,2))
@@ -361,7 +495,7 @@ function square_grid(n, k; periodic = false)
     for i in 1:k
         for j in 1:n
             node = nodenum(i,j)
-            gr.nodesprops[node] = PropDataDict()
+            gr.nodesprops[node] = ContainerDataDict()
             gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
             if (i <k)&&(i>1)&&(j<n)&&(j>1)
                 _add_edge_f!(gr, nodenum(i,j),nodenum(i+1,j))
@@ -390,12 +524,12 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function hex_grid(n, k)
+function hex_grid_graph(n, k)
     n = n%2==0 ? n : n+1 # n must be even
     k = 2k+1 # this k will count number of verts along x axis
     m = n*k
     nodenum(i,j) = (j-1)*k+i
-    gr = create_simple_graph(m)
+    gr = static_simple_graph(m)
     _add_edge_f!(gr,nodenum(1,1),nodenum(1,2))
     _add_edge_f!(gr,nodenum(1,1),nodenum(2,1))
     _add_edge_f!(gr,nodenum(1,n),nodenum(1,n-1))
@@ -433,7 +567,7 @@ function hex_grid(n, k)
                 end
             end
             node = nodenum(i,j)
-            gr.nodesprops[node] = PropDataDict()
+            gr.nodesprops[node] = ContainerDataDict()
             gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
             if nodenum(i,j+1) in gr.structure[nodenum(i,j)] || ((j==n)&&(i%2==0))
                 gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n + (gsize/n)*0.17)
@@ -451,10 +585,10 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function triangular_grid(n, k)
+function triangular_grid_graph(n, k)
     m = n*k
     nodenum(i,j) = (j-1)*k+i
-    gr = create_simple_graph(m)
+    gr = static_simple_graph(m)
     if n>=2
         _add_edge_f!(gr,nodenum(1,1),nodenum(1,2))
         _add_edge_f!(gr,nodenum(k,1),nodenum(k,2))
@@ -484,7 +618,7 @@ function triangular_grid(n, k)
     for i in 1:k
         for j in 1:n
             node = nodenum(i,j)
-            gr.nodesprops[node] = PropDataDict()
+            gr.nodesprops[node] = ContainerDataDict()
             gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
             if (i <k)&&(i>1)&&(j<n)&&(j>1)
                 _add_edge_f!(gr, nodenum(i,j),nodenum(i+1,j))
@@ -515,10 +649,10 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function double_triangular_grid(n, k)
+function double_triangular_grid_graph(n, k)
     m = n*k
     nodenum(i,j) = (j-1)*k+i
-    gr = create_simple_graph(m)
+    gr = static_simple_graph(m)
     if n>=2
         _add_edge_f!(gr,nodenum(1,1),nodenum(1,2))
         _add_edge_f!(gr,nodenum(k,1),nodenum(k,2))
@@ -550,7 +684,7 @@ function double_triangular_grid(n, k)
     for i in 1:k
         for j in 1:n
             node = nodenum(i,j)
-            gr.nodesprops[node] = PropDataDict()
+            gr.nodesprops[node] = ContainerDataDict()
             gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
             if (i <k)&&(i>1)&&(j<n)&&(j>1)
                 _add_edge_f!(gr, nodenum(i,j),nodenum(i+1,j))
@@ -580,5 +714,4 @@ function double_triangular_grid(n, k)
     end
     return gr
 end
-
 

@@ -6,22 +6,23 @@ using EasyABM
 
 ## Step 1: Create Agents and Model
 
-Lets create 200 agents with properties `shape`, `pos`, `vel` and `orientation` (The `orientation` property is used internally by EasyABM to draw the direction agent is facing). The `keeps_record_of` argument is list of properties that the agent will record during time evolution. The model is defined with parameters:
+Lets create 200 agents with properties `shape`, `pos`, `vel` and `orientation` (The `orientation` property is used internally by EasyABM to draw the direction agent is facing). The position `pos` is only accepted as a Vect which is an inbuilt vector type in EasyABM. It is also recommended for both convenience as well as performance to use Vect type for any vectorial properties in the model such as velocity and forces. The `keeps_record_of` argument is list of properties that the agent will record during time evolution. The model is defined with parameters:
 
-* min_dis : The distance between boids below which they start repelling each other.
-* coh_fac : The proportionality constant for the cohere force. 
-* sep_fac : The proportionality constant for the separation force.
-* aln_fac : The proportionality constant for the alignment force.
-* vis_range : The visual range of boids.
-* dt : The proportionality constant between change in position and velocity.
+* `min_dis` : The distance between boids below which they start repelling each other.
+* `coh_fac` : The proportionality constant for the cohere force. 
+* `sep_fac` : The proportionality constant for the separation force.
+* `aln_fac` : The proportionality constant for the alignment force.
+* `vis_range` : The visual range of boids.
+* `dt` : The proportionality constant between change in position and velocity.
 
-The argument `fix_agents_num` is set to true which means that the boids number will remain fixed during simulation. 
+The argument `agents_type` is Static which means that the boids number will remain fixed during simulation. 
 
 ```julia
-boids = con_3d_agents(200, shape = :cone, pos = (0.0,0.0,0.0), 
-    vel=(0.0,0.0,0.0), orientation = 0.0, keeps_record_of = [:pos, :orientation])
-model = create_3d_model(boids,fix_agents_num=true, min_dis = 0.3, coh_fac = 0.05, 
-    sep_fac = 0.5, dt= 0.1, vis_range = 2.0, aln_fac = 0.35, periodic = true)
+boids = con_3d_agents(200, shape = :cone, pos = Vect(0.0,0.0,0.0), 
+    vel=Vect(0.0,0.0,0.0), orientation = 0.0, keeps_record_of = [:pos, :orientation])
+model = create_3d_model(boids, agents_type=Static, 
+    space_type = Periodic, min_dis = 0.3, coh_fac = 0.05, 
+    sep_fac = 0.5, dt= 0.1, vis_range = 2.0, aln_fac = 0.35)
 ```
 
 ## Step 2: Initialise the model
@@ -33,9 +34,9 @@ In this step we set the positions, velocities and orientations of boids and init
 function initialiser!(model)
     xdim, ydim, zdim = model.size
     for boid in model.agents
-        boid.pos = (rand()*xdim, rand()*ydim, rand()*zdim)
-        boid.vel = (1-2*rand(), 1-2*rand(), 1-2*rand())
-        boid.vel /= norm(boid.vel)
+        boid.pos = Vect(rand()*xdim, rand()*ydim, rand()*zdim)
+        boid.vel = Vect(1-2*rand(), 1-2*rand(), 1-2*rand())
+        boid.vel ./= veclength(boid.vel)
         boid.orientation = boid.vel
     end
 end
@@ -50,33 +51,31 @@ In this step we implement the step logic of the flocking model in the `step_rule
 
 ```julia
 
-using GeometryBasics # used to represent forces as Vec
-
 const ep = 0.00001 # to avoid division by zero
 
 function step_rule!(model)
     dt = model.parameters.dt
     for boid in model.agents
-        nbrs = neighbors(boid, model, model.parameters.vis_range)
-        coh_force = Vec(0.0,0,0) 
-        sep_force = Vec(0.0,0,0) 
-        aln_force = Vec(0.0,0,0)
+        nbrs = euclidean_neighbors(boid, model, model.parameters.vis_range)
+        coh_force = Vect(0.0,0.0,0.0) 
+        sep_force = Vect(0.0,0.0,0.0) 
+        aln_force = Vect(0.0,0.0,0.0)
         num = 0
         for nbr in nbrs
             num+=1
             vec = nbr.pos - boid.pos
             coh_force += vec
-            if norm(vec)< model.parameters.min_dis
+            if veclength(vec)< model.parameters.min_dis
                 sep_force -= vec
             end
             aln_force += nbr.vel
         end
-        aln_force = num>0 ? (aln_force/ num - boid.vel)*model.parameters.aln_fac : aln_force
+        aln_force = num>0 ? (aln_force / num - boid.vel) * model.parameters.aln_fac : aln_force
         num = max(1, num)
         coh_force *= (model.parameters.coh_fac/num)
         sep_force *=  model.parameters.sep_fac
         boid.vel  += (coh_force + sep_force) + aln_force
-        boid.vel  /= (norm(boid.vel)+ep)
+        boid.vel  /= (veclength(boid.vel) + ep)
         boid.orientation = boid.vel
         boid.pos += boid.vel*dt
     end

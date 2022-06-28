@@ -11,8 +11,8 @@ Lets create 200 agents with properties `pos`, `mood` and `color`. The `keeps_rec
 
 ```julia
 @enum agentsfeeling happy sad
-agents = grid_3d_agents(200, pos = (1,1,1), color = :red, mood = happy, keeps_record_of=[:pos, :mood])
-model = create_3d_model(agents, size = (7,7,7), min_alike = 8, periodic = false)
+agents = grid_3d_agents(200, pos = Vect(1,1,1), color = :red, mood = happy, keeps_record_of=[:pos, :mood])
+model = create_3d_model(agents, agents_type = Static, space_type = NPeriodic, size = (7,7,7), min_alike = 8)
 ```
 
 ## Step 2: Initialise the model
@@ -21,14 +21,14 @@ In the second step we initialise the agents by defining `initialiser!` function 
 
 
 ```julia
-function initialise!(model)
+function initialiser!(model)
     for agent in model.agents
         agent.color = [:red, :green][rand(1:2)]
         x,y,z = random_empty_patch(model) 
-        agent.pos = (x, y, z)     
+        agent.pos = Vect(x, y, z)     
     end    
     for agent in model.agents
-        nbrs = neighbors(agent, model, 1, metric = :grid)
+        nbrs = grid_neighbors(agent, model, 1)
         num_same = 0
         for nbr in nbrs
             if nbr.color == agent.color
@@ -40,12 +40,12 @@ function initialise!(model)
         end
     end
 end
-init_model!(model, initialiser = initialise!)
+init_model!(model, initialiser = initialiser!)
 ```
 
 ## Step 3: Run the model
 
-In this step we implement the step logic of the Schellings model in the `step_rule!` function and run the model for 200 steps. 
+In this step we implement the step logic of the Schelling's model in the `step_rule!` function and run the model for 200 steps. 
 
 
 
@@ -54,7 +54,7 @@ function step_rule!(model)
     min_alike = model.parameters.min_alike
     for agent in model.agents
         num_alike = 0
-        for nbr in neighbors(agent, model,1)
+        for nbr in grid_neighbors(agent, model,1)
             if agent.color == nbr.color
                 num_alike += 1
             end
@@ -64,7 +64,7 @@ function step_rule!(model)
         else
             agent.mood = sad
             x,y,z = random_empty_patch(model) 
-            agent.pos = (x, y, z)
+            agent.pos = Vect(x, y, z)
         end
     end
     return
@@ -82,26 +82,15 @@ animate_sim(model)
 ![png](assets/Schelling3D/Schelling3DAnim1.png)
 
 
-
-Once the model has been run it can be saved to the disk as a jld2 file using following function.
-
-```julia
-save_model(model, model_name = "schelling3d_model", save_as = "schelling3d.jld2", folder = "/path/to/folder/")
-```
-
-A model saved previously as jld2 file, can be fetched as follows 
-
-```julia
-model = open_saved_model(model_name = "schelling3d_model", path = "/path/to/folder/schelling3d.jld2")
-```
-
 After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
 
 ```julia
-create_interactive_app(model, initialiser= initialise!,
+create_interactive_app(model, initialiser= initialiser!,
     step_rule=step_rule!,
     model_controls=[(:min_alike, :s, 1:12)], 
-    agent_plots=Dict("happy"=> agent-> agent.mood == happy ? 1 : 0, "sad"=> agent-> agent.mood == sad ? 1 : 0),
+    agent_plots=Dict(
+        "happy"=> agent-> agent.mood == happy, 
+        "sad"=> agent-> agent.mood == sad),
     frames=200)  
 
 ```
