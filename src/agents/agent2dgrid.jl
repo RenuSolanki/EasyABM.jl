@@ -13,7 +13,7 @@ Following property names are reserved for some specific agent properties
     - color : color of agent
     - size : size of agent
     - orientation : orientation of agent
-    - keeps_record_of : list of properties that the agent records during time evolution. 
+    - `keeps_record_of` : list of properties that the agent records during time evolution. 
 """
 function grid_2d_agent(;pos::Vect{2, Int}=Vect(1,1), #GeometryBasics.Vec{2, Int} = GeometryBasics.Vec(1,1), #NTuple{2, Int}=(1,1), 
     space_type::Type{P} = Periodic, kwargs...) where {P<:SType}

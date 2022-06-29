@@ -33,7 +33,7 @@ Following property names are reserved for some specific agent properties
     - color : color of agent
     - size : size of agent
     - orientation : orientation of agent
-    - keeps_record_of : list of properties that the agent records during time evolution. 
+    - `keeps_record_of` : list of properties that the agent records during time evolution. 
 """
 function con_2d_agent(;pos::Vect{2, S}=Vect(1.0,1.0),#GeometryBasics.Vec{2, S} = GeometryBasics.Vec(1.0,1.0), #NTuple{2, S}=(1.0,1.0), 
     space_type::Type{P}=Periodic,

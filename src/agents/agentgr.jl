@@ -69,7 +69,7 @@ Following property names are reserved for some specific agent properties
     - color : color of agent
     - size : size of agent
     - orientation : orientation of agent
-    - keeps_record_of : list of properties that the agent records during time evolution. 
+    - `keeps_record_of` : list of properties that the agent records during time evolution. 
 """
 function graph_agent(;node=1,
     graph_mort_type::Type{S} = Static, 
