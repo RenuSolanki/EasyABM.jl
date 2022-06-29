@@ -1,4 +1,6 @@
 push!(LOAD_PATH,"../src/")
+push!(LOAD_PATH,"../docs/")
+
 using Documenter, EasyABM
 makedocs(
          sitename = "EasyABM.jl",
