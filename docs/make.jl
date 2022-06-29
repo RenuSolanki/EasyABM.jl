@@ -1,7 +1,7 @@
 push!(LOAD_PATH,"../src/")
 push!(LOAD_PATH,"../docs/")
 
-using Documenter, EasyABM
+using Documenter, DocStringExtensions, EasyABM
 makedocs(
          sitename = "EasyABM.jl",
          modules  = [EasyABM],
