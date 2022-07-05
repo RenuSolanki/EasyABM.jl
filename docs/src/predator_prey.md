@@ -10,8 +10,8 @@ using EasyABM
 We create 200 agents all of type `sheep` to begin with. Our model parameters are 
 
 * `max_energy` : The maximum energy that an agent (sheep or wolf) can have. 
-* `wolf_birth_rate` : Probabality of a wolf agent to reproduce once its energy is greater than max_energy/2.  
-* `sheep_birth_rate` : Probabality of a wolf agent to reproduce once its energy is greater than max_energy/2. 
+* `wolf_birth_rate` : Probability of a wolf agent to reproduce once its energy is greater than max_energy/2.  
+* `sheep_birth_rate` : Probability of a wolf agent to reproduce once its energy is greater than max_energy/2. 
 * `wolves_kill_ability` : The probability of a wolf to kill a neighboring sheep.
 * `grass_grow_prob` : The probability of one unit of grass growing on a patch at a given timestep.
 * `max_grass` : Max grass a patch can have.
