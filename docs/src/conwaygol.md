@@ -16,7 +16,7 @@ model = create_2d_model(size = (20,20), alive_percent = 0.4)
 
 ## Step 2: Initialise the model
 
-In the second step we initialise the agents by defining `initialiser!` function and sending it as an argument to `init_model!`. In the `initialiser!` function we randomly set patches to be either of color `:green` or `:white`. The patches with green color have their 
+In the second step we initialise the patches by defining `initialiser!` function and sending it as an argument to `init_model!`. In the `initialiser!` function we randomly set patches to be either of color `:green` or `:white`. The patches with green color have their 
 `is_alive` property set to true and the patches with white color have their `is_alive` property set to false. We specify the patch properties
 `color` and `is_alive` that we want to be recorded during time evolution in the `props_to_record` argument to the `init_model!` function.
 

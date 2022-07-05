@@ -19,7 +19,7 @@ The argument `agents_type` is Static which means that the boids number will rema
 
 ```julia
 boids = con_3d_agents(200, shape = :cone, pos = Vect(0.0,0.0,0.0), 
-    vel=Vect(0.0,0.0,0.0), orientation = 0.0, keeps_record_of = [:pos, :orientation])
+    vel=Vect(0.0,0.0,0.0), orientation = Vect(0.0,0.0,0.0), keeps_record_of = [:pos, :orientation])
 model = create_3d_model(boids, agents_type=Static, 
     space_type = Periodic, min_dis = 0.3, coh_fac = 0.05, 
     sep_fac = 0.5, dt= 0.1, vis_range = 2.0, aln_fac = 0.35)

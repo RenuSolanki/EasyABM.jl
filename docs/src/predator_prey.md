@@ -35,7 +35,7 @@ model = create_2d_model(agents, size = (20,20),
 
 ## Step 2: Initialise the model
 
-In the second step we initialise the agents by defining `initialiser!` function and sending it as an argument to `init_model!`. In the `initialiser!` function we randomly set amount of grass and accordingly color of each patch. We also set a fraction `initial_wolf_percent` of agents to be of type wolf. We set color of sheeps to white and that of wolves to black. We also randomly set the energy and positions of agents. In the `init_model!` function through argument `props_to_record` we tell EasyABM to record the color property of patches during model run. 
+In the second step we initialise the patches and agents by defining `initialiser!` function and sending it as an argument to `init_model!`. In the `initialiser!` function we randomly set amount of grass and accordingly color of each patch. We also set a fraction `initial_wolf_percent` of agents to be of type wolf. We set color of sheeps to white and that of wolves to black. We also randomly set the energy and positions of agents. In the `init_model!` function through argument `props_to_record` we tell EasyABM to record the color property of patches during model run. 
 
 
 ```julia
