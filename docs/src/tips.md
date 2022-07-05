@@ -4,6 +4,6 @@
 
 
 
-!!! tip "Peformance Tips"
+!!! tip "Performance Tips"
     * Avoid using global variables (its a general tip for Julia users)
     * In EasyABM the types of model properties and agents properties other than position are not declared while defining the model. Therefore, if the user wishes to make code a bit more performant, these properties can be annotated with their types in the `step_rule!` function.
