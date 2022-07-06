@@ -3,9 +3,9 @@ $(TYPEDSIGNATURES)
 
 Creates a model with 
 - `agents` : list of agents.
-- `graph`  : A graph coverted to EasyABM graph from Graph.jl or created with EasyABM graph functionality.
+- `graph`  : A graph created with Graphs.jl and converted to EasyABM graph type Or created directly using EasyABM graph functionality.
 - `graphics` : if true properties of pos, shape, color, orientation will be assigned to each agent by default, if not already assigned by user.
-- `fix_agent_num` : Set it to true if agents do not die and new agents are not born during simulation. 
+- `agents_type` : Set it to Static if number of agents is fixed during model run. Otherwise set it to Mortal. 
 - `decorated_edges` : Set it to true if edges are to be assigned weights or any other properties.
 - `random_positions` : If this property is true, each agent will be assigned a random node on the graph. 
 - `kwargs` : Keyword argments used as model parameters. 
