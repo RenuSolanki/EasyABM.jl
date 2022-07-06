@@ -40,7 +40,7 @@ function Base.show(io::IO, ::MIME"text/plain", a::AbstractAgent2D) # works with 
     println(io," pos :", getfield(a, :pos))
     for (key, value) in unwrap(a)
         if !(key == :_extras)
-            println(io, "    ", key, ": ", value)
+            println(io, " ", key, ": ", value)
         end
     end
 end
@@ -50,7 +50,7 @@ function Base.show(io::IO, a::AbstractAgent2D) # works with print
     println(io," pos :", getfield(a, :pos))
     for (key, value) in unwrap(a)
         if !(key == :_extras)
-            println(io, "    ", key, ": ", value)
+            println(io, " ", key, ": ", value)
         end
     end
 end
@@ -69,7 +69,7 @@ function Base.show(io::IO, ::MIME"text/plain", a::AbstractAgent3D) # works with 
     println(io," pos :", getfield(a, :pos))
     for (key, value) in unwrap(a)
         if !(key == :_extras)
-            println(io, "    ", key, ": ", value)
+            println(io, " ", key, ": ", value)
         end
     end
 end
@@ -79,7 +79,7 @@ function Base.show(io::IO, a::AbstractAgent3D) # works with print
     println(io," pos :", getfield(a, :pos))
     for (key, value) in unwrap(a)
         if !(key == :_extras)
-            println(io, "    ", key, ": ", value)
+            println(io, " ", key, ": ", value)
         end
     end
 end

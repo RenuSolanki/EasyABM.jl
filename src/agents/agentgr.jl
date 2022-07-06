@@ -31,11 +31,11 @@ end
 
 
 function Base.show(io::IO, ::MIME"text/plain", a::GraphAgent) # works with REPL
-    println(io, "GrapgAgent:")
+    println(io, "GraphAgent:")
     println(io, " node: ", a.node)
     for (key, value) in unwrap(a)
         if !(key == :_extras)
-            println(io, "    ", key, ": ", value)
+            println(io, " ", key, ": ", value)
         end
     end
 end
@@ -45,7 +45,7 @@ function Base.show(io::IO, a::GraphAgent) # works with print
     println(io, " node: ", a.node)
     for (key, value) in unwrap(a)
         if !(key == :_extras)
-            println(io, "    ", key, ": ", value)
+            println(io, " ", key, ": ", value)
         end
     end
 end
