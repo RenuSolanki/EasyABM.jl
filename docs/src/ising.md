@@ -25,7 +25,7 @@ In the second step we initialise the nodes of the graph through `initialiser!` f
 
 ```julia
 function initialiser!(model)
-    for node in model.graph.nodes
+    for node in vertices(model.graph)
         if rand()<0.5
             model.graph.nodesprops[node].spin = 1
             model.graph.nodesprops[node].color = :black

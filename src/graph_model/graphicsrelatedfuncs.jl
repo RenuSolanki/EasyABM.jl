@@ -377,22 +377,28 @@ function draw_graph(graph)
 
     if !is_digraph(graph)
         structure = graph.structure
+        if !is_static(graph)
+            graph = convert_type(graph, Static)
+        end
     else
+        if !is_static(graph)
+            graph = convert_type(graph, Static)
+        end
         structure = Dict{Int, Vector{Int}}()
         for node in verts
-            structure[node] = vcat(graph.in_structure[node], graph.out_structure[node]) 
+            structure[node] = unique!(sort!(vcat(graph.in_structure[node], graph.out_structure[node])))
         end
     end
 
     first_vert = verts[1]
     if !(first_vert in keys(graph.nodesprops))
-        graph.nodesprops[first_vert] = PropDataDict()
+        graph.nodesprops[first_vert] = ContainerDataDict()
     end
     if !haskey(graph.nodesprops[first_vert], :pos) && !haskey(graph.nodesprops[first_vert]._extras, :_pos)
         locs_x, locs_y = spring_layout(structure)
         for (i,vt) in enumerate(verts)
             if !(vt in keys(graph.nodesprops))
-                graph.nodesprops[vt] = PropDataDict()
+                graph.nodesprops[vt] = ContainerDataDict()
             end
             graph.nodesprops[vt]._extras._pos = (locs_x[i], locs_y[i])
         end

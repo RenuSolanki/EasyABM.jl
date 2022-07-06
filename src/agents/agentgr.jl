@@ -50,11 +50,11 @@ function Base.show(io::IO, a::GraphAgent) # works with print
     end
 end
 
-function Base.show(io::IO, ::MIME"text/plain", v::Vector{GraphAgent}) # works with REPL
+function Base.show(io::IO, ::MIME"text/plain", v::Vector{<:GraphAgent}) # works with REPL
     println(io, "GraphAgent list with $(length(v)) agents.")
 end
 
-function Base.show(io::IO, v::Vector{GraphAgent}) # works with print
+function Base.show(io::IO, v::Vector{<:GraphAgent}) # works with print
     println(io, "GraphAgent list with $(length(v)) agents.")
 end
 

@@ -65,6 +65,7 @@ static_simple_graph
 static_dir_graph
 dynamic_simple_graph
 dynamic_dir_graph
+convert_type
 hex_grid_graph
 square_grid_graph
 triangular_grid_graph

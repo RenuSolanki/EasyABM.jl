@@ -44,7 +44,7 @@ function create_graph_model(agents::Vector{GraphAgent{Symbol, Any, A}},
     else
         structure = Dict{Int, Vector{Int}}()
         for node in verts
-            structure[node] = vcat(graph.in_structure[node], graph.out_structure[node]) 
+            structure[node] = unique!(sort!(vcat(graph.in_structure[node], graph.out_structure[node])))
         end
     end
 
