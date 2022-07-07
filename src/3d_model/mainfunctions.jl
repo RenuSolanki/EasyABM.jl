@@ -249,6 +249,34 @@ function animate_sim(model::SpaceModel3D, frames::Int=model.tick; show_grid=fals
 end
 
 
+
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Draws a specific frame.
+"""
+function draw_frame(model::SpaceModel3D; frame=model.tick, show_grid=false, vis::Any = nothing)
+    frame = min(frame, model.tick)
+
+    if vis == nothing
+        vis = Visualizer()
+    end
+
+    delete!(vis)
+    _adjust_origin_and_draw_bounding_box(vis)
+
+    if show_grid
+        draw_patches_interact_frame(vis, model, frame)
+    end
+
+    _draw_agents_interact_frame(vis, model, frame, 1.0)
+
+    render(vis)   
+end
+
+
 """
 $(TYPEDSIGNATURES)
 
@@ -287,10 +315,6 @@ function create_interactive_app(inmodel::SpaceModel3D; initialiser::Function = n
         _adjust_origin_and_draw_bounding_box(vis, true)
     end
 
-    if show_grid
-        draw_patches_static(vis,model)
-    end
-
     lblsa = String[]
     condsa = Function[]
     for (lbl, cond) in agent_plots
@@ -314,6 +338,10 @@ function create_interactive_app(inmodel::SpaceModel3D; initialiser::Function = n
         if !plots_only
             delete!(vis["agents"])
             delete!(vis["tails"])
+            delete!(vis["patches"])
+            if show_grid
+                draw_patches_static(vis,model)
+            end
             all_agents = _get_all_agents(model)
             draw_agents_static(vis, model, all_agents, tail...)
         end

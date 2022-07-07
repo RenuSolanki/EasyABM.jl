@@ -381,6 +381,28 @@ end
 """
 $(TYPEDSIGNATURES)
 
+Draws a specific frame.
+"""
+function draw_frame(model::SpaceModel2D; frame=model.tick, show_grid=false)
+    frame = min(frame, model.tick)
+    model.parameters._extras._show_space = show_grid
+    drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
+    if model.graphics
+        Luxor.origin()
+        Luxor.background("white")
+        if show_grid && !(:color in model.record.pprops)
+            draw_patches_static(model)
+        end
+        draw_agents_and_patches(model, frame, 1.0)
+    end
+    finish()
+    drawing
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
 Creates an interactive app for the model.
 """
 function create_interactive_app(inmodel::SpaceModel2D; initialiser::Function = null_init!, 

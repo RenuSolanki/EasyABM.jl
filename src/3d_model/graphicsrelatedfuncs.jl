@@ -22,7 +22,7 @@ const agentgrey   = RGBA(0.5,  0.5,  0.5,  _aalpha)
 const agentorange = RGBA(1.0,  0.65, 0.0,  _aalpha)
 const agentpurple = RGBA(0.93, 0.51, 0.93, _aalpha)
 
-@inline function _adjust_origin_and_draw_bounding_box(vis, show_grid)
+@inline function _adjust_origin_and_draw_bounding_box(vis, show_grid=true)
     xlen = gparams3d.xlen+0.0
     ylen = gparams3d.ylen+0.0
     zlen = gparams3d.zlen+0.0
@@ -43,8 +43,9 @@ const agentpurple = RGBA(0.93, 0.51, 0.93, _aalpha)
     setobject!(vis["bbox_line_segments"]["10"], MeshCat.LineSegments([MeshCat.Point(xlen, ylen, zlen),MeshCat.Point(0, ylen, zlen)], blackl))
     setobject!(vis["bbox_line_segments"]["11"], MeshCat.LineSegments([MeshCat.Point(0, 0, zlen),MeshCat.Point(0, ylen, zlen)], blackl))
     setobject!(vis["bbox_line_segments"]["12"], MeshCat.LineSegments([MeshCat.Point(0, 0, zlen),MeshCat.Point(xlen, 0, zlen)], blackl))
-    
+    return   
 end
+
 
 
 @inline function draw_patches_static(vis, model::SpaceModel3D)
@@ -382,4 +383,5 @@ end
     settransform!(vis["agents"]["$(getfield(agent, :id))"], LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1), MeshCat.Vec(ao,bo,co+0.0))))
     setprop!(vis["agents"]["$(getfield(agent, :id))"], "position", MeshCat.Vec(x,y,z))
 end
+
 

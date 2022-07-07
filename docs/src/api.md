@@ -32,6 +32,7 @@ create_graph_model
 init_model!
 run_model!
 run_model_epochs!
+draw_frame
 animate_sim
 create_interactive_app
 ```

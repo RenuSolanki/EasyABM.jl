@@ -1088,7 +1088,7 @@ end
 
 """
 $(TYPEDSIGNATURES)
-not meant to combine general graph; serves only a specific use case.
+not meant to combine general graphs; serves only a specific use case.
 """
 function combined_graph(grapha::DirPropGraph, graphb::DirPropGraph) 
     graphc = deepcopy(grapha)
@@ -1126,7 +1126,7 @@ end
 
 """
 $(TYPEDSIGNATURES)
-not meant to combine general graph; serves only a specific use case.
+not meant to combine general graphs; serves only a specific use case.
 """
 function combined_graph!(grapha::DirPropGraph, graphb::DirPropGraph)
     graphc = grapha

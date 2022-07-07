@@ -539,6 +539,33 @@ end
 """
 $(TYPEDSIGNATURES)
 
+Draws a specific frame.
+"""
+function draw_frame(model::GraphModel; frame=model.tick, show_graph=true)
+    frame = min(frame, model.tick)
+    model.parameters._extras._show_space = show_graph
+    graph = combined_graph(model.graph, model.dead_meta_graph)
+    verts = getfield(graph, :_nodes)
+    node_size = _get_node_size(model.parameters._extras._num_verts::Int)
+    drawing = Drawing(gparams.width, gparams.height, :png)
+    if model.graphics
+        Luxor.origin()
+        Luxor.background("white")
+        if is_static(model.graph) && show_graph
+            for vert in verts
+                _draw_da_vert(graph, vert, node_size, frame, model.record.nprops)
+            end
+        end
+        draw_agents_and_graph(model,graph, verts, node_size, frame, 1.0)
+    end
+    finish()
+    drawing
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
 Creates an interactive app for the model.
 """
 function create_interactive_app(inmodel::GraphModel; initialiser::Function = null_init!, 
