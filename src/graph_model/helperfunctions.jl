@@ -427,7 +427,7 @@ throw an error if the user tries to delete a node which is not there. Also the n
 can not be killed and the number of agents at the given node is nonzero.
 """
 function kill_node!(node, model::GraphModelDynGrTop)
-    if model.graph.nodesprops[node]._extras._active::Bool # we keep a reference of dead node
+    if model.graph.nodesprops[node]._extras._active::Bool
         if !(model.parameters._extras._keep_deads_data::Bool)
             condition = _clear_node!(node, model)     
             if !condition

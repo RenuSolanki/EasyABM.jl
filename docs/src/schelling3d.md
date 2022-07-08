@@ -73,6 +73,14 @@ end
 run_model!(model, steps=200, step_rule = step_rule!)
 ```
 
+The following code will draw the state of the model at frame number 4. 
+
+```julia
+using MeshCat
+vis = Visualizer()
+draw_frame(model, frame=4, vis = vis, show_grid=true)
+```
+
 If one wants to see the animation of the model run, it can be done as 
 
 ```julia

@@ -308,7 +308,7 @@ $(TYPEDSIGNATURES)
         shape = :circle
     end
 
-    size = node_size
+    size = node_size*0.5
     
     if haskey(agent_data, :size)
         size = (:size in record) ? agent_data[:size][index]::Union{Int, Float64} : agent.size::Union{Int, Float64}

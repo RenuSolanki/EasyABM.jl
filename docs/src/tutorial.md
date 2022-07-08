@@ -55,7 +55,7 @@ Now we can run the model for desired number of steps as follows
 run_model!(model, steps = 200, step_rule = step_rule!)
 ```
 
-Once the model has run, we can look at the animation of the time evolution with following line of code
+In order to draw the model at a specific frame, say 4th, one can use `draw_frame(model, frame = 4)`. We can look at the animation of the time evolution with following line of code
 
 ```julia
 animate_sim(model)

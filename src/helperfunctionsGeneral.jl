@@ -366,7 +366,7 @@ Sets the agent as inactive thus effectively removing from the model. However, th
 are permanently removed from the list `model.agents` only after each step.
 """
 function kill_agent!(agent::AbstractAgent, model::AbstractGraphModel{T,Mortal}) where T<:MType
-    if agent._extras._active
+    if agent._extras._active::Bool
         x=agent.node
         id = getfield(agent, :id)
         deleteat!(model.graph.nodesprops[x].agents, findfirst(m->m==id, model.graph.nodesprops[x].agents))

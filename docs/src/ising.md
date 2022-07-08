@@ -70,7 +70,7 @@ end
 run_model!(model, steps=200, step_rule = step_rule! )
 ```
 
-If one wants to see the animation of the model run, it can be done as 
+In order to draw the model at a specific frame, say 4th, one can use `draw_frame(model, frame = 4)`. If one wants to see the animation of the model run, it can be done as 
 
 ```julia
 animate_sim(model)
