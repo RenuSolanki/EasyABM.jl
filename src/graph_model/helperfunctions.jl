@@ -227,6 +227,20 @@ end
 
 """
 $(TYPEDSIGNATURES)
+"""
+function add_node!(model::GraphModelFixGrTop; kwargs...)
+    _static_graph_error()
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function add_nodes!(n, model::GraphModelFixGrTop; kwargs...)
+    _static_graph_error()
+end
+
+"""
+$(TYPEDSIGNATURES)
 
 Removes the graph and all of related data completely. 
 """
@@ -236,6 +250,13 @@ function flush_graph!(model::GraphModelDynGrTop)
     model.parameters._extras._num_verts::Int =0
     model.parameters._extras._num_all_verts::Int=0
     model.parameters._extras._max_node_id::Int = 0
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function flush_graph!(model::GraphModelFixGrTop)
+    _static_graph_error()
 end
 
 
@@ -340,6 +361,20 @@ Adds an edge with properties `kwargs` to model graph.
 function create_edge!(edge, model::GraphModelDynGrTop; kwargs...)
     i,j = edge
     create_edge!(i, j, model; kwargs...)
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function create_edge!(i, j, model::GraphModelFixGrTop; kwargs...)
+    _static_graph_error()
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function create_edge!(edge, model::GraphModelFixGrTop; kwargs...)
+    _static_graph_error()
 end
 
 
@@ -458,6 +493,13 @@ function kill_node!(node, model::GraphModelDynGrTop)
     end
 end
 
+"""
+$(TYPEDSIGNATURES)
+"""
+function kill_node!(node, model::GraphModelFixGrTop)
+    _static_graph_error()
+end
+
 
 @inline function _shift_edge_from_alive_to_dead(graph::SimplePropGraph, dead_graph, i, j)
     deleteat!(graph.structure[j], findfirst(x->x==i,graph.structure[j]))
@@ -546,6 +588,21 @@ function kill_edge!(edge, model::GraphModelDynGrTop)
     kill_edge!(i,j,model)
 end
 
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function kill_edge!(i,j, model::GraphModelFixGrTop) 
+    _static_graph_error()
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function kill_edge!(edge, model::GraphModelFixGrTop) 
+    _static_graph_error()
+end
+
 """
 $(TYPEDSIGNATURES)
 
@@ -555,6 +612,13 @@ function kill_all_edges!(model::GraphModelDynGrTop)
     for edge in edges(model.graph)
         kill_edge!(edge, model)
     end
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function kill_all_edges!(model::GraphModelFixGrTop) 
+    _static_graph_error()
 end
 
 

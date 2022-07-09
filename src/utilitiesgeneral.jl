@@ -24,7 +24,7 @@ function calculate_direction(vel::Union{NTuple{3,T}, Vect{3, T}}) where T<:Real
     if (ln ≈ 0.0)
         return 0.0
     end
-    orientation = vel/ln
+    orientation = vel ./ ln
     return orientation
 end
 

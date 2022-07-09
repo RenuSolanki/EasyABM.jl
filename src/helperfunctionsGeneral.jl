@@ -66,20 +66,7 @@ $(TYPEDSIGNATURES)
     return veclength(a .- b)
 end
 
-# Base.:+(x::GeometryBasics.Vec{N,<:Real},y::NTuple{N,Union{Integer, AbstractFloat}} ) where N = x .+ y
-# Base.:-(x::GeometryBasics.Vec{N,<:Real},y::NTuple{N,Union{Integer, AbstractFloat}} ) where N = x .- y
 
-# Base.:+(x::NTuple{N,Union{Integer, AbstractFloat}},y::GeometryBasics.Vec{N,<:Real}) where N = x .+ y
-# Base.:-(x::NTuple{N,Union{Integer, AbstractFloat}},y::GeometryBasics.Vec{N,<:Real}) where N = x .- y
-
-
-# Base.:+(x::NTuple{N,Union{Integer, AbstractFloat}},y::NTuple{N,Union{Integer, AbstractFloat}} ) where N = x .+ y
-# Base.:-(x::NTuple{N,Union{Integer, AbstractFloat}},y::NTuple{N,Union{Integer, AbstractFloat}} ) where N = x .- y 
-
-# Base.:*(x::NTuple{N,Union{Integer, AbstractFloat}},y::Real ) where N = x .* y
-# Base.:*(x::Real,y::NTuple{N,Union{Integer, AbstractFloat}} ) where N = x .* y 
-
-# Base.:/(x::NTuple{N,Union{Integer, AbstractFloat}},y::Real ) where N = x ./ y
 
 
 
@@ -358,6 +345,22 @@ function kill_agent!(agent::AbstractAgent, model::AbstractSpaceModel{Mortal})
     end
 end
 
+_static_agents_error() = throw(error("Number of static agents is fixed. Set agents_type = Mortal in model definition."))
+_static_graph_error() = throw(error("A static graph can not be modified. Use a dynamic graph in model definition."))
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function kill_agent!(agent::AbstractAgent, model::AbstractSpaceModel{Static})
+    _static_agents_error()
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function add_agent!(agent, model::AbstractSpaceModel{Static})
+    _static_agents_error()
+end
 
 """
 $(TYPEDSIGNATURES)
@@ -373,6 +376,22 @@ function kill_agent!(agent::AbstractAgent, model::AbstractGraphModel{T,Mortal}) 
         _kill_agent!(agent, model.agents_killed, model.tick)
         model.parameters._extras._num_agents::Int -= 1
     end
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function kill_agent!(agent::AbstractAgent, model::AbstractGraphModel{T,Static}) where T<:MType
+    _static_agents_error()
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function add_agent!(agent, model::AbstractGraphModel{T,Static}) where T<:MType
+    _static_agents_error()
 end
 
 
