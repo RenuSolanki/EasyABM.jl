@@ -8,7 +8,7 @@ EasyABM.jl is a Julia package for agents based modelling applications. See the [
 ## Citation 
 
 ```
-@article{Agents.jl,
+@article{EasyABM.jl,
   doi = {10.48550/arXiv.2207.02107},
   url = {https://doi.org/10.48550/arXiv.2207.02107},
   year = {2022},
