@@ -1,4 +1,4 @@
-# Ramdom Walkers
+# Random Walkers
 
 A simple example of random walkers in 2D. 
 
