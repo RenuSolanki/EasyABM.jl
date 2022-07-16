@@ -16,7 +16,7 @@ makedocs(
                 "SIR model" => "SIR.md",
                 "Predator-prey" => "predator_prey.md",
                 "Conways Game of Life" => "conwaygol.md",
-
+                "Random Walkers" => "random_walkers.md",
                 ],
                 
             "3D Examples" => [
