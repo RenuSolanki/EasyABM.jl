@@ -166,7 +166,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_nums_nodes(model::GraphModelDynGrTop, conditions::Function...; labels::Vector{String} = string.(collect(1:length(conditions))), plot_result = false ) where N
+function get_nums_nodes(model::GraphModelDynGrTop, conditions::Function...; labels::Vector{String} = string.(collect(1:length(conditions))), plot_result = false )
     dict = Dict{Symbol, Vector{Int}}()
     dead_graph = model.dead_meta_graph
     for i in 1:length(conditions)
@@ -212,7 +212,7 @@ end
 $(TYPEDSIGNATURES)
 """
 function get_nodes_avg_props(model::GraphModelDynGrTop, 
-    props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
+    props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false )
 
     dead_graph = model.dead_meta_graph
     verts = getfield(model.graph, :_nodes)
@@ -274,7 +274,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_nums_nodes(model::GraphModelFixGrTop, conditions::Function...; labels::Vector{String} = string.(collect(1:length(conditions))), plot_result = false ) where N
+function get_nums_nodes(model::GraphModelFixGrTop, conditions::Function...; labels::Vector{String} = string.(collect(1:length(conditions))), plot_result = false )
     dict = Dict{Symbol, Vector{Int}}()
     for i in 1:length(conditions)
         name = Symbol(labels[i])
@@ -305,7 +305,7 @@ end
 $(TYPEDSIGNATURES)
 """
 function get_nodes_avg_props(model::GraphModelFixGrTop, 
-    props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
+    props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false )
 
     verts = getfield(model.graph, :_nodes)
     num_alive = length(verts)
@@ -343,7 +343,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_nums_edges(model::GraphModelDynGrTop, conditions::Function...; labels::Vector{String} = string.(collect(1:length(conditions))), plot_result = false ) where N
+function get_nums_edges(model::GraphModelDynGrTop, conditions::Function...; labels::Vector{String} = string.(collect(1:length(conditions))), plot_result = false )
     dict = Dict{Symbol, Vector{Int}}()
     dead_graph = model.dead_meta_graph
     for i in 1:length(conditions)
@@ -405,7 +405,7 @@ end
 $(TYPEDSIGNATURES)
 """
 function get_edges_avg_props(model::GraphModelDynGrTop, 
-    props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
+    props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false )
 
     dead_graph = model.dead_meta_graph
     eds = collect(edges(model.graph))
@@ -478,7 +478,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_nums_edges(model::GraphModelFixGrTop, conditions::Function...;labels::Vector{String} = string.(collect(1:length(conditions))), plot_result = false ) where N
+function get_nums_edges(model::GraphModelFixGrTop, conditions::Function...;labels::Vector{String} = string.(collect(1:length(conditions))), plot_result = false )
     dict = Dict{Symbol, Vector{Int}}()
     for i in 1:length(conditions)
         name = Symbol(labels[i])
@@ -507,7 +507,7 @@ end
 $(TYPEDSIGNATURES)
 """
 function get_edges_avg_props(model::GraphModelFixGrTop, 
-    props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
+    props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false )
 
     eds = collect(edges(model.graph))
     num_alive = length(eds)
