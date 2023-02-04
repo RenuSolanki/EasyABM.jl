@@ -373,7 +373,7 @@ end
 $(TYPEDSIGNATURES)
 """
 function get_patches_avg_props(model::AbstractSpaceModel, 
-    props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
+    props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false )
 
     first_patch = model.patches[[1 for _ in model.size]...]
 
