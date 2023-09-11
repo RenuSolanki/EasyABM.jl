@@ -141,18 +141,19 @@ $(TYPEDSIGNATURES)
     orientation = (:orientation in record) ? agent_data[:orientation][index]::Float64 : agent.orientation::Float64
     shape = (:shape in record) ? agent_data[:shape][index]::Symbol : agent.shape::Symbol
     shape_color = (:color in record) ? agent_data[:color][index]::Symbol : agent.color::Symbol
+    size = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat} : agent.size::Union{Int, <:AbstractFloat}
 
     if !(shape in keys(shapefunctions2d))
         shape = :circle
     end
 
-    size = xdim/50
+    # size = xdim/50
 
-    if haskey(agent_data, :size)
-        size = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat} : agent.size::Union{Int, <:AbstractFloat}
-    end
+    # if haskey(agent_data, :size)
+    #     size = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat} : agent.size::Union{Int, <:AbstractFloat}
+    # end
    
-    size = size*scl*w
+    size = size*scl*w/100
 
     posx,posy = pos
     x =  w*posx #- w/2
@@ -201,7 +202,7 @@ $(TYPEDSIGNATURES)
                 p1 = Luxor.Point(agent_tail[j]...)*(w,h)
                 p2 = Luxor.Point(agent_tail[j+1]...)*(w,h)
                 a, b = p1-p2
-                if ((a^2+b^2) > 0.5*min(w^2,h^2)) && periodic
+                if ((a^2+b^2) > 0.5*min(width^2,height^2)) && periodic
                     continue
                 else
                     sethue("blue")
