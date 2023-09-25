@@ -126,7 +126,7 @@ graphics related properties are added to the agent if not already defined.
         end
 
         if !haskey(agent, :size)
-            agent.size = size[1]/50
+            agent.size = 20
         end
 
         if !haskey(agent, :orientation)
