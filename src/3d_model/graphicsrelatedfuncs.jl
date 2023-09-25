@@ -113,7 +113,7 @@ end
 
     index=1
 
-    periodic = is_periodic(model)
+    
     xlen = gparams3d.xlen+0.0
     ylen = gparams3d.ylen+0.0
     zlen = gparams3d.zlen+0.0
@@ -133,18 +133,13 @@ end
         pos = (:pos in record) ? agent_data[:pos][index]::Vect{3, S} .+ offset : agent.pos .+ offset
         orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
         pclr = (:color in record) ? agent_data[:color][index]::Symbol : agent.color::Symbol
+        size = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat} : agent.size::Union{Int, <:AbstractFloat}
     
     
         ao,bo,co = orientation
     
     
         posx,posy,posz = pos
-
-        if periodic
-            posx  = mod1(posx, xdim)
-            posy  = mod1(posy, ydim)
-            posz  = mod1(posz, zdim)
-        end
         
         x =  w*posx 
         y =  l*posy 
@@ -157,11 +152,7 @@ end
         materials = [MeshPhongMaterial(color=cl) for cl in clrs_rgb]
 
 
-        size = 0.3
-
-        if haskey(agent_data, :size)
-            size = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat} : agent.size::Union{Int, <:AbstractFloat}
-        end
+        size = size*w/100
 
         if !(shape in [:sphere, :box, :cone, :cylinder])
             shape = :cone
@@ -332,16 +323,12 @@ end
     pos = (:pos in record) ? agent_data[:pos][index]::Vect{3, S}  .+ offset : agent.pos .+ offset
     orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
     pclr = (:color in record) ? agent_data[:color][index]::Symbol : agent.color::Symbol
+    size = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat} : agent.size::Union{Int, <:AbstractFloat}
 
     ao,bo,co = orientation
 
 
     posx,posy,posz = pos
-    if periodic
-        posx  = mod1(posx, xdim)
-        posy  = mod1(posy, ydim)
-        posz  = mod1(posz, zdim)
-    end
     
     x =  w*posx 
     y =  l*posy 
@@ -352,13 +339,8 @@ end
     material = MeshPhongMaterial(color=clr) 
 
 
-    size = 0.3
+    size = size*scl*w/100
 
-    if haskey(agent_data, :size)
-        size = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat} : agent.size::Union{Int, <:AbstractFloat}
-    end
-
-    size = size*scl
     
     shape = agent.shape::Symbol
 
