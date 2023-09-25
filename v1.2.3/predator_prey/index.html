@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Predator-prey · EasyABM.jl</title><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.044/juliamono.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img src="../assets/logo.png" alt="EasyABM.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../">EasyABM.jl</a></span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Introduction</a></li><li><a class="tocitem" href="../tutorial/">Tutorial</a></li><li><span class="tocitem">Examples</span><ul><li><input class="collapse-toggle" id="menuitem-3-1" type="checkbox" checked/><label class="tocitem" for="menuitem-3-1"><span class="docs-label">2D Examples</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../schelling/">Schellings Segregation model</a></li><li><a class="tocitem" href="../boids/">Flocking</a></li><li><a class="tocitem" href="../stone_paper_scissor/">Rock-Paper-Scissor</a></li><li><a class="tocitem" href="../SIR/">SIR model</a></li><li class="is-active"><a class="tocitem" href>Predator-prey</a><ul class="internal"><li><a class="tocitem" href="#Step-1:-Create-Agents-and-Model"><span>Step 1: Create Agents and Model</span></a></li><li><a class="tocitem" href="#Step-2:-Initialise-the-model"><span>Step 2: Initialise the model</span></a></li><li><a class="tocitem" href="#Step-3:-Run-the-model"><span>Step 3: Run the model</span></a></li><li><a class="tocitem" href="#Step-4:-Fetch-Data"><span>Step 4: Fetch Data</span></a></li></ul></li><li><a class="tocitem" href="../conwaygol/">Conways Game of Life</a></li><li><a class="tocitem" href="../random_walkers/">Random Walkers</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-3-2" type="checkbox"/><label class="tocitem" for="menuitem-3-2"><span class="docs-label">3D Examples</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../schelling3d/">Schellings Segregation model</a></li><li><a class="tocitem" href="../boids3d/">Flocking</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-3-3" type="checkbox"/><label class="tocitem" for="menuitem-3-3"><span class="docs-label">Graph Space Examples</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../ising/">Ising model</a></li><li><a class="tocitem" href="../nearest_neighbor_graph/">Nearest Neighbor Graph</a></li><li><a class="tocitem" href="../NNSIsing/">Ising on a nearest neighbor graph</a></li></ul></li></ul></li><li><a class="tocitem" href="../tips/">Do&#39;s and Don&#39;ts</a></li><li><a class="tocitem" href="../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li><a class="is-disabled">2D Examples</a></li><li class="is-active"><a href>Predator-prey</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Predator-prey</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/RenuSolanki/EasyABM.jl/blob/main/docs/src/predator_prey.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="Predator-prey-model"><a class="docs-heading-anchor" href="#Predator-prey-model">Predator-prey model</a><a id="Predator-prey-model-1"></a><a class="docs-heading-anchor-permalink" href="#Predator-prey-model" title="Permalink"></a></h1><pre><code class="language-julia hljs">using EasyABM</code></pre><h2 id="Step-1:-Create-Agents-and-Model"><a class="docs-heading-anchor" href="#Step-1:-Create-Agents-and-Model">Step 1: Create Agents and Model</a><a id="Step-1:-Create-Agents-and-Model-1"></a><a class="docs-heading-anchor-permalink" href="#Step-1:-Create-Agents-and-Model" title="Permalink"></a></h2><p>We create 200 agents all of type <code>sheep</code> to begin with. Our model parameters are </p><ul><li><code>max_energy</code> : The maximum energy that an agent (sheep or wolf) can have. </li><li><code>wolf_birth_rate</code> : Probability of a wolf agent to reproduce once its energy is greater than max_energy/2.  </li><li><code>sheep_birth_rate</code> : Probability of a sheep agent to reproduce once its energy is greater than max_energy/2. </li><li><code>wolves_kill_ability</code> : The probability of a wolf to kill a neighboring sheep.</li><li><code>grass_grow_prob</code> : The probability of one unit of grass growing on a patch at a given timestep.</li><li><code>max_grass</code> : Max grass a patch can have.</li><li><code>initial_wolf_percent</code> : The percent of agents which are wolf initially. </li></ul><pre><code class="language-julia hljs">@enum agenttype sheep wolf
+agents = grid_2d_agents(200, pos = Vect(1,1), color = :white, atype = sheep, 
+    energy = 10.0, keeps_record_of=[:pos, :energy ])
+model = create_2d_model(agents, size = (20,20), 
+    agents_type = Mortal, # agents are mortal, can take birth or die
+    space_type = NPeriodic, # nonperiodic space
+    max_energy = 50, 
+    wolf_birth_rate = 0.01,
+    sheep_birth_rate = 0.1,
+    wolves_kill_ability = 0.2,
+    max_grass = 5,
+    initial_wolf_percent = 0.2,
+    grass_grow_prob = 0.2)</code></pre><h2 id="Step-2:-Initialise-the-model"><a class="docs-heading-anchor" href="#Step-2:-Initialise-the-model">Step 2: Initialise the model</a><a id="Step-2:-Initialise-the-model-1"></a><a class="docs-heading-anchor-permalink" href="#Step-2:-Initialise-the-model" title="Permalink"></a></h2><p>In the second step we initialise the patches and agents by defining <code>initialiser!</code> function and sending it as an argument to <code>init_model!</code>. In the <code>initialiser!</code> function we randomly set amount of grass and accordingly color of each patch. We also set a fraction <code>initial_wolf_percent</code> of agents to be of type wolf. We set color of sheeps to white and that of wolves to black. We also randomly set the energy and positions of agents. In the <code>init_model!</code> function through argument <code>props_to_record</code> we tell EasyABM to record the color property of patches during model run. </p><pre><code class="language-julia hljs">function initialiser!(model)
+    max_grass = model.parameters.max_grass
+    for j in 1:model.size[2]
+        for i in 1:model.size[1]
+            grass = rand(1:max_grass)
+            model.patches[i,j].grass = grass
+            hf = Int(ceil(max_grass/2))
+            model.patches[i,j].color = grass &gt; hf ? :green : (grass &gt; 0 ? :blue : :grey)
+        end
+    end
+    for agent in model.agents
+        if rand()&lt; model.parameters.initial_wolf_percent 
+            agent.atype = wolf
+            agent.color = :black
+        else
+            agent.atype = sheep
+            agent.color = :white
+        end
+        agent.energy = rand(1:model.parameters.max_energy)+0.0
+        agent.pos = Vect(rand(1:model.size[1]), rand(1:model.size[2]))
+    end
+            
+end
+
+init_model!(model, initialiser = initialiser!, props_to_record = Dict(&quot;patches&quot;=&gt;[:color]))</code></pre><h2 id="Step-3:-Run-the-model"><a class="docs-heading-anchor" href="#Step-3:-Run-the-model">Step 3: Run the model</a><a id="Step-3:-Run-the-model-1"></a><a class="docs-heading-anchor-permalink" href="#Step-3:-Run-the-model" title="Permalink"></a></h2><p>In this step we implement the step logic of the predator prey model in the <code>step_rule!</code> function and run the model for 100 steps. </p><pre><code class="language-julia hljs">function change_pos!(agent)
+    dx = rand(-1:1)
+    dy = rand(-1:1)
+    agent.pos += Vect(dx, dy)
+end
+
+function reproduce!(agent, model)
+    new_agent = create_similar(agent)
+    agent.energy = agent.energy/2
+    new_agent.energy = agent.energy
+    add_agent!(new_agent, model)
+end
+
+function eat_sheep!(wolf, sheep, model)
+    kill_agent!(sheep, model) 
+    wolf.energy+=1
+end
+
+
+function act_asa_wolf!(agent, model)
+    if !(is_alive(agent))
+        return
+    end
+    energy = agent.energy
+    if energy &gt; 0.5*model.parameters.max_energy
+        if rand()&lt;model.parameters.wolf_birth_rate
+            reproduce!(agent, model)
+        end
+    elseif energy &gt; 0 
+        nbrs = collect(grid_neighbors(agent, model, 1))
+        n = length(nbrs)
+        if n&gt;0
+            nbr = nbrs[rand(1:n)]
+            if (nbr.atype == sheep)&amp;&amp;(is_alive(nbr))
+                ability = model.parameters.wolves_kill_ability
+                (rand()&lt;ability)&amp;&amp;(eat_sheep!(agent, nbr, model))
+            end
+        end
+        change_pos!(agent)
+    else
+        kill_agent!(agent, model)
+    end
+end
+
+function act_asa_sheep!(agent, model)
+    if !(is_alive(agent))
+        return
+    end
+    energy = agent.energy
+    if energy &gt;0.5* model.parameters.max_energy
+        if rand()&lt;model.parameters.sheep_birth_rate
+            reproduce!(agent, model)
+        end
+        change_pos!(agent)
+    elseif energy &gt; 0 
+        patch = get_grid_loc(agent, model)
+        grass = model.patches[patch...].grass
+        if grass&gt;0
+            model.patches[patch...].grass-=1
+            agent.energy +=1
+        end
+        change_pos!(agent)
+    else
+        kill_agent!(agent, model)
+    end
+end
+
+
+
+function step_rule!(model)
+    if model.max_id&gt;800 # use some upper bound on max agents to avoid system hang
+        return
+    end
+    for agent in model.agents
+        if agent.atype == wolf
+            act_asa_wolf!(agent,model)
+        end
+        if agent.atype == sheep
+            act_asa_sheep!(agent, model)
+        end
+    end
+    for j in 1:model.size[2]
+        for i in 1:model.size[1]
+            patch = model.patches[i,j]
+            grass = patch.grass
+            max_grass = model.parameters.max_grass 
+            if grass &lt; max_grass
+                if rand()&lt;model.parameters.grass_grow_prob
+                    patch.grass+=1
+                    hf = Int(ceil(max_grass/2))
+                    patch.color = grass &gt; hf ? :green : (grass &gt; 0 ? :yellow : :grey)
+                end
+            end
+        end
+    end
+end
+
+run_model!(model, steps=100, step_rule = step_rule! )</code></pre><p>In order to draw the model at a specific frame, say 4th, one can use <code>draw_frame(model, frame = 4, show_grid=true)</code>.  If one wants to see the animation of the model run, it can be done as </p><pre><code class="language-julia hljs">animate_sim(model, show_grid=true)</code></pre><p><img src="../assets/PPrey/PPreyAnim1.png" alt="png"/></p><p>After defining the <code>step_rule!</code> function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as </p><pre><code class="language-julia hljs">create_interactive_app(model, initialiser= initialiser!,
+    step_rule= step_rule!,
+    model_controls=[
+        (:wolf_birth_rate, :s, 0:0.01:1.0),
+        (:sheep_birth_rate, :s, 0.01:0.01:1.0),
+        (:initial_wolf_percent, :s, 0.01:0.01:0.9),
+        (:wolves_kill_ability, :s, 0.01:0.01:1.0),
+        (:grass_grow_prob, :s, 0.01:0.01:0.5)
+        ], 
+    agent_plots=Dict(&quot;sheep&quot;=&gt; agent-&gt; agent.atype == sheep ? 1 : 0, 
+        &quot;wolf&quot;=&gt; agent-&gt; agent.atype == wolf ? 1 : 0),
+    frames=200, show_grid=true)</code></pre><p><img src="../assets/PPrey/PPreyIntApp.png" alt="png"/></p><h2 id="Step-4:-Fetch-Data"><a class="docs-heading-anchor" href="#Step-4:-Fetch-Data">Step 4: Fetch Data</a><a id="Step-4:-Fetch-Data-1"></a><a class="docs-heading-anchor-permalink" href="#Step-4:-Fetch-Data" title="Permalink"></a></h2><p>We can fetch the number of wolves and sheeps at each time step as follows. </p><pre><code class="language-julia hljs">df = get_nums_agents(model, agent-&gt; agent.atype == sheep, 
+    agent-&gt;agent.atype == wolf, labels=[&quot;Sheep&quot;, &quot;Wolf&quot;], 
+    plot_result = true)</code></pre><p><img src="../assets/PPrey/PPreyPlot1.png" alt="png"/></p><p>Individual agent data recorded during model run can be obtained as </p><pre><code class="language-julia hljs">df = get_agent_data(model.agents[1], model).record</code></pre></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../SIR/">« SIR model</a><a class="docs-footer-nextpage" href="../conwaygol/">Conways Game of Life »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.19 on <span class="colophon-date" title="Monday 25 September 2023 02:48">Monday 25 September 2023</span>. Using Julia version 1.7.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
