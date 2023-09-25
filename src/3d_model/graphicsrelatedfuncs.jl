@@ -221,31 +221,18 @@ end
         offset = model.parameters._extras._offset::NTuple{3, Float64}
 
         pos = (:pos in record) ? agent_data[:pos][index]::Vect{3, S} .+ offset : agent.pos .+ offset
-        nextpos = (:pos in record)&&(index<model.tick) ? agent_data[:pos][index+1]::Vect{3, S} .+ offset : agent.pos .+ offset
         orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
         pclr = (:color in record) ? agent_data[:color][index]::Symbol : agent.color::Symbol
-        clrs = agent._extras._colors::Vector{Symbol}
-
-        
+        clrs = agent._extras._colors::Vector{Symbol} 
         sc = (:size in record) ? (agent_data[:size][index]::Union{Int, <:AbstractFloat})/(agent_data[:size][1]::Union{Int, <:AbstractFloat})  : 1.0
 
         sc = sc*scl
 
         ao,bo,co = orientation
+        periodic_viz_hack = 0.3 
 
 
         posx,posy,posz = pos
-        posx0,posy0,posz0 = nextpos
-        if periodic
-            posx  = mod1(posx, xdim)
-            posy  = mod1(posy, ydim)
-            posz  = mod1(posz, zdim)
-            posx0 = mod1(posx0, xdim)
-            posy0 = mod1(posy0, ydim)
-            posz0 = mod1(posz0, zdim)
-            distsq = (posx-posx0)^2+(posy-posy0)^2+(posz-posz0)^2 
-            condition = distsq > 0.5*min(xdim, ydim, zdim)^2 # hack for proper periodic case visualization
-        end
         
         x =  w*posx 
         y =  l*posy 
@@ -261,25 +248,27 @@ end
         setprop!(vis["agents"]["$(getfield(agent, :id))"], "scale", MeshCat.Vec(sc, sc, sc))
         #settransform!(vis["agents"]["$(getfield(agent, :id))"], Translation(x, y, z))
         #setprop!(vis["agents"]["$(getfield(agent, :id))"], "position", MeshCat.Vec(x,y,z))
-        if !(periodic && condition)
-            setvisible!(vis["agents"]["$(getfield(agent, :id))"][pclr], true)
-        end
+        setvisible!(vis["agents"]["$(getfield(agent, :id))"][pclr], true)
 
         if tail_condition(agent) && index>2
+            
             for i in 1:min(tail_length, index-2)
+                setvisible!(vis["tails"]["$(getfield(agent, :id))"]["$i"], false)
                 x,y,z = agent_data[:pos][index-i]::Vect{3, S} .+ offset
                 a,b,c = agent_data[:pos][index-i+1]::Vect{3, S} .+ offset
                 sca = sqrt((x-a)^2+(y-b)^2+(z-c)^2)
                 if (x,y,z)==(a,b,c)
                     c = 1.0+c
                 end
-                trans = Translation(x, y, z) ∘ LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1.0), MeshCat.Vec(a-x,b-y,c-z)))
-                settransform!(vis["tails"]["$(getfield(agent, :id))"]["$i"], trans)
-                setprop!(vis["tails"]["$(getfield(agent, :id))"]["$i"], "scale", MeshCat.Vec(sca, sca, sca))
-                if !(periodic && (sca > 0.5*min(xdim, ydim, zdim)))
-                    setvisible!(vis["tails"]["$(getfield(agent, :id))"]["$i"], true)
-                else
-                    setvisible!(vis["tails"]["$(getfield(agent, :id))"]["$i"], false)
+                                                                                                                    
+                x,y,z = w*x,l*y,h*z
+                a,b,c = w*a,l*b,h*c
+                sca = sqrt((x-a)^2+(y-b)^2+(z-c)^2)
+                if (!periodic) || (sca < periodic_viz_hack*min(xlen, ylen, zlen))                                                                                                        
+                    trans = Translation(x, y, z) ∘ LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1.0), MeshCat.Vec(a-x,b-y,c-z)))
+                    settransform!(vis["tails"]["$(getfield(agent, :id))"]["$i"], trans)
+                    setprop!(vis["tails"]["$(getfield(agent, :id))"]["$i"], "scale", MeshCat.Vec(sca, sca, sca))
+                    setvisible!(vis["tails"]["$(getfield(agent, :id))"]["$i"], true)   
                 end
             end
         end
