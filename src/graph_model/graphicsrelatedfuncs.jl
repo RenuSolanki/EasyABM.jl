@@ -10,7 +10,7 @@ const gsize = 1
 $(TYPEDSIGNATURES)
 """
 function _get_node_size(n::Int)
-    node_size = min(0.15*gsize/sqrt(n),0.4)
+    node_size = min(20*gsize/sqrt(n),4)
     return node_size        
 end
 
