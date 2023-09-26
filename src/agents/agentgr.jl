@@ -121,11 +121,11 @@ function create_similar(agent::GraphAgent{Symbol, Any, S}, n::Int) where {S<:MTy
                 dc[key] = deepcopy(val)
             end
         end
-        dc_agent[:_extras] = PropDict()
-        dc_agent[:_extras]._active = true
-        dc_agent[:_extras]._new = true
-        agent = GraphAgent{S}(1, node, dc_agent, model)
-        push!(list, agent)
+        dc[:_extras] = PropDict()
+        dc[:_extras]._active =  agent._extras._active
+        dc[:_extras]._new = true
+        agnew = GraphAgent{S}(1, node, dc, model)
+        push!(list, agnew)
     end
     return list
 end
@@ -146,12 +146,12 @@ function create_similar(agent::GraphAgent{Symbol, Any, S}) where {S<:MType}
             dc[key] = deepcopy(val)
         end
     end
-    dc_agent[:_extras] = PropDict()
-    dc_agent[:_extras]._active = true
-    dc_agent[:_extras]._new = true
-    agent = GraphAgent{S}(1, node, dc_agent,model)
+    dc[:_extras] = PropDict()
+    dc[:_extras]._active =  agent._extras._active
+    dc[:_extras]._new = true
+    agnew = GraphAgent{S}(1, node, dc, model)
 
-    return agent
+    return agnew
 end
 
 
