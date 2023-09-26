@@ -144,7 +144,7 @@ $(TYPEDSIGNATURES)
 Adds the agent to the model.
 """
 function add_agent!(agent, model::SpaceModel3D{Mortal})
-    if agent._extras._new::Bool
+    if (agent._extras._active::Bool)&&(agent._extras._new::Bool)
         _manage_default_data!(agent, model)
         manage_default_graphics_data!(agent, model.graphics, model.size)
 
