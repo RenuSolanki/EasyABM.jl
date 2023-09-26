@@ -86,11 +86,11 @@ function create_similar(agent::Agent3D{Symbol, Any, S, P}, n::Int) where {S<:Uni
                 dc[key] = deepcopy(val)
             end
         end
-        dc_agent[:_extras] = PropDict()
-        dc_agent[:_extras]._active = true
-        dc_agent[:_extras]._new = true
-        agent = Agent3D{P}(1, pos, dc_agent,model)
-        push!(list, agent)
+        dc[:_extras] = PropDict()
+        dc[:_extras]._active =  agent._extras._active
+        dc[:_extras]._new = true
+        agnew = Agent3D{P}(1, pos, dc, model)
+        push!(list, agnew)
     end
     return list
 end
@@ -109,11 +109,11 @@ function create_similar(agent::Agent3D{Symbol, Any, S, P}) where {S<:Union{Int, 
             dc[key] = deepcopy(val)
         end
     end
-    dc_agent[:_extras] = PropDict()
-    dc_agent[:_extras]._active = true
-    dc_agent[:_extras]._new = true
-    agent = Agent3D{P}(1, pos, dc_agent,model)
-    return agent
+    dc[:_extras] = PropDict()
+    dc[:_extras]._active =  agent._extras._active
+    dc[:_extras]._new = true
+    agnew = Agent3D{P}(1, pos, dc, model)
+    return agnew
 end
 
 
