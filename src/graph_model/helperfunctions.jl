@@ -122,7 +122,7 @@ $(TYPEDSIGNATURES)
 Adds the agent to the model.
 """
 function add_agent!(agent, model::GraphModelDynAgNum)
-    if agent._extras._new::Bool
+    if (agent._extras._active::Bool)&&(agent._extras._new::Bool)
         if model.parameters._extras._num_verts::Int == 0
             _create_a_node!(model)
         end
