@@ -8,7 +8,7 @@ using EasyABM
 ## Step 1: Create Agents and Model
 
 We work with only patches in this model. The size of the 
-grid in the model created is 20x20 and `alive_percent` is the fraction of patches that are live initially.
+grid in the model created is 20x20 and `alive_percent` is the fraction of patches that are alive initially.
 
 ```julia
 model = create_2d_model(size = (20,20), alive_percent = 0.4)
@@ -16,19 +16,17 @@ model = create_2d_model(size = (20,20), alive_percent = 0.4)
 
 ## Step 2: Initialise the model
 
-In the second step we initialise the patches by defining `initialiser!` function and sending it as an argument to `init_model!`. In the `initialiser!` function we randomly set patches to be either of color `:green` or `:white`. The patches with green color have their 
-`is_alive` property set to true and the patches with white color have their `is_alive` property set to false. We specify the patch properties
-`color` and `is_alive` that we want to be recorded during time evolution in the `props_to_record` argument to the `init_model!` function.
+In the second step we initialise the patches by defining `initialiser!` function and sending it as an argument to `init_model!`. In the `initialiser!` function we randomly set patches to be either of color `cl"green"` or `cl"white"` (a named color, say "green", can be defined in EasyABM as `cl"green"` or as `Col("green")` or more generally as `Col(0,1,0)` or `Col(0,1,0,1)`). The patches with green color have their `is_alive` property set to true and the patches with white color have their `is_alive` property set to false. We specify the patch properties `color` and `is_alive` that we want to be recorded during time evolution in the `props_to_record` argument to the `init_model!` function.
 
 ```julia
 function initialiser!(model)
     for j in 1:model.size[2]
         for i in 1:model.size[1]
             if rand()<model.parameters.alive_percent
-                model.patches[i,j].color = :green
+                model.patches[i,j].color = cl"green"
                 model.patches[i,j].is_alive = true
             else
-                model.patches[i,j].color = :white
+                model.patches[i,j].color = cl"white"
                 model.patches[i,j].is_alive = false
             end
         end
@@ -36,7 +34,7 @@ function initialiser!(model)
 end
 
 init_model!(model, initialiser = initialiser!, 
-    props_to_record=Dict("patches"=>[:color, :is_alive]))
+    props_to_record=Dict("patches"=>Set([:color, :is_alive])))
 ```
 
 ## Step 3: Run the model
@@ -72,7 +70,7 @@ function apply_vals!(model, vals)
         for i in 1:model.size[1]
             is_alive = vals[i,j]
             model.patches[i,j].is_alive = is_alive
-            model.patches[i,j].color = is_alive ? :green : :white
+            model.patches[i,j].color = is_alive ? cl"green" : cl"white"
         end
     end       
 end
@@ -101,7 +99,7 @@ After defining the `step_rule!` function we can also choose to create an interac
 create_interactive_app(model, initialiser= initialiser!,
     step_rule= step_rule!,
     model_controls=[
-        (:alive_percent, :s, 0:0.01:1.0)
+        (:alive_percent, "slider", 0:0.01:1.0)
         ], 
     frames=200, show_grid=true) 
 ```
@@ -121,5 +119,9 @@ df = get_nums_patches(model, patch-> patch.is_alive, labels=["Alive"],
 ```
 
 ![png](assets/CGOL/CGOLPlot1.png)
+
+
+## References 
+1) https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life
 
 

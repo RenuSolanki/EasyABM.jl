@@ -9,27 +9,18 @@ makedocs(
          pages = ["Introduction" => "index.md",
          "Tutorial" => "tutorial.md",
          "Examples" => [
-            "2D Examples" => [
-                "Schellings Segregation model" => "schelling.md",
-                "Flocking" => "boids.md",
+                "Schellings Segregation 2D" => "schelling.md",
+                "Flocking 2D" => "boids.md",
                 "Rock-Paper-Scissor" => "stone_paper_scissor.md",
                 "SIR model" => "SIR.md",
                 "Predator-prey" => "predator_prey.md",
                 "Conways Game of Life" => "conwaygol.md",
                 "Random Walkers" => "random_walkers.md",
-                ],
-                
-            "3D Examples" => [
-                "Schellings Segregation model" => "schelling3d.md",
-                "Flocking" => "boids3d.md",
-                ],
-
-            "Graph Space Examples" => [
-                "Ising model" => "ising.md",
+                "Schellings Segregation 3D" => "schelling3d.md",
+                "Flocking 3D" => "boids3d.md",
+                "Ising on a grid graph" => "ising.md",
                 "Nearest Neighbor Graph" => "nearest_neighbor_graph.md",
                 "Ising on a nearest neighbor graph" => "NNSIsing.md",
-                ],
-            
             ],
          "Do's and Don'ts" => "tips.md",
          "API" => "api.md",

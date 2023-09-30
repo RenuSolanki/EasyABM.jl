@@ -3,8 +3,6 @@ This is another example including Ising model where the underlying graph is a ra
 
 
 ```julia
-using Pkg, Revise
-Pkg.activate(joinpath(@__DIR__, "../.."))
 using EasyABM
 ```
 
@@ -20,7 +18,7 @@ model = create_graph_model(graph, temp = 2.0, coupl = 2.5, nns = 5)
 
 ## Step 2: Initialise the model
 
- In the `initialiser!` function we create a list of n = 500 random points in the plane and fill our graph with n nodes and set the position of ith node to the ith random point. We then link each node to its `nns` number of nearest neighbors and randomly set each node's color to either `:black` or `:white` and set spin value to +1 for `:black` nodes and -1 for `:white` nodes. In the `init_model!` function the argument `props_to_record` specifies the nodes properties which we want to record during model run. 
+ In the `initialiser!` function we create a list of n = 500 random points in the plane and fill our graph with n nodes and set the position of ith node to the ith random point. We then link each node to its `nns` number of nearest neighbors and randomly set each node's color to either `cl"black"` or `cl"white"` and set spin value to +1 for `cl"black"` nodes and -1 for `cl"white"` nodes. In the `init_model!` function, the argument `props_to_record` specifies the nodes properties which we want to record during model run. 
 
  ```julia
 using NearestNeighbors
@@ -33,14 +31,15 @@ const n=500;
 
 
 ```julia
+vecs = rand(2, n) 
+kdtree = KDTree(vecs,leafsize=4)
+    
 function initialiser!(model)
-    vecs = rand(2, n)
-    kdtree = KDTree(vecs,leafsize=4)
-    flush_graph!(model)
-    add_nodes!(n, model, color = :black, spin =1)
+    flush_graph!(model) # deletes all nodes and edges
+    add_nodes!(n, model, color = cl"black", spin =1) # adds n nodes to model's graph with all the nodes having color black and spin 1
     for i in 1:n 
-        model.graph.nodesprops[i].pos = (vecs[1,i], vecs[2,i]) # set position of nodes
-        indices, _ = knn(kdtree, vecs[:,i], model.parameters.nns, true)
+        model.graph.nodesprops[i].pos = (vecs[1,i], vecs[2,i]) # set positions of nodes in the 2d plane
+        indices, _ = knn(kdtree, vecs[:,i], model.parameters.nns, true) # indices of nearest neighboring vectors
         for j in indices
             if j!=i
                 create_edge!(i,j, model)
@@ -48,10 +47,10 @@ function initialiser!(model)
         end
         if rand()<0.5
             model.graph.nodesprops[i].spin = 1
-            model.graph.nodesprops[i].color = :black
+            model.graph.nodesprops[i].color = cl"black"
         else
             model.graph.nodesprops[i].spin = -1
-            model.graph.nodesprops[i].color = :white
+            model.graph.nodesprops[i].color = cl"white"
         end
     end
 end
@@ -59,7 +58,7 @@ end
 
 
 ```julia
-init_model!(model, initialiser= initialiser!, props_to_record = Dict("nodes"=>[:color, :spin]))
+init_model!(model, initialiser= initialiser!, props_to_record = Dict("nodes"=>Set([:color, :spin])))
 ```
 
 
@@ -69,8 +68,7 @@ draw_graph(model.graph)
 
 ## Step 3: Run the model
 
-In this step we implement the step logic of the Ising model in the `step_rule!` function and run the model for 100 steps. At each step of the simulation we take 
-100 Monte Carlo steps, where in each Monte Carlo step a node is selected at random and its spin and color values are flipped if the Ising energy condition is satisfied. 
+In this step we implement the step logic of the Ising model in the `step_rule!` function and run the model for 100 steps. At each step of the simulation we take 100 Monte Carlo steps, where in each Monte Carlo step a node is selected at random and its spin and color values are flipped if the Ising energy condition is satisfied. 
 
 
 ```julia
@@ -87,7 +85,7 @@ function step_rule!(model)
         de = 2*model.parameters.coupl * de
         if (de < 0) || (rand() < exp(-de/model.parameters.temp))
             model.graph.nodesprops[random_node].spin = - spin
-            model.graph.nodesprops[random_node].color = spin == -1 ? :black : :white
+            model.graph.nodesprops[random_node].color = spin == -1 ? cl"black" : cl"white"
         end
     end
 end
@@ -97,6 +95,8 @@ end
 ```julia
 run_model!(model, steps = 100, step_rule = step_rule!)
 ```
+
+## Step 4: Visualisation
 
 
 In order to draw the model at a specific frame, say 4th, one can use `draw_frame(model, frame = 4)`.  If one wants to see the animation of the model run, it can be done as 
@@ -112,11 +112,11 @@ After defining the `step_rule!` function we can also choose to create an interac
 
 ```julia
 create_interactive_app(model, initialiser= initialiser!,
-    props_to_record = Dict("nodes"=>[:color, :spin]),
+    props_to_record = Dict("nodes"=>Set([:color, :spin])),
     step_rule= step_rule!,
-    model_controls=[(:temp, :s, 0.05:0.05:5.0), 
-        (:coupl, :s, 0.01:0.1:5.0),
-        (:nns, :s, 2:10)],
+    model_controls=[(:temp, "slider", 0.05:0.05:5.0), 
+        (:coupl, "slider", 0.01:0.1:5.0),
+        (:nns, "slider", 2:10)],
     node_plots = Dict("magnetisation"=> x -> x.spin),
     frames=100) 
 ```
@@ -138,3 +138,6 @@ df = get_nodes_avg_props(model, node -> node.spin, labels=["magnetisation"], plo
 ```julia
 
 ```
+
+## References 
+1) https://en.wikipedia.org/wiki/Ising_model

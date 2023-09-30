@@ -1,4 +1,4 @@
-# Flocking
+# Flocking 3D
 
 ```julia
 using EasyABM
@@ -6,7 +6,7 @@ using EasyABM
 
 ## Step 1: Create Agents and Model
 
-Lets create 200 agents with properties `shape`, `pos`, `vel` and `orientation` (The `orientation` property is used internally by EasyABM to draw the direction agent is facing). The position `pos` is only accepted as a Vect which is an inbuilt vector type in EasyABM. It is also recommended for both convenience as well as performance to use Vect type for any vectorial properties in the model such as velocity and forces. The `keeps_record_of` argument is list of properties that the agent will record during time evolution. The model is defined with parameters:
+Lets create 200 agents with properties `shape`, `pos`, `vel` and `orientation` (The `orientation` property is used internally by EasyABM to draw the direction agent is facing). The position `pos` is only accepted as a Vect which is an inbuilt vector type in EasyABM. It is also recommended for both convenience as well as performance to use Vect type for any vectorial properties in the model such as velocity and forces. The `keeps_record_of` argument is set of properties that an agent will record during time evolution. The model is defined with parameters:
 
 * `min_dis` : The distance between boids below which they start repelling each other.
 * `coh_fac` : The proportionality constant for the cohere force. 
@@ -15,11 +15,11 @@ Lets create 200 agents with properties `shape`, `pos`, `vel` and `orientation` (
 * `vis_range` : The visual range of boids.
 * `dt` : The proportionality constant between change in position and velocity.
 
-The argument `agents_type` is Static which means that the boids number will remain fixed during simulation. 
+The argument `agents_type` is Static which means that the agents number will remain fixed during simulation. 
 
 ```julia
 boids = con_3d_agents(200, shape = :cone, pos = Vect(0.0,0.0,0.0), 
-    vel=Vect(0.0,0.0,0.0), orientation = Vect(0.0,0.0,0.0), keeps_record_of = [:pos, :orientation])
+    vel=Vect(0.0,0.0,0.0), orientation = Vect(0.0,0.0,0.0), keeps_record_of = Set([:pos, :orientation]))
 model = create_3d_model(boids, agents_type=Static, 
     space_type = Periodic, min_dis = 0.3, coh_fac = 0.05, 
     sep_fac = 0.5, dt= 0.1, vis_range = 2.0, aln_fac = 0.35)
@@ -36,7 +36,7 @@ function initialiser!(model)
     for boid in model.agents
         boid.pos = Vect(rand()*xdim, rand()*ydim, rand()*zdim)
         boid.vel = Vect(1-2*rand(), 1-2*rand(), 1-2*rand())
-        boid.vel ./= veclength(boid.vel)
+        boid.vel /= veclength(boid.vel)
         boid.orientation = boid.vel
     end
 end
@@ -84,12 +84,12 @@ end
 run_model!(model, steps=500, step_rule = step_rule!)
 ```
 
+## Step 4: Visualisation
+
 The following code will draw the state of the model at frame number 4. 
 
 ```julia
-using MeshCat
-vis = Visualizer()
-draw_frame(model, frame=4, vis = vis)
+draw_frame(model, frame=4)
 ```
 
 If one wants to see the animation of the model run, it can be done as 
@@ -106,11 +106,11 @@ After defining the `step_rule!` function we can also choose to create an interac
 ```julia
 create_interactive_app(model, initialiser= initialiser!,
     step_rule= step_rule!,
-    model_controls=[(:min_dis, :s, 0.01:0.1:1.0),
-        (:coh_fac, :s, 0.01:0.01:1.0),
-        (:sep_fac, :s, 0.01:0.01:1.0),
-        (:aln_fac, :s, 0.01:0.01:1.0),
-        (:vis_range, :s, 0.5:0.5:4.0)], frames=400) 
+    model_controls=[(:min_dis, "slider", 0.01:0.1:1.0),
+        (:coh_fac, "slider", 0.01:0.01:1.0),
+        (:sep_fac, "slider", 0.01:0.01:1.0),
+        (:aln_fac, "slider", 0.01:0.01:1.0),
+        (:vis_range, "slider", 0.5:0.5:4.0)], frames=400) 
 ```
 
 ![png](assets/Boids/Boids3DIntApp.png)
@@ -118,7 +118,7 @@ create_interactive_app(model, initialiser= initialiser!,
 
 
 
-## Step 4: Fetch Data 
+## Step 5: Fetch Data 
 
 It is easy to fetch any data recorded during simulation. For example, the data of average velocity of agents at each time step can be obtained as - 
 
@@ -131,3 +131,6 @@ Individual agent data recorded during model run can be obtained as
 ```julia
 df = get_agent_data(model.agents[1], model).record
 ```
+
+## References 
+1.) https://en.wikipedia.org/wiki/Flocking
