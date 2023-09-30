@@ -8,7 +8,7 @@ struct SpaceModel2D{T, S<:Union{Int, AbstractFloat}, P<:SType} <:AbstractSpaceMo
     max_id::Base.RefValue{Int64}
     graphics::Bool
     parameters::PropDataDict{Symbol, Any}
-    record::NamedTuple{(:aprops, :pprops, :mprops), Tuple{Vector{Symbol}, Vector{Symbol}, Vector{Symbol}}}
+    record::NamedTuple{(:aprops, :pprops, :mprops), Tuple{Set{Symbol}, Set{Symbol}, Set{Symbol}}}
     tick::Base.RefValue{Int64}
 
     SpaceModel2D{S,P}() where {S,P} =  begin #needed for initially attaching with agents
@@ -19,7 +19,7 @@ struct SpaceModel2D{T, S<:Union{Int, AbstractFloat}, P<:SType} <:AbstractSpaceMo
         max_id = Ref(1)
         graphics = true
         parameters = PropDataDict()
-        record = (aprops=Symbol[], pprops=Symbol[], mprops = Symbol[])
+        record = (aprops=Set{Symbol}([]), pprops=Set{Symbol}([]), mprops = Set{Symbol}([]))
         tick = Ref(1)
         new{Mortal,S,P}(size, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick) 
     end
@@ -57,7 +57,7 @@ function Base.show(io::IO, ::MIME"text/plain", v::SpaceModel2D{T, S, P}) where {
     else
         str = "In a $T model number of agents is fixed"
     end
-    println(io, "EasyABM SpaceModel2D{$T, $S,$P}: $str.")
+    println(io, "EasyABM SpaceModel2D{$T, $S, $P}: $str.")
 end
 
 function Base.show(io::IO, v::SpaceModel2D{T, S,P}) where {T,S,P} # works with print
@@ -66,7 +66,7 @@ function Base.show(io::IO, v::SpaceModel2D{T, S,P}) where {T,S,P} # works with p
     else
         str = "In a $T model number of agents is fixed"
     end
-    println(io, "EasyABM SpaceModel2D{$T, $S,$P}: $str.")
+    println(io, "EasyABM SpaceModel2D{$T, $S, $P}: $str.")
 end
 
 function Base.setproperty!(agent::Agent2D{Symbol, Any, S, P}, key::Symbol, x) where {S<:Union{Int, AbstractFloat}, P<:SType}

@@ -8,25 +8,28 @@ end
 
 
 
+
 """
 $(TYPEDSIGNATURES)
 
 Returns patches neighboring the given agent's patch.
 """
-function neighbor_patches(patch::Tuple{Int, Int}, model::SpaceModel2D{T,S,P}, dist::Int) where {T,S,P<:Periodic}
+function neighbor_patches(patch::Tuple{Int, Int}, model::SpaceModel2D{T,S,P}, dist::Real; dist_func::Function = moore_distance, range::Int=Int(ceil(dist))) where {T,S,P<:Periodic} # -range to range for both x and y
     x,y = patch
     lst = NTuple{2, Int}[]
-    for i in -dist:dist
-        for j in -dist:dist
-            pnew = (mod1(x+i, model.size[1]), mod1(y+j, model.size[2]))
-            if pnew != (x,y)
-                push!(lst, pnew)
+    for i in -range:range
+        for j in -range:range
+            if dist_func(patch, (x+i,y+j))<=dist
+                pnew = (mod1(x+i, model.size[1]), mod1(y+j, model.size[2]))
+                if pnew != (x,y)
+                    push!(lst, pnew)
+                end
             end
         end
     end
 
     sz = min(model.size...)
-    if div(sz, 2)+ sz%2 < dist+1
+    if div(sz, 2)+ sz%2 < range+1
         unique!(lst)
     end
 
@@ -38,13 +41,13 @@ $(TYPEDSIGNATURES)
 
 Returns patches neighboring the given agent's patch.
 """
-function neighbor_patches(patch::Tuple{Int, Int}, model::SpaceModel2D{T,S,P}, dist::Int) where {T,S,P<:NPeriodic}
+function neighbor_patches(patch::Tuple{Int, Int}, model::SpaceModel2D{T,S,P}, dist::Real; dist_func::Function = moore_distance, range::Int=Int(ceil(dist))) where {T,S,P<:NPeriodic}
     x,y = patch
     lst = NTuple{2, Int}[]
 
-    for i in -dist:dist
-        for j in -dist:dist
-            if (i,j)!=(0,0)
+    for i in -range:range
+        for j in -range:range
+            if (i,j)!=(0,0) && (dist_func(patch, (x+i,y+j)) <= dist)
                 pnew = (x+i, y+j)
                 if all(1 .<= pnew) && all(pnew .<= model.size)
                     push!(lst, pnew)
@@ -54,7 +57,7 @@ function neighbor_patches(patch::Tuple{Int, Int}, model::SpaceModel2D{T,S,P}, di
     end
 
     sz = min(model.size...)
-    if div(sz, 2)+ sz%2 < dist+1
+    if div(sz, 2)+ sz%2 < range+1
         unique!(lst)
     end
 
@@ -68,9 +71,9 @@ $(TYPEDSIGNATURES)
 
 Returns patches neighboring the given patch.
 """
-function neighbor_patches(agent::Agent2D{Symbol, Any, <:AbstractFloat}, model::SpaceModel2D, dist::Int)
+function neighbor_patches(agent::Agent2D{Symbol, Any, <:AbstractFloat}, model::SpaceModel2D, dist::Real; dist_func::Function = moore_distance, range::Int=Int(ceil(dist)))
     patch = getfield(agent, :last_grid_loc)
-    return neighbor_patches(patch, model, dist)
+    return neighbor_patches(patch, model, dist, dist_func=dist_func, range=range)
 end
 
 
@@ -79,9 +82,9 @@ $(TYPEDSIGNATURES)
 
 Returns patches neighboring the given patch.
 """
-function neighbor_patches(agent::Agent2D{Symbol, Any, Int}, model::SpaceModel2D, dist::Int)
+function neighbor_patches(agent::Agent2D{Symbol, Any, Int}, model::SpaceModel2D, dist::Real; dist_func::Function = moore_distance, range::Int=Int(ceil(dist)))
     patch = agent.pos
-    return neighbor_patches(patch, model, dist)
+    return neighbor_patches(patch, model, dist, dist_func=dist_func, range=range)
 end
 
 """

@@ -9,7 +9,7 @@ using EasyABM
 
 
 ```julia
-agents = con_2d_agents(200, pos = Vect(5.0,5.0), color = :red, shape=:circle, keeps_record_of=[:pos])
+agents = con_2d_agents(200, pos = Vect(5.0,5.0), color = cl"red", shape=:circle, keeps_record_of=Set([:pos]))
 ```
 
 
@@ -20,7 +20,7 @@ model = create_2d_model(agents, agents_type = Static, space_type=NPeriodic, dt=0
 
 ```julia
 function initialiser!(model)
-    colors = [:red, :blue, :green, :yellow, :black]
+    colors = [cl"red", cl"blue", cl"green", cl"yellow", cl"black"]
     for agent in model.agents
         agent.color = colors[rand(1:5)]
     end    

@@ -80,7 +80,7 @@ $(TYPEDSIGNATURES)
 """
 @inline function _set_patches(grid_size)
     xdim, ydim = grid_size
-    patches = [ContainerDataDict(Dict{Symbol, Any}(:color => :white)) for i in 1:xdim, j in 1:ydim]   
+    patches = [ContainerDataDict(Dict{Symbol, Any}(:color => Col("white"))) for i in 1:xdim, j in 1:ydim]   
     return patches
 end
 
@@ -98,6 +98,8 @@ $(TYPEDSIGNATURES)
     parameters._extras._len_model_agents = n #number of agents in model.agents
     parameters._extras._num_patches = xdim*ydim
     parameters._extras._keep_deads_data = true
+    parameters._extras.gparams_width = Int(ceil(gparams.width*xdim/ydim))
+    parameters._extras.gparams_height = gparams.height
     return parameters
 end
 
@@ -117,11 +119,11 @@ graphics related properties are added to the agent if not already defined.
         end
 
         if !haskey(agent, :color)
-            agent.color = :red
+            agent.color = Col("red")
         end
 
         if !haskey(agent, :size)
-            agent.size = 20
+            agent.size = 20 # % of a small block
         end
 
         if !haskey(agent, :orientation)
@@ -170,7 +172,7 @@ $(TYPEDSIGNATURES)
 This function is for use from within the module and is not exported.
 """
 @inline function update_agents_record!(model::SpaceModel2D) 
-    for agent in model.agents
+    @threads for agent in model.agents
         _update_agent_record!(agent)
     end
 end
@@ -183,8 +185,8 @@ This function is for use from within the module and is not exported.
 """
 @inline function update_patches_record!(model::SpaceModel2D)
     if length(model.record.pprops)>0 
-        for j in 1:model.size[2]
-            for i in 1:model.size[1]
+        @threads for j in 1:model.size[2]
+            @threads for i in 1:model.size[1]
                 patch_dict = unwrap(model.patches[i, j])
                 patch_data = unwrap_data(model.patches[i,j])
                 for key in model.record.pprops

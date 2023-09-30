@@ -57,6 +57,8 @@ end
 run_model!(model, steps=n, step_rule = step_rule! )
 ```
 
+## Step 3: Visualisation
+
 In order to draw the model at a specific frame, say 4th, one can use `draw_frame(model, frame = 4)`. If one wants to see the animation of the model run, it can be done as 
 
 ```julia
@@ -71,7 +73,7 @@ After defining the `step_rule!` function we can also choose to create an interac
 ```julia
 create_interactive_app(model, initialiser = initialiser!,
     step_rule = step_rule!,
-    model_controls = [(:nns, :s, 1:20)],
+    model_controls = [(:nns, "slider", 1:20)],
     frames = n
 )
 ```
@@ -81,7 +83,7 @@ create_interactive_app(model, initialiser = initialiser!,
 
 
 
-## Step 4: Fetch Data 
+## Step 5: Fetch Data 
 
 In the present model we didn't record any data, however, since the model involved a dynamic graph the number of edges (and nodes) at each time step were recorded by default by EasyABM. We can get the data of number of edges at each time step as follows
 

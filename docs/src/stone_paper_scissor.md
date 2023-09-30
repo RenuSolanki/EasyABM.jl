@@ -1,5 +1,5 @@
 
-# Stone Paper Scissor
+# Rock Paper Scissor
 
 ```julia
 using EasyABM
@@ -15,7 +15,7 @@ model = create_2d_model(size = (50,50), space_type = Periodic, threshold = 3)
 
 ## Step 2: Initialise the model
 
-In the second step we initialise the patches by defining `initialiser!` function and sending it as an argument to `init_model!`. In the `initialiser!` function we randomly assign `:red` (for stone), `:green` (for paper) and `:blue` (for scissor) color to patches. Then we initialise the model using `init_model!` function, in which through the argument `props_to_record`, we tell EasyABM to record the `:color` property of patches during time evolution. Note that, in EasyABM animations are created with the recorded data, therefore if in the present model, the color of patches is not recorded there will be no animation to see. 
+In the second step we initialise the patches by defining `initialiser!` function and sending it as an argument to `init_model!`. In the `initialiser!` function we randomly assign `cl"red"` (for stone), `cl"green"` (for paper) and `cl"blue"` (for scissor) color to patches. Then we initialise the model using `init_model!` function, in which through the argument `props_to_record`, we tell EasyABM to record the `:color` property of patches during time evolution. Note that, in EasyABM animations are created with the recorded data, therefore if in the present model, the color of patches is not recorded there will be no animation to see. 
 
 
 ```julia
@@ -24,25 +24,25 @@ function initialiser!(model)
         for i in 1:model.size[1]
             num = rand()
             if num<0.33
-                model.patches[i,j].color = :red # stone => red, paper => green, scissor => blue
+                model.patches[i,j].color = cl"red" # stone => red, paper => green, scissor => blue
             elseif num>0.66
-                model.patches[i,j].color = :green
+                model.patches[i,j].color = cl"green"
             else
-                model.patches[i,j].color = :blue
+                model.patches[i,j].color = cl"blue"
             end
         end
     end
 end
 
-init_model!(model, initialiser = initialiser!, props_to_record = Dict("patches" => [:color]))
+init_model!(model, initialiser = initialiser!, props_to_record = Dict("patches" => Set([:color])))
 ```
 
 ## Step 3: Run the model
 
-In this step we define the `step_rule!` function and run the model for 400 steps. The rule of the game is very simple. The `:red` color of a patch will change to `:green` if number of neighboring patches with color `:green` exceeds the threshold( which we set to be 3 in the beginning). Similarly, if a `:green` patch finds larger than the threshold number of `:blue` patches in its neighborhood, it will change to `:blue`, and if a `:blue` patch finds larger than threshold number of `:red` patches in its neighborhood it will change to `:red`. Each step of the model consists of 500 Monte-Carlo steps in which a patch is selected at random and the above mentioned rule applied to it. 
+In this step we define the `step_rule!` function and run the model for 400 steps. The rule of the game is very simple. The `cl"red"` color of a patch will change to `cl"green"` if number of neighboring patches with color `cl"green"` exceeds the threshold( which we set to be 3 in the beginning). Similarly, if a `cl"green"` patch finds larger than the threshold number of `cl"blue"` patches in its neighborhood, it will change to `cl"blue"`, and if a `cl"blue"` patch finds larger than threshold number of `cl"red"` patches in its neighborhood it will change to `cl"red"`. Each step of the model consists of 500 Monte-Carlo steps in which a patch is selected at random and the above mentioned rule applied to it. 
 
 ```julia
-const who_wins_against = Dict(:red => :green, :green => :blue, :blue => :red)
+const who_wins_against = Dict(cl"red" => cl"green", cl"green" => cl"blue", cl"blue" => cl"red")
 
 function step_rule!(model)
     for _ in 1:500
@@ -66,10 +66,12 @@ end
 run_model!(model, steps = 400, step_rule = step_rule!)
 ```
 
+## Step 4: Visualisation
+
 In order to draw the model at a specific frame, say 4th, one can use `draw_frame(model, frame = 4, show_grid=true)`. If one wants to see the animation of the model run, it can be done as 
 
 ```julia
-animate_sim(model, show_grid=true)
+animate_sim(model, show_grid=true) #since there are only patches and no agents, show_grid must be true for the animation
 ```
 
 ![png](assets/StonePaperScissor/SPSAnim1.png)
@@ -79,9 +81,9 @@ After defining the `step_rule!` function we can also choose to create an interac
 
 ```julia
 create_interactive_app(model, initialiser= initialiser!,
-    props_to_record = Dict("patches" => [:color]),
+    props_to_record = Dict("patches" => Set([:color])),
     step_rule= step_rule!,
-    model_controls=[(:threshold, :s, 1:8)], 
+    model_controls=[(:threshold, "slider", 1:8)], 
     frames=400, show_grid=true) 
 ```
 
@@ -90,18 +92,22 @@ create_interactive_app(model, initialiser= initialiser!,
 
 
 
-## Step 4: Fetch Data 
+## Step 5: Fetch Data 
 
 It is easy to fetch any recorded data after running the model. For example, the numbers of different colored patches at all timesteps can be got as follows
 
 ```julia
 df = get_nums_patches(model, 
-    patch-> patch.color ==:red, 
-    patch-> patch.color ==:green, 
-    patch-> patch.color ==:blue, labels=["stone","paper","scissor"], plot_result=true)
+    patch-> patch.color ==cl"red", 
+    patch-> patch.color ==cl"green", 
+    patch-> patch.color ==cl"blue", labels=["rock","paper","scissor"], plot_result=true)
 ```
 
 ![png](assets/StonePaperScissor/SPSPlot1.png)
+
+
+## References
+1.) https://twotwelve.uk/blog/rock-paper-scissors/
 
     
 

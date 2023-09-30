@@ -41,7 +41,7 @@ function create_2d_model(agents::Vector{Agent2D{Symbol, Any, S, A}};
 
     parameters = _set_parameters(size, n, random_positions; kwargs...)
 
-    model = SpaceModel2D{T, S, P}(size, patches, agents, Ref(n), graphics, parameters, (aprops = Symbol[], pprops = Symbol[], mprops = Symbol[]), Ref(1))
+    model = SpaceModel2D{T, S, P}(size, patches, agents, Ref(n), graphics, parameters, (aprops = Set{Symbol}([]), pprops = Set{Symbol}([]), mprops = Set{Symbol}([])), Ref(1))
 
     for (i, agent) in enumerate(agents)
 
@@ -82,7 +82,7 @@ function create_2d_model(;
     space_type::Type{P} = Periodic,
     kwargs...) where {P<:SType}
 
-    agents = Agent2D{Symbol, Any, Float64, P}[]
+    agents = Agent2D{Symbol, Any, Int, P}[] # Can also use Float64 instead of Int. Wont matter as there are no agents. 
     model = create_2d_model(agents; graphics=graphics, agents_type=Static, 
     size=size, random_positions=random_positions, space_type = space_type, kwargs...)   
     return model
@@ -100,8 +100,8 @@ end
 
 function _init_patches!(model::SpaceModel2D)
     if length(model.record.pprops)>0
-        for j in 1:model.size[2]
-            for i in 1:model.size[1]
+        @threads for j in 1:model.size[2]
+            @threads for i in 1:model.size[1]
                 patch_dict = unwrap(model.patches[i,j])
                 patch_data = unwrap_data(model.patches[i,j])
                 for key in model.record.pprops
@@ -123,13 +123,13 @@ agents properties is specified, it will replace the `keeps_record_of` list of ea
 with keys "patches" and "model" respectively.
 """
 function init_model!(model::SpaceModel2D; initialiser::Function = null_init!, 
-    props_to_record::Dict{String, Vector{Symbol}} = Dict{String, Vector{Symbol}}("agents"=>Symbol[], "patches"=>Symbol[], "model"=>Symbol[]),
+    props_to_record::Dict{String, Set{Symbol}} = Dict{String, Set{Symbol}}("agents"=>Set{Symbol}([]), "patches"=>Set{Symbol}([]), "model"=>Set{Symbol}([])),
     keep_deads_data = true)
 
     model.parameters._extras._keep_deads_data= keep_deads_data
-    aprops = get(props_to_record, "agents", Symbol[])
-    pprops = get(props_to_record, "patches", Symbol[])
-    mprops = get(props_to_record, "model", Symbol[])
+    aprops = get(props_to_record, "agents", Set{Symbol}([]))
+    pprops = get(props_to_record, "patches", Set{Symbol}([]))
+    mprops = get(props_to_record, "model", Set{Symbol}([]))
 
     initialiser(model) 
 
@@ -191,15 +191,16 @@ function save_sim_luxor(model::SpaceModel2D, frames::Int=model.tick, scl::Number
         ticks = getfield(model, :tick)[]
         model.parameters._extras._show_space = show_space
         fr = min(frames, ticks)
-        movie_abm = Movie(gparams.width, gparams.height, "movie_abm", 1:fr)
+        movie_abm = Movie(model.parameters._extras.gparams_width+gparams.border, model.parameters._extras.gparams_height+gparams.border, "movie_abm", 1:fr)
         scene_array = Vector{Luxor.Scene}()
         function with_grid(scene, frame)
-            _draw_title(scene, frame)
+            Luxor.background("white")
             draw_patches_static(model)
+            _draw_title(scene, frame)
         end
         function no_grid(scene, frame)
-            _draw_title(scene, frame)
             Luxor.background("white")
+            _draw_title(scene, frame)
         end
         backdrop_p = show_space ? with_grid : no_grid
         push!(scene_array, Luxor.Scene(movie_abm, backdrop_p, 1:fr))
@@ -216,72 +217,150 @@ function save_sim_luxor(model::SpaceModel2D, frames::Int=model.tick, scl::Number
 end
 
 
-"""
-$(TYPEDSIGNATURES)
-"""
-function save_sim_makie(model::SpaceModel2D, frames::Int=model.tick, scl::Number=1.0; path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"), 
-    show_space=true, tail = (1, agent->false))
-    if model.graphics
-        ticks = getfield(model, :tick)[]
-        model.parameters._extras._show_space = show_space
-        fr = min(frames, ticks)
+# """
+# $(TYPEDSIGNATURES)
+# """
+# function save_sim_makie(model::SpaceModel2D, frames::Int=model.tick, scl::Number=1.0; path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"), 
+#     show_space=true, tail = (1, agent->false))
+#     if model.graphics
+#         ticks = getfield(model, :tick)[]
+#         model.parameters._extras._show_space = show_space
+#         fr = min(frames, ticks)
 
 
-        time = Observable(1)
+#         time = Observable(1)
 
-        #[[Point2f(5*rand(),5*rand()) for i in 1:20] for j in 1:n]
-        points = @lift(_get_propvals(model,$time, :pos))
-        markers = @lift(_to_makie_shapes.(_get_propvals(model,$time, :shape)))
-        colors = @lift(_get_propvals(model, $time, :color))
-        rotations = @lift(_get_propvals(model, $time, :orientation))
-        sizes = @lift(_get_propvals(model, $time, :size, scl))
-        title = @lift((t->"t = $t")($time))
-        grid_colors = Symbol[]
-        if show_space
-            grid_colors = @lift(_get_grid_colors(model, $time))
-        end
+#         #[[Point2f(5*rand(),5*rand()) for i in 1:20] for j in 1:n]
+#         points = @lift(_get_propvals(model,$time, :pos))
+#         markers = @lift(_to_makie_shapes.(_get_propvals(model,$time, :shape)))
+#         colors = @lift(_get_propvals(model, $time, :color))
+#         rotations = @lift(_get_propvals(model, $time, :orientation))
+#         sizes = @lift(_get_propvals(model, $time, :size, scl))
+#         title = @lift((t->"t = $t")($time))
+#         grid_colors = Symbol[]
+#         if show_space
+#             grid_colors = @lift(_get_grid_colors(model, $time))
+#         end
 
-        fig = Figure(resolution = (gparams.height, gparams.width))
-        ax = Axis(fig[1, 1], title=title)
+#         fig = Figure(resolution = (model.parameters._extras.gparams_height, model.parameters._extras.gparams_width))
+#         ax = Axis(fig[1, 1], title=title)
 
-        _create_makie_frame(ax, model, points, markers, colors, rotations, sizes, grid_colors, show_space)
+#         _create_makie_frame(ax, model, points, markers, colors, rotations, sizes, grid_colors, show_space)
 
-        tail_condition = tail[2]
-        tail_length = tail[1]
-        all_agents=_get_all_agents(model)
-        for agent in all_agents
-            if tail_condition(agent)
-                agent_tail = @lift(_get_tail(agent, model, $time, tail_length))
-                lines!(ax, agent_tail)
-            end
-        end
+#         tail_condition = tail[2]
+#         tail_length = tail[1]
+#         all_agents=_get_all_agents(model)
+#         for agent in all_agents
+#             if tail_condition(agent)
+#                 agent_tail = @lift(_get_tail(agent, model, $time, tail_length))
+#                 lines!(ax, agent_tail)
+#             end
+#         end
 
-        framerate = gparams.fps
-        timestamps = 1:fr
+#         framerate = gparams.fps
+#         timestamps = 1:fr
 
-        sim = record(fig, path, timestamps;
-                framerate = framerate) do t
-            time[] = t
-        end
+#         sim = record(fig, path, timestamps;
+#                 framerate = framerate) do t
+#             time[] = t
+#         end
 
-        return sim
-    end
+#         return sim
+#     end
 
-end
+# end
 
 """
 $(TYPEDSIGNATURES)
 
 Creates and saves the gif of simulation from the data collected during model run. 
 """
-function save_sim(model::SpaceModel2D, frames::Int=model.tick, scl::Number=1.0; path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"), show_space=true, backend = :luxor, tail = (1, agent-> false))
-    if backend == :makie
-        save_sim_makie(model, frames, scl, path= path , show_space= show_space, tail = tail)
-    else
-        save_sim_luxor(model, frames, scl, path= path , show_space= show_space, tail = tail)
-    end
+function save_sim(model::SpaceModel2D, frames::Int=model.tick, scl::Number=1.0; path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"), show_space=true, tail = (1, agent-> false))    
+    save_sim_luxor(model, frames, scl, path= path , show_space= show_space, tail = tail)
     println("Animation saved at ", path)
 end
+
+
+
+# """
+# $(TYPEDSIGNATURES)
+
+# Creates an animation from the data collected during model run.
+# """
+# function animate_sim_makie(model::SpaceModel2D, frames::Int=model.tick; 
+#     agent_plots::Dict{String, <:Function} = Dict{String, Function}(), 
+#     patch_plots::Dict{String, <:Function} = Dict{String, Function}(),
+#     model_plots::Vector{Symbol} = Symbol[],
+#     plots_only = false,
+#     path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"), show_grid=false, tail = (1, agent->false))
+
+#     ticks = getfield(model, :tick)[]
+#     model.parameters._extras._show_space = show_grid
+#     fr = min(frames, ticks)
+
+#     fig = Figure(resolution = (model.parameters._extras.gparams_height, model.parameters._extras.gparams_width))
+#     ax = Axis(fig[1, 1])
+#     ax.title = " "
+#     function draw_frame_makie(t, scl)
+#         empty!(ax)
+#         points = _get_propvals(model, t, :pos)
+#         markers = _to_makie_shapes.(_get_propvals(model,t, :shape))
+#         colors = _get_propvals(model, t, :color)
+#         rotations = _get_propvals(model, t, :orientation)
+#         sizes = _get_propvals(model, t, :size, scl)
+#         grid_colors = Symbol[]
+#         if show_grid
+#             grid_colors = _get_grid_colors(model, t)
+#         end
+#         _create_makie_frame(ax, model, points, markers, colors, rotations, sizes, grid_colors, show_grid)
+#         tail_condition = tail[2]
+#         tail_length = tail[1]
+#         all_agents=_get_all_agents(model)
+#         for agent in all_agents
+#             if tail_condition(agent)
+#                 agent_tail = _get_tail(agent, model, t, tail_length)
+#                 lines!(ax, agent_tail)
+#             end
+#         end
+#         return fig
+#     end
+
+#     function _save_sim(scl)
+#         save_sim(model, fr, scl, path= path, show_space=show_grid, backend = :makie, tail = tail)
+#     end
+
+#     function _does_nothing(t,scl::Number=1)
+#         nothing
+#     end
+
+#     draw_frame = draw_frame_makie
+
+#     if plots_only
+#         draw_frame = _does_nothing
+#         _save_sim = _does_nothing
+#     end
+
+#     labels = String[]
+#     conditions = Function[]
+#     for (lbl, cond) in agent_plots
+#         push!(labels, lbl)
+#         push!(conditions, cond)
+#     end
+#     agent_df = get_agents_avg_props(model, conditions..., labels= labels)
+
+#     labels = String[]
+#     conditions = Function[]
+#     for (lbl, cond) in patch_plots
+#         push!(labels, lbl)
+#         push!(conditions, cond)
+#     end
+#     patch_df = get_patches_avg_props(model, conditions..., labels= labels)
+#     model_df = get_model_data(model, model_plots).record
+
+#     _interactive_app(model, fr, plots_only, _save_sim, draw_frame, agent_df, patch_df, DataFrames.DataFrame(),model_df )
+
+# end
+
 
 
 """
@@ -294,41 +373,14 @@ function animate_sim(model::SpaceModel2D, frames::Int=model.tick;
     patch_plots::Dict{String, <:Function} = Dict{String, Function}(),
     model_plots::Vector{Symbol} = Symbol[],
     plots_only = false,
-    path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"), show_grid=false, backend=:luxor, tail = (1, agent->false))
+    path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"), show_grid=false, tail = (1, agent->false))
 
     ticks = getfield(model, :tick)[]
     model.parameters._extras._show_space = show_grid
     fr = min(frames, ticks)
 
-    fig = Figure(resolution = (gparams.height, gparams.width))
-    ax = Axis(fig[1, 1])
-    ax.title = " "
-    function draw_frame_makie(t, scl)
-        empty!(ax)
-        points = _get_propvals(model, t, :pos)
-        markers = _to_makie_shapes.(_get_propvals(model,t, :shape))
-        colors = _get_propvals(model, t, :color)
-        rotations = _get_propvals(model, t, :orientation)
-        sizes = _get_propvals(model, t, :size, scl)
-        grid_colors = Symbol[]
-        if show_grid
-            grid_colors = _get_grid_colors(model, t)
-        end
-        _create_makie_frame(ax, model, points, markers, colors, rotations, sizes, grid_colors, show_grid)
-        tail_condition = tail[2]
-        tail_length = tail[1]
-        all_agents=_get_all_agents(model)
-        for agent in all_agents
-            if tail_condition(agent)
-                agent_tail = _get_tail(agent, model, t, tail_length)
-                lines!(ax, agent_tail)
-            end
-        end
-        return fig
-    end
-
     function draw_frame_luxor(t, scl)
-        drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
+        drawing = Drawing(model.parameters._extras.gparams_width+gparams.border, model.parameters._extras.gparams_height+gparams.border, :png)
         if model.graphics
             Luxor.origin()
             Luxor.background("white")
@@ -342,14 +394,14 @@ function animate_sim(model::SpaceModel2D, frames::Int=model.tick;
     end
 
     function _save_sim(scl)
-        save_sim(model, fr, scl, path= path, show_space=show_grid, backend = backend, tail = tail)
+        save_sim(model, fr, scl, path= path, show_space=show_grid, tail = tail)
     end
 
     function _does_nothing(t,scl::Number=1)
         nothing
     end
 
-    draw_frame = backend == :makie ? draw_frame_makie : draw_frame_luxor
+    draw_frame = draw_frame_luxor
 
     if plots_only
         draw_frame = _does_nothing
@@ -378,6 +430,7 @@ function animate_sim(model::SpaceModel2D, frames::Int=model.tick;
 end
 
 
+
 """
 $(TYPEDSIGNATURES)
 
@@ -386,7 +439,7 @@ Draws a specific frame.
 function draw_frame(model::SpaceModel2D; frame=model.tick, show_grid=false)
     frame = min(frame, model.tick)
     model.parameters._extras._show_space = show_grid
-    drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
+    drawing = Drawing(model.parameters._extras.gparams_width+gparams.border, model.parameters._extras.gparams_height+gparams.border, :png)
     if model.graphics
         Luxor.origin()
         Luxor.background("white")
@@ -406,7 +459,7 @@ $(TYPEDSIGNATURES)
 Creates an interactive app for the model.
 """
 function create_interactive_app(inmodel::SpaceModel2D; initialiser::Function = null_init!, 
-    props_to_record::Dict{String, Vector{Symbol}} = Dict{String, Vector{Symbol}}("agents"=>Symbol[], "patches"=>Symbol[], "model"=>Symbol[]),
+    props_to_record::Dict{String, Set{Symbol}} = Dict{String, Set{Symbol}}("agents"=>Set{Symbol}([]), "patches"=>Set{Symbol}([]), "model"=>Set{Symbol}([])),
     step_rule::Function=model_null_step!,
     agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
     model_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(),
@@ -415,7 +468,7 @@ function create_interactive_app(inmodel::SpaceModel2D; initialiser::Function = n
     model_plots::Vector{Symbol} = Symbol[],
     plots_only = false,
     path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"),
-    frames=200, show_grid=false, backend = :luxor, tail =(1, agent-> false)) 
+    frames=200, show_grid=false, tail =(1, agent-> false)) 
 
     model = deepcopy(inmodel)
 
@@ -456,44 +509,15 @@ function create_interactive_app(inmodel::SpaceModel2D; initialiser::Function = n
    agent_df, patch_df, node_df, model_df = DataFrame(), DataFrame(), DataFrame(), DataFrame() #_init_interactive_model()
 
     function _save_sim(scl)
-        save_sim(model, frames, scl, path= path, show_space=show_grid, backend = backend, tail = tail)
+        save_sim(model, frames, scl, path= path, show_space=show_grid, tail = tail)
     end
 
     function _does_nothing(t,scl::Number=1)
         nothing
     end
 
-    #_run_interactive_model()
-    fig = Figure(resolution = (gparams.height, gparams.width))
-    ax = Axis(fig[1, 1])
-    ax.title = " "
-
-    function _draw_interactive_frame_makie(t, scl)
-        empty!(ax)
-        points = _get_propvals(model, t, :pos)
-        markers = _to_makie_shapes.(_get_propvals(model,t, :shape))
-        colors = _get_propvals(model, t, :color)
-        rotations = _get_propvals(model, t, :orientation)
-        sizes = _get_propvals(model, t, :size, scl)
-        grid_colors = Symbol[]
-        if show_grid
-            grid_colors = _get_grid_colors(model, t)
-        end
-        _create_makie_frame(ax, model, points, markers, colors, rotations, sizes, grid_colors, show_grid)
-        tail_condition = tail[2]
-        tail_length = tail[1]
-        all_agents=_get_all_agents(model)
-        for agent in all_agents
-            if tail_condition(agent)
-                agent_tail = _get_tail(agent, model, t, tail_length)
-                lines!(ax, agent_tail)
-            end
-        end
-        return fig   
-    end
-
     function _draw_interactive_frame_luxor(t, scl)
-        drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
+        drawing = Drawing(model.parameters._extras.gparams_width+gparams.border, model.parameters._extras.gparams_height+gparams.border, :png)
         if model.graphics
             Luxor.origin()
             Luxor.background("white")
@@ -506,7 +530,7 @@ function create_interactive_app(inmodel::SpaceModel2D; initialiser::Function = n
         drawing
     end
 
-    _draw_interactive_frame = backend == :makie ? _draw_interactive_frame_makie : _draw_interactive_frame_luxor
+    _draw_interactive_frame = _draw_interactive_frame_luxor
 
     if plots_only
         _draw_interactive_frame = _does_nothing
@@ -517,5 +541,8 @@ function create_interactive_app(inmodel::SpaceModel2D; initialiser::Function = n
     _draw_interactive_frame, agent_controls, model_controls, agent_df, ()->nothing, patch_df, node_df, model_df)
 
 end
+
+
+
 
 

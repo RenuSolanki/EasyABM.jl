@@ -19,11 +19,13 @@ We create 200 agents all of type `sheep` to begin with. Our model parameters are
 
 ```julia
 @enum agenttype sheep wolf
-agents = grid_2d_agents(200, pos = Vect(1,1), color = :white, atype = sheep, 
-    energy = 10.0, keeps_record_of=[:pos, :energy ])
-model = create_2d_model(agents, size = (20,20), 
+agents = grid_2d_agents(200, pos = Vect(1,1), color = cl"white", atype = sheep, 
+    energy = 10.0, keeps_record_of=Set([:pos, :energy ]))
+model = create_2d_model(agents, 
+    size = (20,20), #space size
     agents_type = Mortal, # agents are mortal, can take birth or die
     space_type = NPeriodic, # nonperiodic space
+    # below are all the model parameters
     max_energy = 50, 
     wolf_birth_rate = 0.01,
     sheep_birth_rate = 0.1,
@@ -46,16 +48,16 @@ function initialiser!(model)
             grass = rand(1:max_grass)
             model.patches[i,j].grass = grass
             hf = Int(ceil(max_grass/2))
-            model.patches[i,j].color = grass > hf ? :green : (grass > 0 ? :blue : :grey)
+            model.patches[i,j].color = grass > hf ? cl"green" : (grass > 0 ? cl"blue" : cl"grey")
         end
     end
     for agent in model.agents
         if rand()< model.parameters.initial_wolf_percent 
             agent.atype = wolf
-            agent.color = :black
+            agent.color = cl"black"
         else
             agent.atype = sheep
-            agent.color = :white
+            agent.color = cl"white"
         end
         agent.energy = rand(1:model.parameters.max_energy)+0.0
         agent.pos = Vect(rand(1:model.size[1]), rand(1:model.size[2]))
@@ -63,7 +65,7 @@ function initialiser!(model)
             
 end
 
-init_model!(model, initialiser = initialiser!, props_to_record = Dict("patches"=>[:color]))
+init_model!(model, initialiser = initialiser!, props_to_record = Dict("patches"=>Set([:color])))
 ```
 
 ## Step 3: Run the model
@@ -128,7 +130,7 @@ function act_asa_sheep!(agent, model)
         end
         change_pos!(agent)
     elseif energy > 0 
-        patch = get_grid_loc(agent, model)
+        patch = get_grid_loc(agent)
         grass = model.patches[patch...].grass
         if grass>0
             model.patches[patch...].grass-=1
@@ -163,7 +165,7 @@ function step_rule!(model)
                 if rand()<model.parameters.grass_grow_prob
                     patch.grass+=1
                     hf = Int(ceil(max_grass/2))
-                    patch.color = grass > hf ? :green : (grass > 0 ? :yellow : :grey)
+                    patch.color = grass > hf ? cl"green" : (grass > 0 ? cl"yellow" : cl"grey")
                 end
             end
         end
@@ -173,7 +175,9 @@ end
 run_model!(model, steps=100, step_rule = step_rule! )
 ```
 
-In order to draw the model at a specific frame, say 4th, one can use `draw_frame(model, frame = 4, show_grid=true)`.  If one wants to see the animation of the model run, it can be done as 
+## Step 4: Visualisation
+
+In order to draw the model at a specific frame, say 4th, one can use `draw_frame(model, frame = 4, show_grid=true)`. If one wants to see the animation of the model run, it can be done as 
 
 ```julia
 animate_sim(model, show_grid=true)
@@ -188,11 +192,11 @@ After defining the `step_rule!` function we can also choose to create an interac
 create_interactive_app(model, initialiser= initialiser!,
     step_rule= step_rule!,
     model_controls=[
-        (:wolf_birth_rate, :s, 0:0.01:1.0),
-        (:sheep_birth_rate, :s, 0.01:0.01:1.0),
-        (:initial_wolf_percent, :s, 0.01:0.01:0.9),
-        (:wolves_kill_ability, :s, 0.01:0.01:1.0),
-        (:grass_grow_prob, :s, 0.01:0.01:0.5)
+        (:wolf_birth_rate, "slider", 0:0.01:1.0),
+        (:sheep_birth_rate, "slider", 0.01:0.01:1.0),
+        (:initial_wolf_percent, "slider", 0.01:0.01:0.9),
+        (:wolves_kill_ability, "slider", 0.01:0.01:1.0),
+        (:grass_grow_prob, "slider", 0.01:0.01:0.5)
         ], 
     agent_plots=Dict("sheep"=> agent-> agent.atype == sheep ? 1 : 0, 
         "wolf"=> agent-> agent.atype == wolf ? 1 : 0),
@@ -222,5 +226,7 @@ Individual agent data recorded during model run can be obtained as
 df = get_agent_data(model.agents[1], model).record
 ```
     
+## References 
+1) Wilensky, U. (1997). NetLogo Wolf Sheep Predation model. http://ccl.northwestern.edu/netlogo/models/WolfSheepPredation. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
 
 
