@@ -57,6 +57,8 @@ function create_graph_model(agents::Vector{GraphAgent{Symbol, Any, A}},
     parameters._extras._len_model_agents = n #number of agents in model.agents
     parameters._extras._show_space = true
     parameters._extras._keep_deads_data = true
+    parameters._extras.gparams_width = gparams.width
+    parameters._extras.gparams_height = gparams.height
 
     if graphics
         locs_x, locs_y = spring_layout(structure)
@@ -109,7 +111,7 @@ function create_graph_model(agents::Vector{GraphAgent{Symbol, Any, A}},
     dead_meta_graph =  _create_dead_meta_graph(graph)
     
 
-    model = GraphModel{S,T, G}(graph, dead_meta_graph, agents, Ref(n), graphics, parameters, (aprops=Symbol[], nprops=Symbol[], eprops=Symbol[], mprops = Symbol[]), Ref(1))
+    model = GraphModel{S,T, G}(graph, dead_meta_graph, agents, Ref(n), graphics, parameters, (aprops=Set{Symbol}([]), nprops=Set{Symbol}([]), eprops=Set{Symbol}([]), mprops=Set{Symbol}([])), Ref(1))
 
     for (i, agent) in enumerate(agents)
         setfield!(agent, :id, i)
@@ -284,15 +286,15 @@ agents properties is specified, it will replace the `keeps_record_of` list of ea
 with keys "nodes", "edges" and "model" respectively.
 """
 function init_model!(model::GraphModel; initialiser::Function = null_init!, 
-    props_to_record::Dict{String, Vector{Symbol}} = Dict{String, Vector{Symbol}}("agents"=>Symbol[], "nodes"=>Symbol[], "edges"=>Symbol[], "model"=>Symbol[]),
+    props_to_record::Dict{String, Set{Symbol}} = Dict{String, Set{Symbol}}("agents"=>Set{Symbol}([]), "nodes"=>Set{Symbol}([]), "edges"=>Set{Symbol}([]), "model"=>Set{Symbol}([])),
     keep_deads_data = true)
 
     model.parameters._extras._keep_deads_data= keep_deads_data
 
-    aprops = get(props_to_record, "agents", Symbol[])
-    nprops = get(props_to_record, "nodes", Symbol[])
-    eprops = get(props_to_record, "edges", Symbol[])
-    mprops = get(props_to_record, "model", Symbol[])
+    aprops = get(props_to_record, "agents", Set{Symbol}([]))
+    nprops = get(props_to_record, "nodes", Set{Symbol}([]))
+    eprops = get(props_to_record, "edges", Set{Symbol}([]))
+    mprops = get(props_to_record, "model", Set{Symbol}([]))
 
     initialiser(model)
 
@@ -352,22 +354,22 @@ function save_sim_luxor(model::GraphModel, frames::Int=model.tick, scl::Number=1
         ticks = getfield(model, :tick)[]
         model.parameters._extras._show_space = show_space
         fr = min(frames, ticks)
-        movie_abm = Movie(gparams.width, gparams.height, "movie_abm", 1:fr)
+        movie_abm = Movie(gparams.width+gparams.border, gparams.height+gparams.border, "movie_abm", 1:fr)
         scene_array = Vector{Luxor.Scene}()
         verts = getfield(graph, :_nodes)
         node_size = _get_node_size(model.parameters._extras._num_verts::Int)
         
         function backdrop_sg(scene, frame)
             Luxor.background("white")
-            _draw_title(scene, frame)
             for vert in verts
                 _draw_da_vert(graph, vert, node_size, frame, model.record.nprops)
             end
+            _draw_title(scene, frame)
         end
     
         function backdrop_g(scene, frame)
-            _draw_title(scene, frame)
             Luxor.background("white")
+            _draw_title(scene, frame)
         end
         
         use_backdrop = (is_static(model.graph) && show_space) ? backdrop_sg : backdrop_g
@@ -389,62 +391,11 @@ end
 
 """
 $(TYPEDSIGNATURES)
-"""
-function save_sim_makie(model::GraphModel, frames::Int=model.tick, scl::Number=1.0; path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_space = true) 
-    if model.graphics
-        graph = is_static(model.graph) ? model.graph : combined_graph(model.graph, model.dead_meta_graph)
-        ticks = getfield(model, :tick)[]
-        model.parameters._extras._show_space = show_space
-        fr = min(frames, ticks)
-
-
-        time = Observable(1)
-
-        #[[Point2f(5*rand(),5*rand()) for i in 1:20] for j in 1:n]
-        points = @lift(_get_agents_pos(model,graph, $time))
-        markers = @lift(_to_makie_shapes.(_get_propvals(model,$time, :shape)))
-        colors = @lift(_get_propvals(model, $time, :color))
-        rotations = @lift(_get_propvals(model, $time, :orientation))
-        sizes = @lift(_get_propvals(model, $time, :size))
-        verts_pos = @lift(_get_graph_layout_info(model,graph, $time)[1])
-        verts_dir = @lift(_get_graph_layout_info(model,graph, $time)[2]) 
-        verts_color = @lift(_get_graph_layout_info(model,graph, $time)[3])
-        title = @lift((t->"t = $t")($time))
-
-        fig = Figure(resolution = (gparams.height, gparams.width))
-        ax = Axis(fig[1, 1])
-        ax.title = title
-
-
-        _create_makie_frame(ax, model, points, markers, colors, rotations, sizes, verts_pos, verts_dir, verts_color, show_space)
-
-        framerate = gparams.fps
-        timestamps = 1:fr
-
-        sim = record(fig, path, timestamps;
-                framerate = framerate) do t
-            time[] = t
-        end
-
-        return sim
-        
-
-    end
-
-end
-
-
-"""
-$(TYPEDSIGNATURES)
 
 Creates and saves the gif of simulation from the data collected during model run. 
 """
-function save_sim(model::GraphModel, frames::Int=model.tick, scl::Number=1.0; path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_space=true, backend = :luxor)
-    if backend == :makie
-        save_sim_makie(model, frames, scl, path= path , show_space= show_space)
-    else
-        save_sim_luxor(model, frames, scl, path= path , show_space= show_space)
-    end
+function save_sim(model::GraphModel, frames::Int=model.tick, scl::Number=1.0; path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_space=true)
+    save_sim_luxor(model, frames, scl, path= path , show_space= show_space)
     println("Animation saved at ", path)
 end
 
@@ -460,7 +411,7 @@ function animate_sim(model::GraphModel, frames::Int=model.tick;
     node_plots::Dict{String, <:Function} = Dict{String, Function}(), 
     model_plots::Vector{Symbol} = Symbol[],
     plots_only = false, 
-    path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_graph = true, backend= :luxor)
+    path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_graph = true)
     ticks = getfield(model, :tick)[]
     model.parameters._extras._show_space = show_graph
     graph = is_static(model.graph) ? model.graph : combined_graph(model.graph, model.dead_meta_graph)
@@ -483,31 +434,16 @@ function animate_sim(model::GraphModel, frames::Int=model.tick;
         finish()
         drawing
     end
-    fig = Figure(resolution = (gparams.height, gparams.width))
-    ax = Axis(fig[1, 1])
-    ax.title = " "
-    function draw_frame_makie(t, scl)
-        empty!(ax)
-        points = _get_agents_pos(model,graph,t)
-        markers = _to_makie_shapes.(_get_propvals(model,t, :shape))
-        colors = _get_propvals(model, t, :color)
-        rotations = _get_propvals(model, t, :orientation)
-        sizes = _get_propvals(model, t, :size, scl)
-        verts_pos, verts_dir, verts_color   = _get_graph_layout_info(model,graph, t)
-
-        _create_makie_frame(ax, model, points, markers, colors, rotations, sizes, verts_pos, verts_dir, verts_color, show_graph)
-        return fig
-    end
 
     function _save_sim(scl)
-        save_sim(model, fr, scl, path= path, show_space=show_graph, backend = backend)
+        save_sim(model, fr, scl, path= path, show_space=show_graph, backend = :luxor)
     end
 
     function _does_nothing(t,scl::Number=1)
         nothing
     end
 
-    draw_frame = backend==:makie ? draw_frame_makie : draw_frame_luxor
+    draw_frame = draw_frame_luxor
 
     if plots_only
         draw_frame = _does_nothing
@@ -536,6 +472,7 @@ function animate_sim(model::GraphModel, frames::Int=model.tick;
 end
 
 
+
 """
 $(TYPEDSIGNATURES)
 
@@ -547,7 +484,7 @@ function draw_frame(model::GraphModel; frame=model.tick, show_graph=true)
     graph = combined_graph(model.graph, model.dead_meta_graph)
     verts = getfield(graph, :_nodes)
     node_size = _get_node_size(model.parameters._extras._num_verts::Int)
-    drawing = Drawing(gparams.width, gparams.height, :png)
+    drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
     if model.graphics
         Luxor.origin()
         Luxor.background("white")
@@ -569,7 +506,7 @@ $(TYPEDSIGNATURES)
 Creates an interactive app for the model.
 """
 function create_interactive_app(inmodel::GraphModel; initialiser::Function = null_init!, 
-    props_to_record::Dict{String, Vector{Symbol}} = Dict{String, Vector{Symbol}}("agents"=>Symbol[], "nodes"=>Symbol[], "edges"=>Symbol[], "model"=>Symbol[]),
+    props_to_record::Dict{String, Set{Symbol}} = Dict{String, Set{Symbol}}("agents"=>Set{Symbol}([]), "nodes"=>Set{Symbol}([]), "edges"=>Set{Symbol}([]), "model"=>Set{Symbol}([])),
     step_rule::Function=model_null_step!,
     agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
     model_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), #initialiser will override the changes made
@@ -578,7 +515,7 @@ function create_interactive_app(inmodel::GraphModel; initialiser::Function = nul
     model_plots::Vector{Symbol} = Symbol[],
     plots_only = false,
     path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"),
-    frames=200, show_graph=true, backend = :luxor) 
+    frames=200, show_graph=true) 
 
     model = deepcopy(inmodel)
     
@@ -628,7 +565,7 @@ function create_interactive_app(inmodel::GraphModel; initialiser::Function = nul
     agent_df, patch_df, node_df, model_df= DataFrame(), DataFrame(), DataFrame(), DataFrame() #_init_interactive_model()
 
     function _save_sim(scl)
-        save_sim(model, frames, scl, path= path, show_space=show_graph, backend = backend)
+        save_sim(model, frames, scl, path= path, show_space=show_graph, backend = :luxor)
     end
 
     function _does_nothing(t,scl::Number=1)
@@ -638,7 +575,7 @@ function create_interactive_app(inmodel::GraphModel; initialiser::Function = nul
     function _draw_interactive_frame_luxor(t, scl)
         verts = getfield(model.graph, :_nodes)
         node_size = _get_node_size(model.parameters._extras._num_verts::Int)
-        drawing = Drawing(gparams.width, gparams.height, :png)
+        drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
         if model.graphics
             Luxor.origin()
             Luxor.background("white")
@@ -653,25 +590,7 @@ function create_interactive_app(inmodel::GraphModel; initialiser::Function = nul
         drawing
     end
 
-
-    fig = Figure(resolution = (gparams.height, gparams.width))
-    ax = Axis(fig[1, 1])
-    ax.title = " "
-
-    function _draw_interactive_frame_makie(t, scl)
-        empty!(ax)
-        points = _get_agents_pos(model,model.graph,t)
-        markers = _to_makie_shapes.(_get_propvals(model,t, :shape))
-        colors = _get_propvals(model, t, :color)
-        rotations = _get_propvals(model, t, :orientation)
-        sizes = _get_propvals(model, t, :size, scl)
-        verts_pos, verts_dir, verts_color  = _get_graph_layout_info(model,model.graph, t)
-
-        _create_makie_frame(ax, model, points, markers, colors, rotations, sizes, verts_pos, verts_dir, verts_color, show_graph)
-        return fig
-    end
-
-    _draw_interactive_frame = backend==:makie ? _draw_interactive_frame_makie : _draw_interactive_frame_luxor
+    _draw_interactive_frame = _draw_interactive_frame_luxor
 
     if plots_only
         _draw_interactive_frame = _does_nothing
@@ -683,5 +602,8 @@ function create_interactive_app(inmodel::GraphModel; initialiser::Function = nul
     agent_df, ()->nothing, patch_df, node_df, model_df)
 
 end
+
+
+
 
  
