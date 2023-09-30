@@ -9,7 +9,7 @@ Base.iterate(iter::Vect{N, T}, i::Int) where {N, T<:Union{Int, AbstractFloat}} =
 Base.length(x::Vect{N}) where N = N
 Base.eltype(x::Vect{N,T}) where{N,T} = T
 
-Vect(x::Vararg{<:Union{Int, AbstractFloat}, N}) where {N}=Vect(x)
+Vect(x::Vararg{T, N}) where {T<:Union{Int, AbstractFloat}, N}=Vect(x)
 
 function Base.show(io::IO, x::Vect)
     println(io, x.v)

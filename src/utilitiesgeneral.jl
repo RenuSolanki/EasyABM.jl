@@ -1,3 +1,27 @@
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function moore_distance(patch1::NTuple{N, S}, patch2::NTuple{N,T}) where {N, S<:Real, T<:Real} # for moore neighborhood
+    patch = patch1 .- patch2
+    patch = abs.(patch)
+    return max(patch...)
+end 
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function manhattan_distance(patch1::NTuple{N,S}, patch2::NTuple{N,T}) where {N, S<:Real, T<:Real} # for von_neumann neighborhood
+    patch = patch1 .- patch2
+    patch = abs.(patch)
+    return sum(patch)
+end
+
+
+
+
 """
 $(TYPEDSIGNATURES)
 """
@@ -45,7 +69,7 @@ $(TYPEDSIGNATURES)
 
 Gets the model that was saved before as jld2. 
 """
-function open_saved_model(; model_name = _default_modelname, path = joinpath(_default_folder[], _default_filename))
+function open_model(; model_name = _default_modelname, path = joinpath(_default_folder[], _default_filename))
     try
         f = jldopen(path, "r+")
         model = f[model_name]
