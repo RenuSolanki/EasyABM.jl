@@ -8,7 +8,7 @@ struct GraphModel{S<:MType,T<:MType,G<:GType} <: AbstractGraphModel{S,T,G} #S gr
     max_id::Base.RefValue{Int64}
     graphics::Bool
     parameters::PropDataDict{Symbol, Any}
-    record::NamedTuple{(:aprops, :nprops, :eprops, :mprops), Tuple{Vector{Symbol}, Vector{Symbol}, Vector{Symbol}, Vector{Symbol}}}
+    record::NamedTuple{(:aprops, :nprops, :eprops, :mprops), Tuple{Set{Symbol}, Set{Symbol}, Set{Symbol}, Set{Symbol}}}
     tick::Base.RefValue{Int64}
 
     GraphModel{S}() where {S} =  begin #needed for initially attaching with agents
@@ -20,7 +20,7 @@ struct GraphModel{S<:MType,T<:MType,G<:GType} <: AbstractGraphModel{S,T,G} #S gr
         max_id = Ref(1)
         graphics = true
         parameters = PropDataDict()
-        record = (aprops=Symbol[], nprops=Symbol[], eprops=Symbol[], mprops = Symbol[])
+        record = (aprops=Set{Symbol}([]), nprops=Set{Symbol}([]), eprops=Set{Symbol}([]), mprops = Set{Symbol}([]))
         tick = Ref(1)
         new{S,Mortal,SimG}(graph, dead_meta_graph, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick) 
     end
@@ -33,10 +33,10 @@ struct GraphModel{S<:MType,T<:MType,G<:GType} <: AbstractGraphModel{S,T,G} #S gr
     end
 end
 
-const GraphModelFixAgNum = Union{GraphModel{ Static,  Static }, GraphModel{ Mortal, Static }}
-const GraphModelDynAgNum = Union{GraphModel{ Static,  Mortal}, GraphModel{ Mortal, Mortal}}
-const GraphModelFixGrTop = Union{GraphModel{ Static,  Static }, GraphModel{ Static,  Mortal}}
-const GraphModelDynGrTop = Union{GraphModel{ Mortal, Static }, GraphModel{ Mortal, Mortal}}
+const GraphModelFixAgNum = Union{GraphModel{Static, Static}, GraphModel{Mortal, Static}}
+const GraphModelDynAgNum = Union{GraphModel{Static, Mortal}, GraphModel{Mortal, Mortal}}
+const GraphModelFixGrTop = Union{GraphModel{Static, Static}, GraphModel{Static, Mortal}}
+const GraphModelDynGrTop = Union{GraphModel{Mortal, Static}, GraphModel{Mortal, Mortal}}
 
 
 
@@ -51,36 +51,36 @@ end
 
 function Base.show(io::IO, ::MIME"text/plain", v::GraphModel{T, S, G}) where {T,S, G} # works with REPL
     if (T==Mortal)&&(S==Mortal)
-        str = "In a {$T,$S} model graph topology can change and agents can take birth or die"
+        str = "In a {$T, $S} model graph topology can change and agents can take birth or die"
     end
     if (T==Static)&&(S==Mortal)
-        str = "In a {$T,$S} model graph topology is fixed while agents can take birth or die"
+        str = "In a {$T, $S} model graph topology is fixed while agents can take birth or die"
     end
     if (T==Static)&&(S==Static)
-        str = "In a {$T,$S} model both graph topology and agents number is fixed"
+        str = "In a {$T, $S} model both graph topology and agents number is fixed"
     end
     if (T==Mortal)&&(S==Static)
-        str = "In a {$T,$S} model graph topology can change and agents number is fixed"
+        str = "In a {$T, $S} model graph topology can change and agents number is fixed"
     end
     
-    println(io, "EasyABM GraphModel{$T,$S, $G}: $str.")
+    println(io, "EasyABM GraphModel{$T, $S, $G}: $str.")
 end
 
 function Base.show(io::IO, v::GraphModel{T,S, G}) where {T,S, G} # works with print
     if (T==Mortal)&&(S==Mortal)
-        str = "In a {$T,$S} model graph topology can change and agents can take birth or die"
+        str = "In a {$T, $S} model graph topology can change and agents can take birth or die"
     end
     if (T==Static)&&(S==Mortal)
-        str = "In a {$T,$S} model graph topology is fixed while agents can take birth or die"
+        str = "In a {$T, $S} model graph topology is fixed while agents can take birth or die"
     end
     if (T==Static)&&(S==Static)
-        str = "In a {$T,$S} model both graph topology and agents number is fixed"
+        str = "In a {$T, $S} model both graph topology and agents number is fixed"
     end
     if (T==Mortal)&&(S==Static)
-        str = "In a {$T,$S} model graph topology can change and agents number is fixed"
+        str = "In a {$T, $S} model graph topology can change and agents number is fixed"
     end
     
-    println(io, "EasyABM GraphModel{$T,$S, $G}: $str.")
+    println(io, "EasyABM GraphModel{$T, $S, $G}: $str.")
 end
 
 
