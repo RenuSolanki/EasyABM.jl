@@ -13,9 +13,9 @@ mutable struct GrParams3D
     GrParams3D(;xlen::Int, ylen::Int, zlen::Int ) = new(xlen, ylen, zlen)
 end
 
-const gparams = GrParams(width=400,height=400,border=10, fps=12) # graphics parameters
+const gparams = GrParams(width=400,height=400,border=30, fps=12) # graphics parameters
 const gparams3d = GrParams3D(xlen=10, ylen=10, zlen=10)
-const type_dict = Dict(:color => Symbol, :shape => Symbol, :pos => GeometryBasics.Vec2{Float64}, :orientation => Float64, :size => Union{Int, Float64})
+const type_dict = Dict(:color => Col, :shape => Symbol, :pos => GeometryBasics.Vec2{Float64}, :orientation => Float64, :size => Union{Int, Float64})
 const makie_shape_dict = Dict(:circle => :circle, :star=>:star5, :arrow=>:utriangle, :diamond => :diamond, :square=>:rect, :box => 'B')
 
 
@@ -35,7 +35,7 @@ $(TYPEDSIGNATURES)
         agent_dict = unwrap(agent)
         if (agent._extras._birth_time<= t)&&(t<= agent._extras._death_time)
             index = t - agent._extras._birth_time +1
-            propval = (prop in agent.keeps_record_of) ? agent_data[prop][index] : (prop == :pos ? agent.pos : agent_dict[prop])
+            propval = (prop in agent._keeps_record_of) ? agent_data[prop][index] : (prop == :pos ? agent.pos : agent_dict[prop])
             divisor = hasfield(typeof(model), :size) ? model.size[1] : gparams.width
             propval = (prop == :size) ? propval*scl*gparams.width/divisor : propval
             propval = (prop == :pos) ? GeometryBasics.Vec(propval...) : propval
@@ -54,7 +54,7 @@ $(TYPEDSIGNATURES)
     for agent in model.agents
         agent_data = unwrap_data(agent)
         agent_dict = unwrap(agent)
-        propval = (prop in agent.keeps_record_of) ? agent_data[prop][t] : (prop == :pos ? agent.pos : agent_dict[prop])
+        propval = (prop in agent._keeps_record_of) ? agent_data[prop][t] : (prop == :pos ? agent.pos : agent_dict[prop])
         divisor = hasfield(typeof(model), :size) ? model.size[1] : gparams.width
         propval = (prop == :size) ? propval*scl*gparams.width/divisor : propval
         propval = (prop == :pos) ? GeometryBasics.Vec(propval...) : propval
@@ -197,7 +197,7 @@ function _interactive_app(model::Union{AbstractSpaceModel, AbstractGraphModel}, 
              @async gfun()
         end
         lis_sv = on(sv) do val
-            sfun()
+            @async sfun()
         end
 
         plots = Any[]
@@ -262,10 +262,10 @@ function _live_interactive_app(model::Union{AbstractSpaceModel, AbstractGraphMod
     ag_controls = Any[]
     ag_listeners = Any[]
     for (a,b,lst) in agent_controls
-        if b==:s
+        if b=="slider"
             s = slider(lst, label = string(a))
             push!(ag_controls, s)
-        elseif b==:d
+        elseif b=="dropdown"
             dic = Dict{eltype(lst), eltype(lst)}()
             for _i in 1:length(lst)
                 dic[lst[_i]] =lst[_i]
@@ -286,10 +286,10 @@ function _live_interactive_app(model::Union{AbstractSpaceModel, AbstractGraphMod
     md_controls = Any[]
     md_listeners = Any[]
     for (a,b,lst) in model_controls
-        if b==:s
+        if b=="slider"
             s = slider(lst, label = string(a))
             push!(md_controls, s)
-        elseif b==:d
+        elseif b=="dropdown"
             dic = Dict{eltype(lst), eltype(lst)}()
             for _i in 1:length(lst)
                 dic[lst[_i]] =lst[_i]
@@ -441,7 +441,10 @@ function _live_interactive_app(model::Union{AbstractSpaceModel, AbstractGraphMod
         wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop, "rst"=>rst])
         return @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, vbox(ag_controls...), vbox(md_controls...), hbox(spc, :run, spc, :stop, spc, :rst)), render3d, spc, vbox(pls...) ) )  
     end
+    
+    # For a blink window do following 
+    # w=Window()
+    # body!(w, lay) #where lay is the layout defined in if else block
 
 end
-
 

@@ -57,6 +57,7 @@ function _save_object_to_disk(object_to_save; name::String = _default_modelname,
     println("Model with name $name saved as $save_as in folder $folder")
 
     _jld2_count[]+=1
+    return 
 end
 
 

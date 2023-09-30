@@ -71,7 +71,7 @@ end
 
 
 
-@inline function _create_props_lists(aprops::Vector{Symbol}, pprops::Vector{Symbol}, mprops::Vector{Symbol}, model::AbstractSpaceModel)
+@inline function _create_props_lists(aprops::Set{Symbol}, pprops::Set{Symbol}, mprops::Set{Symbol}, model::AbstractSpaceModel)
 
     empty!(model.record.aprops)
     for sym in aprops
@@ -80,7 +80,7 @@ end
 
     if length(model.record.aprops)>0
         for agent in model.agents
-            unwrap(agent)[:keeps_record_of] = aprops
+            unwrap(agent)[:_keeps_record_of] = copy(aprops)
         end
     end
 
@@ -97,7 +97,7 @@ end
 
 
 
-@inline function _create_props_lists(aprops::Vector{Symbol}, nprops::Vector{Symbol}, eprops::Vector{Symbol}, mprops::Vector{Symbol}, model::AbstractGraphModel)
+@inline function _create_props_lists(aprops::Set{Symbol}, nprops::Set{Symbol}, eprops::Set{Symbol}, mprops::Set{Symbol}, model::AbstractGraphModel)
 
     empty!(model.record.aprops)
     for sym in aprops
@@ -106,7 +106,7 @@ end
 
     if length(aprops)>0
         for agent in model.agents
-            unwrap(agent)[:keeps_record_of] = aprops
+            unwrap(agent)[:_keeps_record_of] = copy(aprops)
         end
     end
 
@@ -263,7 +263,7 @@ $(TYPEDSIGNATURES)
 """
 @inline function _create_agent_record!(agent::AbstractAgent, model::Union{AbstractSpaceModel, AbstractGraphModel})
     if length(model.record.aprops)>0
-        unwrap(agent)[:keeps_record_of] = model.record.aprops
+        unwrap(agent)[:_keeps_record_of] = copy(model.record.aprops)
     end
 end
 
@@ -273,7 +273,7 @@ $(TYPEDSIGNATURES)
 """
 @inline function _init_agent_record!(agent::AbstractAgent)
     agent_data = unwrap_data(agent)
-    for key in agent.keeps_record_of::Vector{Symbol}
+    for key in agent._keeps_record_of::Set{Symbol}
         agent_data[key] = [getproperty(agent, key)]
     end
 end
@@ -284,7 +284,7 @@ $(TYPEDSIGNATURES)
 """
 @inline function _update_agent_record!(agent::AbstractAgent)
     agent_data = unwrap_data(agent)
-    for key in agent.keeps_record_of::Vector{Symbol}
+    for key in agent._keeps_record_of::Set{Symbol}
         push!(agent_data[key], getproperty(agent, key))
     end
 end
