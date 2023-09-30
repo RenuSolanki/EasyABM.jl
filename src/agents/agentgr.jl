@@ -34,7 +34,7 @@ function Base.show(io::IO, ::MIME"text/plain", a::GraphAgent) # works with REPL
     println(io, "GraphAgent:")
     println(io, " node: ", a.node)
     for (key, value) in unwrap(a)
-        if !(key == :_extras)
+        if !(key == :_extras) && !(key == :_keeps_record_of)
             println(io, " ", key, ": ", value)
         end
     end
@@ -44,7 +44,7 @@ function Base.show(io::IO, a::GraphAgent) # works with print
     println(io, "GraphAgent:")
     println(io, " node: ", a.node)
     for (key, value) in unwrap(a)
-        if !(key == :_extras)
+        if !(key == :_extras) && !(key == :_keeps_record_of)
             println(io, " ", key, ": ", value)
         end
     end
@@ -69,7 +69,7 @@ Following property names are reserved for some specific agent properties
     - color : color of agent
     - size : size of agent
     - orientation : orientation of agent
-    - `keeps_record_of` : list of properties that the agent records during time evolution. 
+    - `keeps_record_of` : Set of properties that the agent records during time evolution. 
 """
 function graph_agent(;node=1,
     graph_mort_type::Type{S} = Static, 
@@ -78,8 +78,12 @@ function graph_agent(;node=1,
     dict_agent = Dict{Symbol, Any}(kwargs)
 
     if !haskey(dict_agent, :keeps_record_of)
-        dict_agent[:keeps_record_of] = Symbol[]
+        dict_agent[:_keeps_record_of] = Set{Symbol}([])
+    else
+        dict_agent[:_keeps_record_of] = dict_agent[:keeps_record_of]
+        delete!(dict_agent, :keeps_record_of)
     end
+    
     dict_agent[:_extras] = PropDict()
     dict_agent[:_extras]._active = true
     dict_agent[:_extras]._new = true
@@ -107,7 +111,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Returns a list of n 2d agents all having same properties as `agent`.  
+Returns a list of n 2d agents all having same (other than _extras) properties as `agent`.  
 """
 function create_similar(agent::GraphAgent{Symbol, Any, S}, n::Int) where {S<:MType}
     dc = Dict{Symbol, Any}()
@@ -122,7 +126,7 @@ function create_similar(agent::GraphAgent{Symbol, Any, S}, n::Int) where {S<:MTy
             end
         end
         dc[:_extras] = PropDict()
-        dc[:_extras]._active =  agent._extras._active
+        dc[:_extras]._active = agent._extras._active # property of being alive or dead is same as of previous agent
         dc[:_extras]._new = true
         agnew = GraphAgent{S}(1, node, dc, model)
         push!(list, agnew)
@@ -134,7 +138,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Returns a list of n 2d agents all having same properties as `agent`.  
+Returns a list of n 2d agents all having same (other than _extras) properties as `agent`.  
 """
 function create_similar(agent::GraphAgent{Symbol, Any, S}) where {S<:MType}
     dc = Dict{Symbol, Any}()
@@ -147,10 +151,9 @@ function create_similar(agent::GraphAgent{Symbol, Any, S}) where {S<:MType}
         end
     end
     dc[:_extras] = PropDict()
-    dc[:_extras]._active =  agent._extras._active
+    dc[:_extras]._active = agent._extras._active # property of being alive or dead is same as of previous agent
     dc[:_extras]._new = true
     agnew = GraphAgent{S}(1, node, dc, model)
-
     return agnew
 end
 

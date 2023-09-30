@@ -127,6 +127,7 @@ end
 
 """
 $(TYPEDSIGNATURES)
+Last recorded property values. 
 """
 function latest_propvals(node::Int, model::GraphModel, propname::Symbol, n::Int)
     return latest_propvals(model.graph.nodesprops[node], propname, n)
@@ -274,7 +275,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_nums_nodes(model::GraphModelFixGrTop, conditions::Function...; labels::Vector{String} = string.(collect(1:length(conditions))), plot_result = false )
+function get_nums_nodes(model::GraphModelFixGrTop, conditions::Function...; labels::Vector{String} = string.(collect(1:length(conditions))), plot_result = false ) 
     dict = Dict{Symbol, Vector{Int}}()
     for i in 1:length(conditions)
         name = Symbol(labels[i])

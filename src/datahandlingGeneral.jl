@@ -13,7 +13,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_agent_data(agent::AbstractAgent, model::Union{AbstractSpaceModel{Mortal}, AbstractGraphModel{T, Mortal}}, props = agent.keeps_record_of) where T<:MType
+function get_agent_data(agent::AbstractAgent, model::Union{AbstractSpaceModel{Mortal}, AbstractGraphModel{T, Mortal}}, props = agent._keeps_record_of) where T<:MType
     datadict=Dict{Symbol,Any}()
     uptick = agent._extras._death_time::Int == typemax(Int) ? model.tick+1 : agent._extras._death_time::Int+1
     downtick = agent._extras._birth_time::Int-1
@@ -27,7 +27,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_agent_data(agent::AbstractAgent, model::Union{AbstractSpaceModel{Static}, AbstractGraphModel{T, Static}}, props = agent.keeps_record_of) where T<:MType
+function get_agent_data(agent::AbstractAgent, model::Union{AbstractSpaceModel{Static}, AbstractGraphModel{T, Static}}, props = agent._keeps_record_of) where T<:MType
     datadict=Dict{Symbol,Any}()
     for key in props
         datadict[key] = unwrap_data(agent)[key]
@@ -58,6 +58,7 @@ end
 
 """
 $(TYPEDSIGNATURES)
+last recorded (not current) property values.
 """
 @inline function latest_propvals(obj::AbstractPropDict, propname::Symbol, n::Int)
     return unwrap_data(obj)[propname][max(end-n,1): end]
@@ -85,7 +86,7 @@ $(TYPEDSIGNATURES)
 @inline function propnames(obj::Union{AbstractAgent2D,AbstractAgent3D})
     names = [:pos]
     for key in keys(unwrap(obj))
-        if (key!=:_extras)&&(key!=:keeps_record_of)
+        if (key!=:_extras)&&(key!=:_keeps_record_of)
             push!(names, key)
         end
     end
@@ -98,7 +99,7 @@ $(TYPEDSIGNATURES)
 @inline function propnames(obj::GraphAgent)
     names = [:node]
     for key in keys(unwrap(obj))
-        if (key!=:_extras)&&(key!=:keeps_record_of)
+        if (key!=:_extras)&&(key!=:_keeps_record_of)
             push!(names, key)
         end
     end
@@ -138,7 +139,7 @@ end
 
 
 ######################
-@inline function create_temp_prop_dict(obj::Dict{Symbol, Any}, objdata::Dict{Symbol, Any}, record::Vector{Symbol}, index::Int)
+@inline function create_temp_prop_dict(obj::Dict{Symbol, Any}, objdata::Dict{Symbol, Any}, record::Set{Symbol}, index::Int)
     temp_dict = Dict{Symbol,Any}()
     for key in keys(obj)
         if !(key in record)
@@ -152,7 +153,7 @@ end
 
 
 ######################
-@inline function create_temp_prop_dict(obj::Union{AbstractAgent2D, AbstractAgent3D}, objdata::Dict{Symbol, Any}, record::Vector{Symbol}, index::Int)
+@inline function create_temp_prop_dict(obj::Union{AbstractAgent2D, AbstractAgent3D}, objdata::Dict{Symbol, Any}, record::Set{Symbol}, index::Int)
     temp_dict = Dict{Symbol,Any}()
     objdict = unwrap(obj)
     for key in keys(objdict)
@@ -170,7 +171,7 @@ end
     return PropDict(temp_dict)
 end
 
-@inline function create_temp_prop_dict(obj::GraphAgent, objdata::Dict{Symbol, Any}, record::Vector{Symbol}, index::Int)
+@inline function create_temp_prop_dict(obj::GraphAgent, objdata::Dict{Symbol, Any}, record::Set{Symbol}, index::Int)
     temp_dict = Dict{Symbol,Any}()
     objdict = unwrap(obj)
     for key in keys(objdict)
@@ -205,7 +206,7 @@ function get_nums_agents(model::Union{AbstractSpaceModel{Mortal}, AbstractGraphM
             for agent in all_agents
                 if (tick>=agent._extras._birth_time::Int)&&(tick<=agent._extras._death_time::Int)
                     index = tick-agent._extras._birth_time::Int+1
-                    agentcp = create_temp_prop_dict(agent, unwrap_data(agent), agent.keeps_record_of::Vector{Symbol}, index)
+                    agentcp = create_temp_prop_dict(agent, unwrap_data(agent), agent._keeps_record_of::Set{Symbol}, index)
 
                     if condition(agentcp)
                         num+=1
@@ -249,7 +250,7 @@ function get_agents_avg_props(model::Union{AbstractSpaceModel{Mortal}, AbstractG
             for agent in all_agents
                 if (tick>=agent._extras._birth_time::Int)&&(tick<=agent._extras._death_time::Int)
                     index = tick-agent._extras._birth_time::Int+1
-                    agentcp = create_temp_prop_dict(agent, unwrap_data(agent), agent.keeps_record_of::Vector{Symbol}, index)
+                    agentcp = create_temp_prop_dict(agent, unwrap_data(agent), agent._keeps_record_of::Set{Symbol}, index)
                     val = val .+ fun(agentcp)
                     num_alive+=1
                 end
@@ -282,7 +283,7 @@ function get_nums_agents(model::Union{AbstractSpaceModel{Static}, AbstractGraphM
         for tick in 1:model.tick
             num=0
             for agent in model.agents
-                agentcp = create_temp_prop_dict(agent, unwrap_data(agent), agent.keeps_record_of::Vector{Symbol}, tick)
+                agentcp = create_temp_prop_dict(agent, unwrap_data(agent), agent._keeps_record_of::Set{Symbol}, tick)
                 if condition(agentcp)
                     num+=1
                 end
@@ -322,7 +323,7 @@ function get_agents_avg_props(model::Union{AbstractSpaceModel{Static}, AbstractG
         dict[name]=typeof(val./2)[]
         for tick in 1:model.tick
             for agent in all_agents
-                agentcp = create_temp_prop_dict(agent, unwrap_data(agent), agent.keeps_record_of::Vector{Symbol}, tick)
+                agentcp = create_temp_prop_dict(agent, unwrap_data(agent), agent._keeps_record_of::Set{Symbol}, tick)
                 val = val .+ fun(agentcp)
             end
 

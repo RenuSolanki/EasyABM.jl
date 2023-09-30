@@ -15,7 +15,7 @@ export  Static, Mortal, PropDict, Vect,
         # initialise, run, visualise
         init_model!, run_model!, run_model_epochs!, 
         draw_frame, animate_sim, 
-        create_interactive_app, save_model, open_saved_model,
+        create_interactive_app, save_model, open_model,
 
         # data 
         get_agent_data, get_patch_data, get_node_data,
@@ -53,7 +53,8 @@ export  Static, Mortal, PropDict, Vect,
         neighbors, in_neighbors, out_neighbors, grid_neighbors, euclidean_neighbors,
 
         #misc utilities
-        dotprod, veclength, distance, calculate_direction
+        dotprod, veclength, distance, calculate_direction, Col, @cl_str, moore_distance,
+        manhattan_distance
 
         #inbuilt models
     
@@ -65,6 +66,7 @@ using Plots:plot
 import Plots
 using Graphs
 using JLD2
+using FixedPointNumbers
 using Random
 using GeometryBasics
 using MeshCat, CoordinateTransformations, Rotations
@@ -72,12 +74,14 @@ using Colors: RGBA, RGB
 using DocStringExtensions
 using Interact
 using Scratch
-using CairoMakie
-
+#using Thebes
+using Blink
+using Base.Threads
 
 
 include("abstracttypes.jl")
 include("vec.jl")
+include("colordef.jl")
 include("savejld2.jl")
 
 include("agents/generaldefs.jl")
@@ -105,6 +109,8 @@ include("2d_model/mainfunctions.jl")
 
 
 include("3d_model/model.jl")
+#include("3d_model/Shapes.jl")
+#using .Shapes
 include("3d_model/graphicsrelatedfuncs.jl")
 include("3d_model/utilities.jl")
 include("3d_model/helperfunctions.jl")

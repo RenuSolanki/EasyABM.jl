@@ -35,7 +35,7 @@ Following property names are reserved for some specific agent properties
     - color : color of agent
     - size : size of agent
     - orientation : orientation of agent
-    - `keeps_record_of` : list of properties that the agent records during time evolution. 
+    - `keeps_record_of` : Set of properties that the agent records during time evolution. 
 """
 function con_3d_agent(;pos::Vect{3, S}=Vect(1.0,1.0,1.0),#GeometryBasics.Vec{3, S} = GeometryBasics.Vec(1.0,1.0, 1.0),#NTuple{3, S}=(1.0,1.0,1.0), 
     space_type::Type{P}=Periodic, 
@@ -43,7 +43,10 @@ function con_3d_agent(;pos::Vect{3, S}=Vect(1.0,1.0,1.0),#GeometryBasics.Vec{3, 
     dict_agent = Dict{Symbol, Any}(kwargs)
 
     if !haskey(dict_agent, :keeps_record_of)
-        dict_agent[:keeps_record_of] = Symbol[]
+        dict_agent[:_keeps_record_of] = Set{Symbol}([])
+    else
+        dict_agent[:_keeps_record_of] = dict_agent[:keeps_record_of]
+        delete!(dict_agent, :keeps_record_of)
     end
     dict_agent[:_extras] = PropDict()
     dict_agent[:_extras]._model = nothing
@@ -87,9 +90,9 @@ function create_similar(agent::Agent3D{Symbol, Any, S, P}, n::Int) where {S<:Uni
             end
         end
         dc[:_extras] = PropDict()
-        dc[:_extras]._active =  agent._extras._active
+        dc[:_extras]._active = agent._extras._active # property of being alive or dead is same as of previous agent
         dc[:_extras]._new = true
-        agnew = Agent3D{P}(1, pos, dc, model)
+        agnew = Agent3D{P}(1, pos, dc,model)
         push!(list, agnew)
     end
     return list
@@ -110,7 +113,7 @@ function create_similar(agent::Agent3D{Symbol, Any, S, P}) where {S<:Union{Int, 
         end
     end
     dc[:_extras] = PropDict()
-    dc[:_extras]._active =  agent._extras._active
+    dc[:_extras]._active = agent._extras._active # property of being alive or dead is same as of previous agent
     dc[:_extras]._new = true
     agnew = Agent3D{P}(1, pos, dc, model)
     return agnew

@@ -44,7 +44,7 @@ function create_3d_model(agents::Vector{Agent3D{Symbol, Any, S, A}};
     parameters = _set_parameters3d(size, n, random_positions; kwargs...)
 
 
-    model = SpaceModel3D{T, S, P}(size, patches, agents, Ref(n), graphics, parameters, (aprops = Symbol[], pprops = Symbol[], mprops = Symbol[]), Ref(1))
+    model = SpaceModel3D{T, S, P}(size, patches, agents, Ref(n), graphics, parameters, (aprops = Set{Symbol}([]), pprops = Set{Symbol}([]), mprops = Set{Symbol}([])), Ref(1))
 
     for (i, agent) in enumerate(agents)
 
@@ -127,14 +127,14 @@ names as symbols. If a nonempty list of agents properties is specified, it will 
 patches and model are similarly specified with keys "patches" and "model" respectively.
 """
 function init_model!(model::SpaceModel3D; initialiser::Function = null_init!, 
-    props_to_record::Dict{String, Vector{Symbol}} = Dict{String, Vector{Symbol}}("agents"=>Symbol[], "patches"=>Symbol[], "model"=>Symbol[]),
+    props_to_record::Dict{String, Set{Symbol}} = Dict{String, Set{Symbol}}("agents"=>Set{Symbol}([]), "patches"=>Set{Symbol}([]), "model"=>Set{Symbol}([])),
     keep_deads_data = true)
 
     model.parameters._extras._keep_deads_data= keep_deads_data
 
-    aprops = get(props_to_record, "agents", Symbol[])
-    pprops = get(props_to_record, "patches", Symbol[])
-    mprops = get(props_to_record, "model", Symbol[])
+    aprops = get(props_to_record, "agents", Set{Symbol}([]))
+    pprops = get(props_to_record, "patches", Set{Symbol}([]))
+    mprops = get(props_to_record, "model", Set{Symbol}([]))
 
     initialiser(model) 
 
@@ -197,9 +197,9 @@ function save_sim(model::SpaceModel3D, frames::Int = model.tick, scl::Number = 1
     In order to save the video file of simulation do following -
         1. Run the model for required number of steps using run_model! function.
         2. Animate the simulation using animate_sim. 
-        3. In the GUI interface of animation use the record optio on the RHS dropdown menu.
+        3. In the GUI interface of animation use the record option on the RHS dropdown menu.
         4. This will record a sequence of png files of simulation as a .tar file which can be
-           converted inot a video file either using ffmpeg or with MeshCat's inbuilt ffmpeg
+           converted into a video file either using ffmpeg or with MeshCat's inbuilt ffmpeg
            functionality as :- 
         
            using MeshCat
@@ -283,7 +283,7 @@ $(TYPEDSIGNATURES)
 Creates an interactive app for the model.
 """
 function create_interactive_app(inmodel::SpaceModel3D; initialiser::Function = null_init!, 
-    props_to_record::Dict{String, Vector{Symbol}} = Dict{String, Vector{Symbol}}("agents"=>Symbol[], "patches"=>Symbol[], "model"=>Symbol[]),
+    props_to_record::Dict{String, Set{Symbol}} = Dict{String, Set{Symbol}}("agents"=>Set{Symbol}([]), "patches"=>Set{Symbol}([]), "model"=>Set{Symbol}([])),
     step_rule::Function=model_null_step!,
     agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
     model_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), #initialiser will override the changes made
@@ -372,8 +372,4 @@ function create_interactive_app(inmodel::SpaceModel3D; initialiser::Function = n
     agent_df, _render_trivial, patch_df, node_df, model_df)
 
 end
-
-
-
-
 

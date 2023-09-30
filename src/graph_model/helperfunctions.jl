@@ -12,11 +12,11 @@ function manage_default_graphics_data!(agent::GraphAgent, graphics)
         end
 
         if !haskey(agent, :color)
-            agent.color = :red
+            agent.color = Col("red")
         end
 
         if !haskey(agent, :size)
-            agent.size = 4
+            agent.size = 20
         end
 
         if !haskey(agent, :orientation)
@@ -675,7 +675,7 @@ $(TYPEDSIGNATURES)
 """
 @inline function update_nodes_record!(model::GraphModel)
     if length(model.record.nprops)>0
-        for node in getfield(model.graph, :_nodes)
+        @threads for node in getfield(model.graph, :_nodes)
             node_dict = unwrap(model.graph.nodesprops[node])
             node_data = unwrap_data(model.graph.nodesprops[node])
             for key in model.record.nprops
@@ -694,7 +694,7 @@ $(TYPEDSIGNATURES)
 """
 @inline function update_edges_record!(model::GraphModel)
     if length(model.record.eprops)>0
-        for edge in edges(model.graph)
+        @threads for edge in edges(model.graph)
             edge_dict = unwrap(model.graph.edgesprops[edge])
             edge_data = unwrap_data(model.graph.edgesprops[edge])
             for key in model.record.eprops
@@ -709,7 +709,7 @@ end
 $(TYPEDSIGNATURES)
 """
 function update_agents_record!(model::GraphModel) #update is done when all agents in model.agents are active
-    for agent in model.agents
+    @threads for agent in model.agents
         _update_agent_record!(agent)
     end
 end

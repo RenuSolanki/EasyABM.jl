@@ -33,7 +33,7 @@ Following property names are reserved for some specific agent properties
     - color : color of agent
     - size : size of agent
     - orientation : orientation of agent
-    - `keeps_record_of` : list of properties that the agent records during time evolution. 
+    - `keeps_record_of` : Set of properties that the agent records during time evolution. 
 """
 function con_2d_agent(;pos::Vect{2, S}=Vect(1.0,1.0),#GeometryBasics.Vec{2, S} = GeometryBasics.Vec(1.0,1.0), #NTuple{2, S}=(1.0,1.0), 
     space_type::Type{P}=Periodic,
@@ -42,7 +42,10 @@ function con_2d_agent(;pos::Vect{2, S}=Vect(1.0,1.0),#GeometryBasics.Vec{2, S} =
     dict_agent = Dict{Symbol, Any}(kwargs)
 
     if !haskey(dict_agent, :keeps_record_of)
-        dict_agent[:keeps_record_of] = Symbol[]
+        dict_agent[:_keeps_record_of] = Set{Symbol}([])
+    else
+        dict_agent[:_keeps_record_of] = dict_agent[:keeps_record_of]
+        delete!(dict_agent, :keeps_record_of)
     end
     
     dict_agent[:_extras] = PropDict()
@@ -72,7 +75,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Returns a list of n 2d agents all having same properties as `agent`.  
+Returns a list of n 2d agents all having same (other than _extras) properties as `agent` if `agent` is alive.  
 """
 function create_similar(agent::Agent2D{Symbol, Any, S, P}, n::Int) where {S<:Union{Int, AbstractFloat},P<:SType}
     dc = Dict{Symbol, Any}()
@@ -87,7 +90,7 @@ function create_similar(agent::Agent2D{Symbol, Any, S, P}, n::Int) where {S<:Uni
             end
         end
         dc[:_extras] = PropDict()
-        dc[:_extras]._active = agent._extras._active
+        dc[:_extras]._active = agent._extras._active # property of being alive or dead is same as of previous agent
         dc[:_extras]._new = true
         agnew = Agent2D{P}(1, pos, dc, model)
         push!(list, agnew)
@@ -98,7 +101,7 @@ end
 
 """
 $(TYPEDSIGNATURES)
-Returns an agent with same properties as given `agent`. 
+Returns an agent with same (other than _extras) properties as given `agent`. 
 """
 function create_similar(agent::Agent2D{Symbol, Any, S, P}) where {S<:Union{Int, AbstractFloat}, P<:SType}
     dc = Dict{Symbol, Any}()
@@ -111,9 +114,9 @@ function create_similar(agent::Agent2D{Symbol, Any, S, P}) where {S<:Union{Int, 
         end
     end
     dc[:_extras] = PropDict()
-    dc[:_extras]._active = agent._extras._active
+    dc[:_extras]._active = agent._extras._active # property of being alive or dead is same as of previous agent
     dc[:_extras]._new = true
-    agnew = Agent2D{P}(1, pos, dc, model)
+    agnew= Agent2D{P}(1, pos, dc, model)
     return agnew
 end
 

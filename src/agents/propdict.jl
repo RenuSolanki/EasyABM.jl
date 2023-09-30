@@ -4,7 +4,8 @@ struct PropDict{K, V} <: AbstractPropDict{K, V}
     PropDict(d::Dict{Symbol, V}) where V = new{Symbol, V}(d)
 end
 
-Base.IteratorSize(::Type{PropDict{T}}) where T = IteratorSize(T)
+
+Base.IteratorSize(::Type{PropDict{T}}) where T = IteratorSize(T) 
 Base.IteratorEltype(::Type{PropDict{T}}) where T = IteratorEltype(T)
 
 function Base.setproperty!(d::PropDict, key::Symbol, x)
