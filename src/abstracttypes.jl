@@ -1,13 +1,13 @@
-abstract type MType end
+abstract type MType end #mortality type
 abstract type Static <: MType end
 abstract type Mortal <: MType end
 
 
-abstract type SType end
+abstract type SType end #space type
 abstract type Periodic <: SType end
 abstract type NPeriodic <: SType end
 
-abstract type GType end
+abstract type GType end #graph type
 abstract type DirG <: GType end
 abstract type SimG <: GType end
 

@@ -84,7 +84,7 @@ $(TYPEDSIGNATURES)
 """
 @inline function _set_patches3d(grid_size)
     xdim, ydim, zdim = grid_size
-    patches = [ContainerDataDict(Dict{Symbol, Any}(:color => :red)) for i in 1:xdim, j in 1:ydim, k in 1:zdim]   
+    patches = [ContainerDataDict(Dict{Symbol, Any}(:color => Col(1,0,0,0.1))) for i in 1:xdim, j in 1:ydim, k in 1:zdim]   
     return patches
 end
 
@@ -122,11 +122,11 @@ graphics related properties are added to the agent if not already defined.
         end
 
         if !haskey(agent, :color)
-            agent.color = :red
+            agent.color = Col("red")
         end
 
         if !haskey(agent, :size)
-            agent.size = 20
+            agent.size = 20 # % of patch size
         end
 
         if !haskey(agent, :orientation)
@@ -175,7 +175,7 @@ $(TYPEDSIGNATURES)
 This function is for use from within the module and is not exported.
 """
 @inline function update_agents_record!(model::SpaceModel3D) 
-    for agent in model.agents
+    @threads for agent in model.agents
         _update_agent_record!(agent)
     end
 end
@@ -188,9 +188,9 @@ This function is for use from within the module and is not exported.
 """
 @inline function update_patches_record!(model::SpaceModel3D)
     if length(model.record.pprops)>0 
-        for k in 1:model.size[3]
-            for j in 1:model.size[2]
-                for i in 1:model.size[1]
+        @threads for k in 1:model.size[3]
+            @threads for j in 1:model.size[2]
+                @threads for i in 1:model.size[1]
                     patch_dict = unwrap(model.patches[i, j, k])
                     patch_data = unwrap_data(model.patches[i,j, k])
                     for key in model.record.pprops
@@ -319,3 +319,48 @@ $(TYPEDSIGNATURES)
         draw_agent(vis, agent, model, frame, scl, tail_length, tail_condition)
     end
 end
+
+
+#########################
+#Thebes
+#########################
+
+#################
+# """
+# $(TYPEDSIGNATURES)
+# """
+# @inline function draw_agents_and_patches(model::SpaceModel3D{Mortal}, frame, scl, ep, tail_length = 1, tail_condition = agent-> false)
+#     # eyepoint(Point3D(ep.xe,ep.ye,ep.ze))
+#     # perspective(ep.zoom)
+#     show_grid = model.parameters._extras._show_space::Bool
+#     if show_grid
+#         if :color in model.record.pprops
+#             draw_patches(model, frame)
+#         end
+#     end
+#     all_agents = vcat(model.agents, model.agents_killed)
+#     @sync for agent in all_agents
+#         if (agent._extras._birth_time::Int <= frame)&&(frame<= agent._extras._death_time::Int)
+#             @async draw_agent(agent, model, scl, frame - agent._extras._birth_time::Int +1, tail_length, tail_condition)
+#         end
+#     end
+# end
+
+
+# """
+# $(TYPEDSIGNATURES)
+# """
+# @inline function draw_agents_and_patches(model::SpaceModel3D{Static}, frame, scl, ep, tail_length = 1, tail_condition = agent-> false)
+#     # eyepoint(Point3D(ep.xe,ep.ye,ep.ze))
+#     # perspective(ep.zoom)
+#     show_grid = model.parameters._extras._show_space::Bool
+#     if show_grid
+#         if :color in model.record.pprops
+#             draw_patches(model, frame)
+#         end
+#     end
+
+#    @sync for agent in model.agents
+#         @async draw_agent(agent, model, scl, frame, tail_length, tail_condition)
+#     end
+# end

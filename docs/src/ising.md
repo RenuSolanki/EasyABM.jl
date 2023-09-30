@@ -1,8 +1,7 @@
 
 # Ising model
 
-We use Ising model as an example of using Graph Models in EasyABM. We will set up and run Ising model on a grid graph, however one can choose graph of any other 
-topology as well.
+We use Ising model as an example of using Graph Models in EasyABM. We will set up and run Ising model on a grid graph, however one can choose graph of any other topology as well.
 
 ```julia
 using EasyABM
@@ -21,22 +20,22 @@ The model has two parameters temperature `temp` and coupling `coupl`.
 
 ## Step 2: Initialise the model
 
-In the second step we initialise the nodes of the graph through `initialiser!` function and then sending it as an argument to `init_model!`. In the `initialiser!` function we randomly set each node's color to either `:black` or `:white` and set their spin values to +1 for `:black` nodes and -1 for `:white` nodes. In the `init_model!` function the argument `props_to_record` specifies the nodes properties which we want to record during model run. 
+In the second step we initialise the nodes of the graph through `initialiser!` function and then sending it as an argument to `init_model!`. In the `initialiser!` function we randomly set each node's color to either `cl"black"` or `cl"white"` and set their spin values to +1 for `cl"black"` nodes and -1 for `cl"white"` nodes. In the `init_model!` function the argument `props_to_record` specifies the nodes properties which we want to record during model run. 
 
 ```julia
 function initialiser!(model)
     for node in vertices(model.graph)
         if rand()<0.5
             model.graph.nodesprops[node].spin = 1
-            model.graph.nodesprops[node].color = :black
+            model.graph.nodesprops[node].color = cl"black"
         else
             model.graph.nodesprops[node].spin = -1
-            model.graph.nodesprops[node].color = :white
+            model.graph.nodesprops[node].color = cl"white"
         end
     end
 end
 
-init_model!(model, initialiser = initialiser!, props_to_record = Dict("nodes"=>[:color, :spin]))
+init_model!(model, initialiser = initialiser!, props_to_record = Dict("nodes"=>Set([:color, :spin])))
 ```
 
 ## Step 3: Run the model
@@ -62,13 +61,15 @@ function step_rule!(model)
         de = 2*model.parameters.coupl * de
         if (de < 0) || (rand() < exp(-de/model.parameters.temp))
             model.graph.nodesprops[random_node].spin = - spin
-            model.graph.nodesprops[random_node].color = spin == -1 ? :black : :white
+            model.graph.nodesprops[random_node].color = spin == -1 ? cl"black" : cl"white"
         end
     end
 end
 
 run_model!(model, steps=200, step_rule = step_rule! )
 ```
+
+## Step 4: Visualisation
 
 In order to draw the model at a specific frame, say 4th, one can use `draw_frame(model, frame = 4)`. If one wants to see the animation of the model run, it can be done as 
 
@@ -84,9 +85,9 @@ After defining the `step_rule!` function we can also choose to create an interac
 
 ```julia
 create_interactive_app(model, initialiser= initialiser!,
-    props_to_record = Dict("nodes"=>[:color, :spin]),
+    props_to_record = Dict("nodes"=>Set([:color, :spin])),
     step_rule= step_rule!,
-    model_controls=[(:temp, :s, 0.05:0.05:5), (:coupl, :s, 0.01:0.1:5)],
+    model_controls=[(:temp, "slider", 0.05:0.05:5), (:coupl, "slider", 0.01:0.1:5)],
     node_plots = Dict("magnetisation"=> x -> x.spin),
     frames=200) 
 ```
@@ -96,7 +97,7 @@ create_interactive_app(model, initialiser= initialiser!,
 
 
 
-## Step 4: Fetch Data 
+## Step 5: Fetch Data 
 
 In this step we fetch the data of average spin of nodes (also called magnetisation) and plot the result as follows. 
 
@@ -105,6 +106,9 @@ df = get_nodes_avg_props(model, node -> node.spin, labels=["magnetisation"], plo
 ```
 
 ![png](assets/Ising/IsingPlot1.png)
+
+## References 
+1) https://en.wikipedia.org/wiki/Ising_model
 
 
 

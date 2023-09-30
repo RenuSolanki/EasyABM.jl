@@ -39,7 +39,7 @@ function Base.show(io::IO, ::MIME"text/plain", a::AbstractAgent2D) # works with 
     println(io, "Agent2D:")
     println(io," pos :", getfield(a, :pos))
     for (key, value) in unwrap(a)
-        if !(key == :_extras)
+        if !(key == :_extras) && !(key == :_keeps_record_of)
             println(io, " ", key, ": ", value)
         end
     end
@@ -49,7 +49,7 @@ function Base.show(io::IO, a::AbstractAgent2D) # works with print
     println(io, "Agent2D:")
     println(io," pos :", getfield(a, :pos))
     for (key, value) in unwrap(a)
-        if !(key == :_extras)
+        if !(key == :_extras) && !(key == :_keeps_record_of)
             println(io, " ", key, ": ", value)
         end
     end
@@ -68,7 +68,7 @@ function Base.show(io::IO, ::MIME"text/plain", a::AbstractAgent3D) # works with 
     println(io, "Agent3D:")
     println(io," pos :", getfield(a, :pos))
     for (key, value) in unwrap(a)
-        if !(key == :_extras)
+        if !(key == :_extras) && !(key == :_keeps_record_of)
             println(io, " ", key, ": ", value)
         end
     end
@@ -78,7 +78,7 @@ function Base.show(io::IO, a::AbstractAgent3D) # works with print
     println(io, "Agent3D:")
     println(io," pos :", getfield(a, :pos))
     for (key, value) in unwrap(a)
-        if !(key == :_extras)
+        if !(key == :_extras) && !(key == :_keeps_record_of)
             println(io, " ", key, ": ", value)
         end
     end

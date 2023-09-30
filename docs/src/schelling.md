@@ -11,20 +11,20 @@ Lets create 200 agents with properties `pos`, `mood` and `color`. The `keeps_rec
 
 ```julia
 @enum agentsfeeling happy sad
-agents = grid_2d_agents(200, pos = Vect(1,1), color = :green, mood = happy, keeps_record_of=[:pos, :mood])
+agents = grid_2d_agents(200, pos = Vect(1,1), color = cl"green", mood = happy, keeps_record_of=Set([:pos, :mood]))
 model = create_2d_model(agents, agents_type = Static, space_type=NPeriodic, size = (20,20), min_alike = 4)
 ```
 
 ## Step 2: Initialise the model
 
-In the second step we initialise the agents by defining `initialiser!` function and sending it as an argument to `init_model!`. In the `initialiser!` function we randomly set agents color to be either `:red` or `:green` and set their positions randomly such that there is not more than one agent on each patch. Then we set the `mood` property of each agent to be `happy` or `sad` depending upon the number of alike agents in neighborhood. 
+In the second step we initialise the agents by defining `initialiser!` function and sending it as an argument to `init_model!`. In the `initialiser!` function we randomly set agents color to be either `cl"red"` or `cl"green"` and set their positions randomly such that there is not more than one agent on each patch. Then we set the `mood` property of each agent to be `happy` or `sad` depending upon the number of alike agents in neighborhood. 
 
 
 ```julia
 function initialiser!(model)
     min_alike = model.parameters.min_alike
     for agent in model.agents
-        agent.color = [:red, :green][rand(1:2)]
+        agent.color = [cl"red", cl"green"][rand(1:2)]
         x,y = random_empty_patch(model)   
         agent.pos = Vect(x,y)
     end    
@@ -75,6 +75,8 @@ end
 run_model!(model, steps=200, step_rule = step_rule! )
 ```
 
+## Step 4: Visualisation 
+
 In order to draw the model at a specific frame, say 4th, one can use `draw_frame(model, frame = 4, show_grid=true)`. If one wants to see the animation of the model run, it can be done as 
 
 ```julia
@@ -87,13 +89,14 @@ animate_sim(model,agent_plots=Dict("happy"=> agent-> agent.mood == happy, "sad"=
 After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
 
 ```julia
-create_interactive_app(model, initialiser= initialiser!,
+create_interactive_app(model, 
+    initialiser= initialiser!,
     step_rule=step_rule!,
-    model_controls=[(:min_alike, :s, 1:8)], 
+    model_controls=[(:min_alike, "slider", 1:8)], 
     agent_plots=Dict(
         "happy"=> agent-> agent.mood == happy, 
         "sad"=> agent-> agent.mood == sad),
-    frames=200) 
+    frames=200, show_grid=true) 
 ```
 
 ![png](assets/Schelling/SchellingIntApp.png)
@@ -101,12 +104,16 @@ create_interactive_app(model, initialiser= initialiser!,
 
 
 
-## Step 4: Fetch Data 
+## Step 5: Fetch Data 
 
 In this step we fetch data of number of happy and sad agents at each time step as a dataframe using following line of code. 
 
 ```julia
-df = get_nums_agents(model, agent-> agent.mood == happy, agent-> agent.mood == sad,labels=["happy","sad"], plot_result=true)
+df = get_nums_agents(model, 
+agent-> agent.mood == happy, 
+agent-> agent.mood == sad,
+labels=["happy","sad"], 
+plot_result=true)
 ```
 
 ![png](assets/Schelling/SchellingPlot1.png)
@@ -116,6 +123,10 @@ Individual agent data recorded during model run can be obtained as
 ```julia
 df = get_agent_data(model.agents[1], model).record
 ```
+
+
+## References
+1.) https://en.wikipedia.org/wiki/Schelling%27s_model_of_segregation
     
 
 
