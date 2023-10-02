@@ -2,19 +2,19 @@
 @testset "graph model" begin
     mat = sparse([1,2,2,3,3,4,4,5,5,1],[2,1,3,2,4,3,5,4,1,5],[1,1,1,1,1,1,1,1,1,1]) # pentagon 1--2--3--4--5--1 #
     graph = dynamic_simple_graph(mat)
-    agents = graph_agents(5, node=2, color=:red, is_sick = false, shape = :circle, keeps_record_of = [:color, :is_sick])
+    agents = graph_agents(5, node=2, color=Col("red"), is_sick = false, shape = :circle, keeps_record_of = Set([:color, :is_sick]))
     model = create_graph_model(agents, graph, agents_type = Mortal, random_positions = true, model_property1 = 0.7, model_property2 = "nice_model")
     function initialiser!(model)
         model.agents[1].shape = :box
         model.agents[5].is_sick = true
         for vert in get_nodes(model)
-            model.graph.nodesprops[vert].color = :red
+            model.graph.nodesprops[vert].color = Col("red")
         end
     end
     init_model!(model, initialiser=initialiser!, props_to_record = Dict("model"=> [:model_property1]))
     @test model.agents[1].shape == :box
     @test model.agents[5].is_sick == true
-    @test model.graph.nodesprops[1].color == :red
+    @test model.graph.nodesprops[1].color == Col("red")
     steps = 10
     function step_rule!(model)
         if model.tick == 1

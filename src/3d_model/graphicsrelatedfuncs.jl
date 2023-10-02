@@ -112,6 +112,7 @@ end
         orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
         pclr = (:color in record) ? agent_data[:color][index]::Col : agent.color::Col
         size = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat} : agent.size::Union{Int, <:AbstractFloat}
+        pshp = (:shape in record) ? agent_data[:shape][index]::Symbol : agent.shape::Symbol
     
     
         ao,bo,co = orientation
@@ -123,29 +124,47 @@ end
         y =  l*posy 
         z =  h*posz
 
-        shape = agent.shape
         clrs = (:color in record) ? unique(agent_data[:color]::Vector{Col}) : [agent.color::Col]
+        shps = (:shape in record) ? unique(agent_data[:shape]::Vector{Symbol}) : [agent.shape::Symbol]
         agent._extras._colors = clrs
         clrs_rgb = [cl.val for cl in clrs]
         materials = [MeshPhongMaterial(color=cl) for cl in clrs_rgb]
         size = size*w/100 # size given by user is % or the patch size
 
-        if !(shape in [:sphere, :box, :cone, :cylinder])
-            shape = :cone
+        if !(pshp in keys(shapefunctions3d))
+            pshp = :cone
         end
 
-        shape_rendered = shapefunctions3d[shape](size)
-        for (i, cl) in enumerate(clrs)
-            clnm = string(cl)
-            setobject!(vis["agents"]["$(getfield(agent, :id))"][clnm],shape_rendered,materials[i]) 
-            setvisible!(vis["agents"]["$(getfield(agent, :id))"][clnm], false)
+        shapes=Symbol[]
+        for sh in shps
+            if !(sh in keys(shapefunctions3d))
+                push!(shapes, :cone)
+            else
+                push!(shapes, sh)
+            end 
+        end 
+        shapes = unique(shapes)
+        agent._extras._shapes = shapes
+
+        
+        for sh in shapes
+            shape_rendered = shapefunctions3d[sh](size)
+            for (i, cl) in enumerate(clrs)
+                clnm = string(cl)
+                setobject!(vis["agents"]["$(getfield(agent, :id))"*string(sh)][clnm],shape_rendered,materials[i]) 
+                setvisible!(vis["agents"]["$(getfield(agent, :id))"*string(sh)][clnm], false)
+            end
         end
 
         trans = Translation(x, y, z) ∘ LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1), MeshCat.Vec(ao,bo,co+0.0)))
-        settransform!(vis["agents"]["$(getfield(agent, :id))"], trans)
-        setvisible!(vis["agents"]["$(getfield(agent, :id))"][string(pclr)], true)
 
-        if tail_condition(agent)
+        for sh in shapes
+            settransform!(vis["agents"]["$(getfield(agent, :id))"*string(sh)], trans)
+        end
+
+        setvisible!(vis["agents"]["$(getfield(agent, :id))"*string(pshp)][string(pclr)], true)
+
+        if tail_condition(agent) # tail_condition must be dependent on some non-changing agent property. General conditons are not implemented due to performance constraints
             draw_tail(vis, agent, tail_length)
         end
 
@@ -192,7 +211,9 @@ end
         #nextpos = (:pos in record)&&(index<model.tick) ? agent_data[:pos][index+1]::Vect{3, S} .+ offset : agent.pos .+ offset
         orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
         pclr = (:color in record) ? agent_data[:color][index]::Col : agent.color::Col
+        pshp = (:shape in record) ? agent_data[:shape][index]::Symbol : agent.shape::Symbol
         clrs = agent._extras._colors::Vector{Col}
+        shps = agent._extras._shapes::Vector{Symbol}
         sc = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat}/(agent_data[:size][1]::Union{Int, <:AbstractFloat})  : 1.0 # scale
         sc = sc*scl
         ao,bo,co = orientation
@@ -205,20 +226,28 @@ end
         y =  l*posy 
         z =  h*posz
 
-        for cl in clrs
-            setvisible!(vis["agents"]["$(getfield(agent, :id))"][string(cl)], false)
+        if !(pshp in keys(shapefunctions3d))
+            pshp = :cone
+        end
+
+        for sh in shps
+            for cl in clrs
+                setvisible!(vis["agents"]["$(getfield(agent, :id))"*string(sh)][string(cl)], false)
+            end
         end
         
         trans = Translation(x, y, z) ∘ LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1), MeshCat.Vec(ao,bo,co+0.0)))
-        settransform!(vis["agents"]["$(getfield(agent, :id))"], trans)
-        setprop!(vis["agents"]["$(getfield(agent, :id))"], "scale", MeshCat.Vec(sc, sc, sc))
+        for sh in shps
+            settransform!(vis["agents"]["$(getfield(agent, :id))"*string(sh)], trans)
+            setprop!(vis["agents"]["$(getfield(agent, :id))"*string(sh)], "scale", MeshCat.Vec(sc, sc, sc))
+        end
         #settransform!(vis["agents"]["$(getfield(agent, :id))"], Translation(x, y, z))
         #setprop!(vis["agents"]["$(getfield(agent, :id))"], "position", MeshCat.Vec(x,y,z))
         #if (!periodic) || condition
-        setvisible!(vis["agents"]["$(getfield(agent, :id))"][string(pclr)], true)
+        setvisible!(vis["agents"]["$(getfield(agent, :id))"*string(pshp)][string(pclr)], true)
         #end
 
-        if tail_condition(agent) && index>2
+        if tail_condition(agent) && index>2 # tail_condition must be dependent on some non-changing agent property. General conditons are not implemented due to performance constraints
             for i in 1:min(tail_length, index-2)
                 setvisible!(vis["tails"]["$(getfield(agent, :id))"]["$i"], false)
                 x,y,z = agent_data[:pos][index-i]::Vect{3, S} .+ offset
@@ -295,6 +324,7 @@ end
     pos = (:pos in record) ? agent_data[:pos][index]::Vect{3, S}  .+ offset : agent.pos .+ offset
     orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
     pclr = (:color in record) ? agent_data[:color][index]::Col : agent.color::Col
+    pshp = (:shape in record) ? agent_data[:shape][index]::Symbol : agent.shape::Symbol
     size = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat} : agent.size::Union{Int, <:AbstractFloat}
 
     ao,bo,co = orientation
@@ -310,14 +340,12 @@ end
     material = MeshPhongMaterial(color=pclr.val) 
         
     size = size*scl*w/100
-    
-    shape = agent.shape::Symbol
 
-    if !(shape in [:sphere, :box, :cone, :cylinder])
-        shape = :cone
+    if !(pshp in keys(shapefunctions3d))
+        pshp = :cone
     end
 
-    shape_rendered = shapefunctions3d[shape](size)
+    shape_rendered = shapefunctions3d[pshp](size)
     
     setobject!(vis["agents"]["$(getfield(agent, :id))"],shape_rendered,material) 
     settransform!(vis["agents"]["$(getfield(agent, :id))"], LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1), MeshCat.Vec(ao,bo,co+0.0))))

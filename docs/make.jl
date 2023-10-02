@@ -20,6 +20,8 @@ makedocs(
                 "Flocking 3D" => "boids3d.md",
                 "Ising on a grid graph" => "ising.md",
                 "Nearest Neighbor Graph" => "nearest_neighbor_graph.md",
+                "Elementary Cellular Automaton" => "ElemCA.md",
+                "Abelian Sandpile" => "abelian_sandpile.md",
                 "Ising on a nearest neighbor graph" => "NNSIsing.md",
             ],
          "Do's and Don'ts" => "tips.md",

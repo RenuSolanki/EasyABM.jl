@@ -4,3 +4,4 @@
 /Manifest.toml
 notebooks/
 docs/build/
+docs/src/.ipynb_checkpoints/

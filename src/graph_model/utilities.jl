@@ -462,10 +462,14 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function square_grid_graph(n, k; periodic = false)
+function square_grid_graph(n, k; periodic = false, dynamic=false)
     m = n*k
     nodenum(i,j) = (j-1)*k+i
-    gr = static_simple_graph(m)
+    if dynamic
+        gr = dynamic_simple_graph(m)
+    else
+        gr = static_simple_graph(m)
+    end
     if n>=2
         _add_edge_f!(gr,nodenum(1,1),nodenum(1,2))
         _add_edge_f!(gr,nodenum(k,1),nodenum(k,2))
@@ -524,12 +528,18 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function hex_grid_graph(n, k)
+function hex_grid_graph(n, k; dynamic=false)
     n = n%2==0 ? n : n+1 # n must be even
     k = 2k+1 # this k will count number of verts along x axis
     m = n*k
     nodenum(i,j) = (j-1)*k+i
-    gr = static_simple_graph(m)
+    
+    if dynamic
+        gr = dynamic_simple_graph(m)
+    else
+        gr = static_simple_graph(m)
+    end
+
     _add_edge_f!(gr,nodenum(1,1),nodenum(1,2))
     _add_edge_f!(gr,nodenum(1,1),nodenum(2,1))
     _add_edge_f!(gr,nodenum(1,n),nodenum(1,n-1))
@@ -585,10 +595,16 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function triangular_grid_graph(n, k)
+function triangular_grid_graph(n, k; dynamic=false)
     m = n*k
     nodenum(i,j) = (j-1)*k+i
-    gr = static_simple_graph(m)
+
+    if dynamic
+        gr = dynamic_simple_graph(m)
+    else
+        gr = static_simple_graph(m)
+    end
+
     if n>=2
         _add_edge_f!(gr,nodenum(1,1),nodenum(1,2))
         _add_edge_f!(gr,nodenum(k,1),nodenum(k,2))
@@ -649,10 +665,16 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function double_triangular_grid_graph(n, k)
+function double_triangular_grid_graph(n, k; dynamic=false)
     m = n*k
     nodenum(i,j) = (j-1)*k+i
-    gr = static_simple_graph(m)
+
+    if dynamic
+        gr = dynamic_simple_graph(m)
+    else
+        gr = static_simple_graph(m)
+    end
+
     if n>=2
         _add_edge_f!(gr,nodenum(1,1),nodenum(1,2))
         _add_edge_f!(gr,nodenum(k,1),nodenum(k,2))
