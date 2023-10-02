@@ -24,15 +24,12 @@ const coldict = Dict(0=>cl"white", 1=>cl"yellow", 2=>cl"green", 3=> cl"orange", 
 function initialiser!(model)
     for j in 1:model.size[2]
         for i in 1:model.size[1]
-            if (i,j) != (25,25)
-                model.patches[i,j].sand = 2
-                model.patches[i,j].color= coldict[2]
-            else
-                model.patches[i,j].sand = 2000
-                model.patches[i,j].color= cl"blue"
-            end
+            model.patches[i,j].sand = 2
+            model.patches[i,j].color= coldict[2]
         end
     end
+    model.patches[25,25].sand = 2000
+    model.patches[25,25].color= cl"blue"
 end
 
 init_model!(model, initialiser = initialiser!, props_to_record = Dict("patches" => Set([:color,:sand])))

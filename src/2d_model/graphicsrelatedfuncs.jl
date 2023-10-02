@@ -174,8 +174,9 @@ $(TYPEDSIGNATURES)
     end
     grestore()   
 
-    
-    if tail_condition(agent)
+    #agent_propdict=create_temp_prop_dict(agent, unwrap_data(agent), agent._keeps_record_of::Set{Symbol}, index)
+
+    if tail_condition(agent) # tail_condition must be dependent on some non-changing agent property. General conditons are not implemented due to performance constraints
         gsave()
         translate(-(width/2), (height/2))
         Luxor.transform([1 0 0 -1 0 0]) 
