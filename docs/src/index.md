@@ -2,6 +2,10 @@
 CurrentModule = EasyABM
 ```
 
+!!! warn
+    This documentation is for the upcoming version 2.0.0 of EasyABM which has some breaking changes.  
+
+
 # EasyABM.jl
 A lightweight and easy to use framework for agent-based modelling. 
 
