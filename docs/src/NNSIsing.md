@@ -12,7 +12,7 @@ In this model we will work solely with the graph and won't need agents. We initi
 
 
 ```julia
-graph = dynamic_simple_graph(0)
+graph = dynamic_simple_graph(0) # in a dynamic graph nodes and edges can be added or deleted. 
 model = create_graph_model(graph, temp = 2.0, coupl = 2.5, nns = 5)
 ```
 
