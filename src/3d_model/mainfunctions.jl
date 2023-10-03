@@ -282,7 +282,7 @@ $(TYPEDSIGNATURES)
 
 Creates an interactive app for the model.
 """
-function create_interactive_app(inmodel::SpaceModel3D; initialiser::Function = null_init!, 
+function create_interactive_app(model::SpaceModel3D; initialiser::Function = null_init!, 
     props_to_record::Dict{String, Set{Symbol}} = Dict{String, Set{Symbol}}("agents"=>Set{Symbol}([]), "patches"=>Set{Symbol}([]), "model"=>Set{Symbol}([])),
     step_rule::Function=model_null_step!,
     agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
@@ -293,9 +293,9 @@ function create_interactive_app(inmodel::SpaceModel3D; initialiser::Function = n
     plots_only = false,
     frames=200, show_grid=false, tail=(1, agent->false)) 
 
-    model = deepcopy(inmodel)
-
     model.parameters._extras._show_space = show_grid
+
+    init_model!(model, initialiser=initialiser, props_to_record = props_to_record)
 
 
     function _run_interactive_model(t)
@@ -330,7 +330,6 @@ function create_interactive_app(inmodel::SpaceModel3D; initialiser::Function = n
     end
 
     function _init_interactive_model(ufun::Function = x-> nothing)
-        model = deepcopy(inmodel)
         ufun(model)
         init_model!(model, initialiser=initialiser, props_to_record=props_to_record)
         ufun(model)

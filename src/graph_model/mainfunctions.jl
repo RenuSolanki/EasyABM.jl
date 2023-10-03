@@ -6,12 +6,11 @@ Creates a model with
 - `graph`  : A graph created with Graphs.jl and converted to EasyABM graph type Or created directly using EasyABM graph functionality.
 - `graphics` : if true properties of pos, shape, color, orientation will be assigned to each agent by default, if not already assigned by user.
 - `agents_type` : Set it to Static if number of agents is fixed during model run. Otherwise set it to Mortal. 
-- `decorated_edges` : Set it to true if edges are to be assigned weights or any other properties.
 - `random_positions` : If this property is true, each agent will be assigned a random node on the graph. 
 - `kwargs` : Keyword argments used as model parameters. 
 """
 function create_graph_model(agents::Vector{GraphAgent{Symbol, Any, A}}, 
-    graph::AbstractPropGraph{S, G}; agents_type::Type{T} = Static, decorated_edges = false, 
+    graph::AbstractPropGraph{S, G}; agents_type::Type{T} = Static,
     graphics=true, random_positions=false, kwargs...) where {S<:MType, T<:MType, G<:GType, A<:MType}
     
     n = length(agents)
@@ -67,7 +66,7 @@ function create_graph_model(agents::Vector{GraphAgent{Symbol, Any, A}},
 
     for (i,vt) in enumerate(verts)
         if !(vt in keys(graph.nodesprops))
-            graph.nodesprops[vt] = ContainerDataDict()
+            graph.nodesprops[vt] = ContainerDataDict()# has a pos
         end
 
         if graphics && !haskey(graph.nodesprops[vt], :pos) && !haskey(graph.nodesprops[vt]._extras, :_pos)
@@ -88,24 +87,23 @@ function create_graph_model(agents::Vector{GraphAgent{Symbol, Any, A}},
         end
     end
 
-    if (S<:Mortal) || decorated_edges
-        for ed in edges(graph)
-            if !(ed in keys(graph.edgesprops))
-                graph.edgesprops[ed] = PropDataDict()
-            end
-            if S<:Mortal
-                graph.edgesprops[ed]._extras._active = true
-                graph.edgesprops[ed]._extras._bd_times = [(1, typemax(Int))]
-            end
-            e_dict = unwrap(graph.edgesprops[ed])
-            e_data = unwrap_data(graph.edgesprops[ed])
-            for (key, value) in e_dict
-                if !(key == :_extras)
-                    e_data[key] = [value]
-                end
+    for ed in edges(graph)
+        if !(ed in keys(graph.edgesprops))
+            graph.edgesprops[ed] = PropDataDict()
+        end
+        if S<:Mortal
+            graph.edgesprops[ed]._extras._active = true
+            graph.edgesprops[ed]._extras._bd_times = [(1, typemax(Int))]
+        end
+        e_dict = unwrap(graph.edgesprops[ed])
+        e_data = unwrap_data(graph.edgesprops[ed])
+        for (key, value) in e_dict
+            if !(key == :_extras)
+                e_data[key] = [value]
             end
         end
     end
+
 
     
     dead_meta_graph =  _create_dead_meta_graph(graph)
@@ -149,12 +147,11 @@ end
 $(TYPEDSIGNATURES)
 """
 function create_graph_model(
-    graph::AbstractPropGraph{S, G}; decorated_edges = false, 
+    graph::AbstractPropGraph{S, G};
     graphics=true, random_positions=false, kwargs...) where {S<:MType, G<:GType}
 
     agents = GraphAgent{Symbol, Any, S}[]
     model = create_graph_model(agents, graph; agents_type=Static, 
-    decorated_edges = decorated_edges, 
     graphics=graphics, random_positions=random_positions, kwargs...)
     return model
 end
@@ -358,21 +355,12 @@ function save_sim_luxor(model::GraphModel, frames::Int=model.tick, scl::Number=1
         scene_array = Vector{Luxor.Scene}()
         verts = getfield(graph, :_nodes)
         node_size = _get_node_size(model.parameters._extras._num_verts::Int)
-        
-        function backdrop_sg(scene, frame)
-            Luxor.background("white")
-            for vert in verts
-                _draw_da_vert(graph, vert, node_size, frame, model.record.nprops)
-            end
-            _draw_title(scene, frame)
-        end
     
-        function backdrop_g(scene, frame)
+        function use_backdrop(scene, frame)
             Luxor.background("white")
             _draw_title(scene, frame)
         end
         
-        use_backdrop = (is_static(model.graph) && show_space) ? backdrop_sg : backdrop_g
 
         push!(scene_array, Luxor.Scene(movie_abm, use_backdrop, 1:fr))
         for i in 1:fr
@@ -412,6 +400,7 @@ function animate_sim(model::GraphModel, frames::Int=model.tick;
     model_plots::Vector{Symbol} = Symbol[],
     plots_only = false, 
     path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_graph = true)
+
     ticks = getfield(model, :tick)[]
     model.parameters._extras._show_space = show_graph
     graph = is_static(model.graph) ? model.graph : combined_graph(model.graph, model.dead_meta_graph)
@@ -424,11 +413,6 @@ function animate_sim(model::GraphModel, frames::Int=model.tick;
         if model.graphics
             Luxor.origin()
             Luxor.background("white")
-            if is_static(model.graph) && show_graph
-                for vert in verts
-                    _draw_da_vert(graph, vert, node_size, t, model.record.nprops)
-                end
-            end
             draw_agents_and_graph(model,graph, verts, node_size, t, scl)
         end
         finish()
@@ -488,11 +472,6 @@ function draw_frame(model::GraphModel; frame=model.tick, show_graph=true)
     if model.graphics
         Luxor.origin()
         Luxor.background("white")
-        if is_static(model.graph) && show_graph
-            for vert in verts
-                _draw_da_vert(graph, vert, node_size, frame, model.record.nprops)
-            end
-        end
         draw_agents_and_graph(model,graph, verts, node_size, frame, 1.0)
     end
     finish()
@@ -505,7 +484,7 @@ $(TYPEDSIGNATURES)
 
 Creates an interactive app for the model.
 """
-function create_interactive_app(inmodel::GraphModel; initialiser::Function = null_init!, 
+function create_interactive_app(model::GraphModel; initialiser::Function = null_init!, 
     props_to_record::Dict{String, Set{Symbol}} = Dict{String, Set{Symbol}}("agents"=>Set{Symbol}([]), "nodes"=>Set{Symbol}([]), "edges"=>Set{Symbol}([]), "model"=>Set{Symbol}([])),
     step_rule::Function=model_null_step!,
     agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
@@ -516,15 +495,15 @@ function create_interactive_app(inmodel::GraphModel; initialiser::Function = nul
     plots_only = false,
     path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"),
     frames=200, show_graph=true) 
-
-    model = deepcopy(inmodel)
     
-    if !is_static(model.graph)
-        combined_graph!(model.graph, model.dead_meta_graph)
-        empty!(model.dead_meta_graph)
-    end
+    # if !is_static(model.graph)
+    #     combined_graph!(model.graph, model.dead_meta_graph)
+    #     empty!(model.dead_meta_graph)
+    # end
 
     model.parameters._extras._show_space = show_graph
+
+    init_model!(model, initialiser=initialiser, props_to_record = props_to_record)
 
     #copy_agents = deepcopy(model.agents)
     function _run_interactive_model(t)
@@ -547,7 +526,6 @@ function create_interactive_app(inmodel::GraphModel; initialiser::Function = nul
     end
 
     function _init_interactive_model(ufun::Function = x -> nothing)
-        model = deepcopy(inmodel)
         ufun(model)
         init_model!(model, initialiser=initialiser, props_to_record = props_to_record)
         ufun(model)
@@ -579,11 +557,6 @@ function create_interactive_app(inmodel::GraphModel; initialiser::Function = nul
         if model.graphics
             Luxor.origin()
             Luxor.background("white")
-            if is_static(model.graph) && show_graph
-                for vert in verts
-                    _draw_da_vert(model.graph, vert, node_size, t, model.record.nprops)
-                end
-            end
             draw_agents_and_graph(model,model.graph, verts, node_size, t, scl)
         end
         finish()

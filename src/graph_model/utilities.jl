@@ -521,6 +521,11 @@ function square_grid_graph(n, k; periodic = false, dynamic=false)
             end
         end
     end
+    for ed in edges(gr)
+        if !(ed in keys(gr.edgesprops))
+            gr.edgesprops[ed] = PropDataDict()
+        end
+    end
     return gr
 end
 
@@ -586,6 +591,11 @@ function hex_grid_graph(n, k; dynamic=false)
             else
                 gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
             end
+        end
+    end
+    for ed in edges(gr)
+        if !(ed in keys(gr.edgesprops))
+            gr.edgesprops[ed] = PropDataDict()
         end
     end
     return gr
@@ -656,6 +666,11 @@ function triangular_grid_graph(n, k; dynamic=false)
                     _add_edge_f!(gr, nodenum(i,j), nodenum(i+1,j+1))
                 end
             end
+        end
+    end
+    for ed in edges(gr)
+        if !(ed in keys(gr.edgesprops))
+            gr.edgesprops[ed] = PropDataDict()
         end
     end
     return gr
@@ -732,6 +747,11 @@ function double_triangular_grid_graph(n, k; dynamic=false)
                     _add_edge_f!(gr, nodenum(i,j), nodenum(i-1,j+1))
                 end
             end
+        end
+    end
+    for ed in edges(gr)
+        if !(ed in keys(gr.edgesprops))
+            gr.edgesprops[ed] = PropDataDict()
         end
     end
     return gr

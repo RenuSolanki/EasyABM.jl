@@ -346,8 +346,14 @@ function create_edge!(i, j, model::GraphModelDynGrTop; kwargs...)
         if length(model.record.eprops)>0
             edge_dict = unwrap(model.graph.edgesprops[(i,j)])
             edge_data = unwrap_data(model.graph.edgesprops[(i,j)])
-            for key in model.record.eprops
-                edge_data[key] = [edge_dict[key]]
+            if con
+                for key in model.record.eprops
+                    push!(edge_data[key],edge_dict[key])
+                end
+            else
+                for key in model.record.eprops
+                    edge_data[key] = [edge_dict[key]]
+                end
             end
         end
     end
@@ -796,30 +802,32 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _draw_da_vert(graph::AbstractPropGraph{Mortal}, vert, node_size, frame, nprops)
+@inline function _draw_da_vert(graph::AbstractPropGraph{Mortal}, vert, node_size, frame, nprops, eprops)
     vert_pos = _get_vert_pos(graph, vert, frame, nprops)
     vert_col = _get_vert_col(graph, vert, frame, nprops)
-    out_structure = out_links(graph, vert)
-    active_out_structure, indices = _get_active_out_structure(graph, vert, out_structure, frame)
+    out_structure = out_links(graph, vert) # each node nd in out_links(vert) is > vert for simple graph. 
+    active_out_structure, indices = _get_active_out_structure(graph, vert, out_structure, frame) # indices[i] is the index to be used for accessing any recorded property of the edge from vert to active_out_structure[i] corresponding to given frame
     neighs_pos = [_get_vert_pos(graph, nd, frame, nprops) for nd in active_out_structure]
-    draw_vert(vert_pos, vert_col, node_size, neighs_pos, is_digraph(graph))
+    edge_cols = [_get_edge_col(graph, vert, active_out_structure[i], indices[i], eprops) for i in 1:length(indices)]
+    draw_vert(vert_pos, vert_col, node_size, neighs_pos, is_digraph(graph), edge_cols)
 end
 
-@inline function _draw_da_vert(graph::AbstractPropGraph{Static}, vert, node_size, frame, nprops)
+@inline function _draw_da_vert(graph::AbstractPropGraph{Static}, vert, node_size, frame, nprops, eprops)
     vert_pos = _get_vert_pos(graph, vert, frame, nprops)
     vert_col = _get_vert_col(graph, vert, frame, nprops)
-    out_structure = out_links(graph, vert)
+    out_structure = out_links(graph, vert) # each node nd in out_links(vert) is > vert for simple graph. 
     neighs_pos = [_get_vert_pos(graph, nd, frame, nprops) for nd in out_structure]
-    draw_vert(vert_pos, vert_col, node_size, neighs_pos, is_digraph(graph))
+    edge_cols = [_get_edge_col(graph, vert, nd, frame, eprops) for nd in out_structure] 
+    draw_vert(vert_pos, vert_col, node_size, neighs_pos, is_digraph(graph), edge_cols)
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _draw_graph(graph::AbstractPropGraph{Mortal}, verts, node_size, frame, nprops)
+@inline function _draw_graph(graph::AbstractPropGraph{Mortal}, verts, node_size, frame, nprops, eprops)
     alive_verts = verts[[(graph.nodesprops[nd]._extras._birth_time::Int <=frame)&&(frame<=graph.nodesprops[nd]._extras._death_time::Int) for nd in verts]]
     @sync for vert in alive_verts
-        @async _draw_da_vert(graph, vert, node_size, frame, nprops) 
+        @async _draw_da_vert(graph, vert, node_size, frame, nprops, eprops) 
     end
 end
 
@@ -827,8 +835,10 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _draw_graph(graph::AbstractPropGraph{Static}, verts, node_size, frame, nprops)
-    nothing
+@inline function _draw_graph(graph::AbstractPropGraph{Static}, verts, node_size, frame, nprops, eprops)
+    @sync for vert in verts
+        @async _draw_da_vert(graph, vert, node_size, frame, nprops, eprops) 
+    end
 end
 
 """
@@ -836,7 +846,7 @@ $(TYPEDSIGNATURES)
 """
 @inline function draw_agents_and_graph(model::GraphModelDynAgNum, graph, verts, node_size, frame, scl)
     if model.parameters._extras._show_space::Bool
-        _draw_graph(graph, verts, node_size, frame, model.record.nprops)
+        _draw_graph(graph, verts, node_size, frame, model.record.nprops, model.record.eprops)
     end
 
     all_agents = vcat(model.agents, model.agents_killed)
@@ -854,7 +864,7 @@ $(TYPEDSIGNATURES)
 @inline function draw_agents_and_graph(model::GraphModelFixAgNum, graph, verts, node_size, frame, scl)
 
     if model.parameters._extras._show_space::Bool
-        _draw_graph(graph, verts, node_size, frame, model.record.nprops)
+        _draw_graph(graph, verts, node_size, frame, model.record.nprops, model.record.eprops)
     end
 
     @sync for agent in model.agents

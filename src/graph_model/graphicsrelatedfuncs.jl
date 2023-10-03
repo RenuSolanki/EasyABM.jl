@@ -75,6 +75,22 @@ $(TYPEDSIGNATURES)
 end
 
 
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function _get_edge_col(graph::AbstractPropGraph, vert, nd, index, eprops)
+
+    if haskey(graph.edgesprops[(vert,nd)], :color)
+        edge_col = (:color in eprops) ? unwrap_data(graph.edgesprops[(vert,nd)])[:color][index]::Col : graph.edgesprops[(vert,nd)].color::Col
+    else 
+        edge_col = Col("black")
+    end
+    return edge_col
+end
+
+
+
+
 @inline function _get_norm(a, b)
     x,y = a
     z,w = b
@@ -215,7 +231,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_vert(pos, col, node_size, neighs_pos, oriented::Bool) 
+@inline function draw_vert(pos, col, node_size, neighs_pos, oriented::Bool, edge_cols) 
 
     width = gparams.width
     height = gparams.height
@@ -243,7 +259,9 @@ $(TYPEDSIGNATURES)
     grestore()
 
     if oriented
-        for v in neighs_pos
+        for ind in 1:length(neighs_pos)
+            v = neighs_pos[ind]
+            col = edge_cols[ind]
             posv_x, posv_y = v
             x_v, y_v = w*posv_x, h*posv_y 
             v1 = x_v-x
@@ -255,13 +273,15 @@ $(TYPEDSIGNATURES)
             gsave()
             translate(-(width/2), (height/2))
             Luxor.transform([1 0 0 -1 0 0])
-            sethue("black")
+            setcolor(col.val)
             setline(1)
-            arrow(Luxor.Point(x,y)+corr_point, Luxor.Point(x_v, y_v)-corr_point, arrowheadlength= 8)
+            arrow(Luxor.Point(x,y)+corr_point, Luxor.Point(x_v, y_v)-corr_point, arrowheadlength= node_size*0.3)
             grestore()
         end
     else
-        for v in neighs_pos
+        for ind in 1:length(neighs_pos)
+            v = neighs_pos[ind]
+            col = edge_cols[ind]
             posv_x, posv_y = v
             x_v, y_v = w*posv_x, h*posv_y 
             v1 = x_v-x
@@ -273,7 +293,7 @@ $(TYPEDSIGNATURES)
             gsave()
             translate(-(width/2), (height/2))
             Luxor.transform([1 0 0 -1 0 0])
-            sethue("black")
+            setcolor(col.val)
             setline(1)
             line(Luxor.Point(x,y)+corr_point, Luxor.Point(x_v, y_v)-corr_point, :stroke)
             grestore()
@@ -360,6 +380,44 @@ $(TYPEDSIGNATURES)
 end
 
 
+
+@inline function _get_vert_pos_isolated_graph(graph, vert)
+    if haskey(graph.nodesprops[vert], :pos)
+        x,y = graph.nodesprops[vert].pos
+        vert_pos = GeometryBasics.Vec(Float64(x),y)
+    else
+        x,y = graph.nodesprops[vert]._extras._pos
+        vert_pos = GeometryBasics.Vec(Float64(x),y)
+    end
+    return vert_pos
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function _get_vert_col_isolated_graph(graph, vert)
+    if haskey(graph.nodesprops[vert], :color)
+        vert_col = graph.nodesprops[vert].color::Col
+    else 
+        vert_col = Col("white")
+    end
+    return vert_col
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function _get_edge_col_isolated_graph(graph, vert, nd)
+    if haskey(graph.edgesprops[(vert,nd)], :color)
+        vert_col = graph.edgesprops[(vert,nd)].color::Col
+    else 
+        vert_col = Col("black")
+    end
+    return vert_col
+end
+
+
 """
 $(TYPEDSIGNATURES)
 """
@@ -408,13 +466,13 @@ function draw_graph(graph)
     node_size = _get_node_size(length(verts))
     Luxor.origin()
     Luxor.background("white")
-    nprops=Symbol[]
     for vert in verts
-        vert_pos = _get_vert_pos(graph, vert, 1, nprops)
-        vert_col = _get_vert_col(graph, vert, 1, nprops)
+        vert_pos = _get_vert_pos_isolated_graph(graph, vert)
+        vert_col = _get_vert_col_isolated_graph(graph, vert)
         out_structure = out_links(graph, vert)
-        neighs_pos = [_get_vert_pos(graph, nd, 1, nprops) for nd in out_structure]
-        draw_vert(vert_pos, vert_col, node_size, neighs_pos, is_digraph(graph))
+        neighs_pos = [_get_vert_pos_isolated_graph(graph, nd) for nd in out_structure]
+        edge_cols =  [_get_edge_col_isolated_graph(graph, vert, nd) for nd in out_structure]
+        draw_vert(vert_pos, vert_col, node_size, neighs_pos, is_digraph(graph), edge_cols)
     end
     finish()
     drawing
