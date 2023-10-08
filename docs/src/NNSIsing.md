@@ -31,7 +31,7 @@ const n=500;
 
 
 ```julia
-vecs = rand(2, n) 
+vecs = rand(2, n) .* 10
 kdtree = KDTree(vecs,leafsize=4)
     
 function initialiser!(model)
@@ -66,7 +66,7 @@ init_model!(model, initialiser= initialiser!, props_to_record = Dict("nodes"=>Se
 draw_graph(model.graph)
 ```
 
-## Step 3: Run the model
+## Step 3: Defining the step_rule! and running the model
 
 In this step we implement the step logic of the Ising model in the `step_rule!` function and run the model for 100 steps. At each step of the simulation we take 100 Monte Carlo steps, where in each Monte Carlo step a node is selected at random and its spin and color values are flipped if the Ising energy condition is satisfied. 
 
