@@ -38,7 +38,7 @@ end
 init_model!(model, initialiser = initialiser!, props_to_record = Dict("nodes"=>Set([:color, :spin])))
 ```
 
-## Step 3: Run the model
+## Step 3: Defining the step_rule! and running the model
 
 In this step we implement the step logic of the Ising model in the `step_rule!` function and run the model for 200 steps. At each step of the simulation we take 
 100 Monte Carlo steps, where in each Monte Carlo step a node is selected at random and its spin and color values are flipped if the Ising energy condition is satisfied. 

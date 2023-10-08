@@ -33,7 +33,7 @@ end
 init_model!(model, initialiser = initialiser!, props_to_record = Dict("patches" => Set([:color])))   
 ```
 
-## Step 3: Running the model
+## Step 3: Defining the step_rule! and running the model
 
 The dictionary `rules` defines the update rule. It is known as rule number 30 in the classification of elementary cellular automata. The `val` property (and hence the `color`) of jth patch in (i+1)th row is set equal to the value in `rules` corresponding to the key `(a, b, c)` where in the ith row `a` is `val` of (j-1)th patch, `b` is `val` of jth patch and `c` is the `val` of (j+1)th patch. Since the size of our space is finite, after a certain number of iterations we have to copy each row to the row below and update the topmost row.  
 

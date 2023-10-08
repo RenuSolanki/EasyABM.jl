@@ -1,18 +1,56 @@
 
-const _node_size = 10 # percent of gparams.width(by defualt set to 400)
+const _node_size = 0.5 # absolute from 0 to gsize
 
 const _scale_graph = 0.95
 const _boundary_frame = 0.025
 
-const gsize = 1
+const gsize = 10
 
 """
 $(TYPEDSIGNATURES)
 """
 function _get_node_size(n::Int)
-    node_size = min(20*gsize/sqrt(n),4)
+    node_size = min(gsize*0.5/sqrt(n),4)
     return node_size        
 end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function _get_node_tail(graph::AbstractPropGraph{Mortal}, vert, frame, nprops, tail_length)
+    birth_time = graph.nodesprops[vert]._extras._birth_time::Int
+    index = frame-birth_time +1 
+    tail_points = GeometryBasics.Vec2{Float64}[]
+    if !(:pos in nprops)
+        return tail_points
+    end
+    pos_data = unwrap_data(graph.nodesprops[vert])[:pos]
+    for i in max(1, index-tail_length):index
+        x, y = pos_data[i]
+        tail_point = GeometryBasics.Vec(Float64(x),y)
+        push!(tail_points, tail_point)
+    end  
+    return tail_points
+end 
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function _get_node_tail(graph::AbstractPropGraph{Static}, vert, frame, nprops, tail_length)
+    index = frame
+    tail_points = GeometryBasics.Vec2{Float64}[]
+    if !(:pos in nprops)
+        return tail_points
+    end
+    pos_data = unwrap_data(graph.nodesprops[vert])[:pos]
+    for i in max(1, index-tail_length):index
+        x, y = pos_data[i]
+        tail_point = GeometryBasics.Vec(Float64(x),y)
+        push!(tail_points, tail_point)
+    end  
+    return tail_points
+end 
 
 """
 $(TYPEDSIGNATURES)
@@ -45,6 +83,7 @@ $(TYPEDSIGNATURES)
     end
     return vert_pos
 end
+
 
 """
 $(TYPEDSIGNATURES)
@@ -86,6 +125,39 @@ $(TYPEDSIGNATURES)
         edge_col = Col("black")
     end
     return edge_col
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function _get_vert_size(graph::AbstractPropGraph{Mortal}, vert, frame, nprops, node_size)
+    birth_time = graph.nodesprops[vert]._extras._birth_time::Int
+    index = frame-birth_time +1 
+    
+    if haskey(graph.nodesprops[vert], :size)
+    	vert_size= (:size in nprops) ? unwrap_data(graph.nodesprops[vert])[:size][index] : graph.nodesprops[vert].size
+    else
+        vert_size = node_size
+    end
+
+    return vert_size
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function _get_vert_size(graph::AbstractPropGraph{Static}, vert, frame, nprops, node_size)
+    index = frame
+
+    if haskey(graph.nodesprops[vert], :size)
+    	vert_size= (:size in nprops) ? unwrap_data(graph.nodesprops[vert])[:size][index] : graph.nodesprops[vert].size
+    else
+        vert_size = node_size
+    end
+
+    return vert_size
 end
 
 
@@ -231,13 +303,16 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_vert(pos, col, node_size, neighs_pos, oriented::Bool, edge_cols) 
+@inline function draw_vert(vert, pos, col, vert_size, neighs_pos, neighs_sizes, oriented::Bool, 
+    edge_cols, mark_vert=false, tail_length=1, tail_cond=false, tail_points=GeometryBasics.Vec2{Float64}[]) 
 
     width = gparams.width
     height = gparams.height
     w, h = width/gsize, height/gsize
 
-    node_size = node_size*w/100
+    vert_size = vert_size*w
+    neighs_sizes= [x*w for x in neighs_sizes]
+    line_width = 0.7
 
 
     posx,posy = pos
@@ -252,52 +327,91 @@ $(TYPEDSIGNATURES)
     ##
     translate(x,y)
     setcolor(cl)
-    circle(Luxor.Point(0,0), node_size, :fill)
-    setline(1)
+    circle(Luxor.Point(0,0), vert_size, :fill)
+    setline(line_width)
     setcolor(RGBA(0,0,0,1))
-    circle(Luxor.Point(0,0), node_size, :stroke)
+    circle(Luxor.Point(0,0), vert_size, :stroke)
+    if mark_vert
+        Luxor.transform([1 0 0 -1 0 0]) #reflects in xaxis
+        if (cl.r+cl.g+cl.b)>0.2
+            setcolor(RGBA(0,0,0,1))
+        else
+            setcolor(RGBA(1,1,1,1))
+        end
+        fontface("Arial-Black")
+        num_digits = length(string(vert))
+        pwr = max(0, num_digits-3)
+        fnsize = vert_size/(1.5^pwr)
+        fontsize(fnsize)
+        text("$vert", halign = :center, valign = :middle)
+    end
     grestore()
 
     if oriented
         for ind in 1:length(neighs_pos)
             v = neighs_pos[ind]
             col = edge_cols[ind]
+            nbr_size = neighs_sizes[ind]
             posv_x, posv_y = v
             x_v, y_v = w*posv_x, h*posv_y 
             v1 = x_v-x
             v2 = y_v-y
             nrm = sqrt(v1^2+v2^2)
-            corr_vec1 = node_size*v1/(nrm+0.00001)
-            corr_vec2 = node_size*v2/(nrm+0.00001)
+            corr_vec1 = vert_size*v1/(nrm+0.00001)
+            corr_vec2 = vert_size*v2/(nrm+0.00001)
+            corr_nb_vec1 = nbr_size*v1/(nrm+0.00001)
+            corr_nb_vec2 = nbr_size*v2/(nrm+0.00001)
             corr_point = Luxor.Point(corr_vec1, corr_vec2)
+            corr_point_nbr = Luxor.Point(corr_nb_vec1, corr_nb_vec2)
             gsave()
             translate(-(width/2), (height/2))
             Luxor.transform([1 0 0 -1 0 0])
             setcolor(col.val)
-            setline(1)
-            arrow(Luxor.Point(x,y)+corr_point, Luxor.Point(x_v, y_v)-corr_point, arrowheadlength= node_size*0.3)
+            setline(line_width)
+            arrow(Luxor.Point(x,y)+corr_point, Luxor.Point(x_v, y_v)-corr_point_nbr, arrowheadlength= nbr_size*0.3)
             grestore()
         end
     else
         for ind in 1:length(neighs_pos)
             v = neighs_pos[ind]
             col = edge_cols[ind]
+            nbr_size = neighs_sizes[ind]
             posv_x, posv_y = v
             x_v, y_v = w*posv_x, h*posv_y 
             v1 = x_v-x
             v2 = y_v-y
             nrm = sqrt(v1^2+v2^2)
-            corr_vec1 = node_size*v1/(nrm+0.00001)
-            corr_vec2 = node_size*v2/(nrm+0.00001)
+            corr_vec1 = vert_size*v1/(nrm+0.00001)
+            corr_vec2 = vert_size*v2/(nrm+0.00001)
+            corr_nb_vec1 = nbr_size*v1/(nrm+0.00001)
+            corr_nb_vec2 = nbr_size*v2/(nrm+0.00001)
             corr_point = Luxor.Point(corr_vec1, corr_vec2)
+            corr_point_nbr = Luxor.Point(corr_nb_vec1, corr_nb_vec2)
             gsave()
             translate(-(width/2), (height/2))
             Luxor.transform([1 0 0 -1 0 0])
             setcolor(col.val)
-            setline(1)
-            line(Luxor.Point(x,y)+corr_point, Luxor.Point(x_v, y_v)-corr_point, :stroke)
+            setline(line_width)
+            line(Luxor.Point(x,y)+corr_point, Luxor.Point(x_v, y_v)-corr_point_nbr, :stroke)
             grestore()
         end
+    end
+
+    if tail_cond # tail_condition must be dependent on some non-changing agent property. General conditons are not implemented due to performance constraints
+        gsave()
+        translate(-(width/2), (height/2))
+        Luxor.transform([1 0 0 -1 0 0]) 
+        ln = length(tail_points)
+        if ln > 1
+            for j in 1:(ln-1)
+                p1 = Luxor.Point(tail_points[j]...)*(w,h)
+                p2 = Luxor.Point(tail_points[j+1]...)*(w,h)
+                setcolor(cl)
+                setopacity(tail_opacity(ln-j, tail_length))
+                Luxor.line(p1, p2, :stroke)
+            end
+        end
+        grestore()
     end
 end
 
@@ -314,7 +428,8 @@ $(TYPEDSIGNATURES)
     height = gparams.height
     w, h = width/gsize, height/gsize
 
-    node_size = node_size*w/100
+    node_size = node_size*w
+    line_width = 0.7
 
 
     node = (:node in record) ? agent_data[:node][index]::Int : agent.node
@@ -333,7 +448,7 @@ $(TYPEDSIGNATURES)
 
     size = (:size in record) ? agent_data[:size][index]::Union{Int, Float64} : agent.size::Union{Int, Float64}
 
-    size = size*scl*node_size/100
+    size = size*scl*node_size/100 # size of a graph agent given by user is % of the node size
     
     posx,posy = pos
 
@@ -357,7 +472,7 @@ $(TYPEDSIGNATURES)
     translate(x+a,y+b)  
     rotate(-orientation)                        
     setcolor(shape_color.val)           
-    setline(1)                              
+    setline(line_width)                              
     shapefunctions2d[shape](size)  
     grestore()  
 
@@ -417,11 +532,25 @@ $(TYPEDSIGNATURES)
     return vert_col
 end
 
+"""
+$(TYPEDSIGNATURES)
+"""
+@inline function _get_vert_size_isolated_graph(graph, vert, node_size)
+    if haskey(graph.nodesprops[vert], :size)
+       	vert_size = graph.nodesprops[vert].size
+    else
+        vert_size = node_size
+    end
+    return vert_size
+end
+
+
+
 
 """
 $(TYPEDSIGNATURES)
 """
-function draw_graph(graph)
+function draw_graph(graph; mark_nodes=false)
     if typeof(graph)<:SimpleGraph
         graph = static_simple_graph(graph)
     end
@@ -462,17 +591,19 @@ function draw_graph(graph)
         end
     end
 
-    drawing = Drawing(gparams.width, gparams.height, :png)
+    drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
     node_size = _get_node_size(length(verts))
     Luxor.origin()
     Luxor.background("white")
     for vert in verts
         vert_pos = _get_vert_pos_isolated_graph(graph, vert)
         vert_col = _get_vert_col_isolated_graph(graph, vert)
+        vert_size = _get_vert_size_isolated_graph(graph, vert, node_size)
         out_structure = out_links(graph, vert)
         neighs_pos = [_get_vert_pos_isolated_graph(graph, nd) for nd in out_structure]
+        neighs_sizes = [_get_vert_size_isolated_graph(graph, nd, node_size) for nd in out_structure]
         edge_cols =  [_get_edge_col_isolated_graph(graph, vert, nd) for nd in out_structure]
-        draw_vert(vert_pos, vert_col, node_size, neighs_pos, is_digraph(graph), edge_cols)
+        draw_vert(vert, vert_pos, vert_col, vert_size, neighs_pos, neighs_sizes, is_digraph(graph), edge_cols, mark_nodes)
     end
     finish()
     drawing

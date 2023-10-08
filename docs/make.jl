@@ -19,6 +19,8 @@ makedocs(
                 "Schellings Segregation 3D" => "schelling3d.md",
                 "Flocking 3D" => "boids3d.md",
                 "Ising on a grid graph" => "ising.md",
+                "Simple Pendulum" => "simple_pendulum.md",
+                "Brownian Particle" => "BrownianParticle.md",
                 "Nearest Neighbor Graph" => "nearest_neighbor_graph.md",
                 "Elementary Cellular Automaton" => "ElemCA.md",
                 "Abelian Sandpile" => "abelian_sandpile.md",

@@ -90,7 +90,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_neighbors(agent::Agent2D{Symbol, Any}, model::SpaceModel2D{T,S,P}, dist::Int) where {T, S<:AbstractFloat, P<:Periodic}
+function _get_neighbors(agent::Agent2D{Symbol, Any}, model::SpaceModel2D{T,S,P}, dist::Int) where {T, S<:AbstractFloat, P<:Periodic}
     x,y = getfield(agent, :last_grid_loc)
     xdim = model.size[1]
     ydim = model.size[2]
@@ -121,7 +121,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_neighbors(agent::Agent2D{Symbol, Any}, model::SpaceModel2D{T,S,P}, dist::Int) where {T, S<:AbstractFloat, P<:NPeriodic}
+function _get_neighbors(agent::Agent2D{Symbol, Any}, model::SpaceModel2D{T,S,P}, dist::Int) where {T, S<:AbstractFloat, P<:NPeriodic}
     x,y = getfield(agent, :last_grid_loc)
     xdim = model.size[1]
     ydim = model.size[2]
@@ -155,7 +155,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_neighbors(agent::Agent2D{Symbol, Any}, model::SpaceModel2D{T,S,P}, dist::Int) where {T, S<:Int, P<:Periodic}
+function _get_neighbors(agent::Agent2D{Symbol, Any}, model::SpaceModel2D{T,S,P}, dist::Int) where {T, S<:Int, P<:Periodic}
     x,y = agent.pos
     xdim = model.size[1]
     ydim = model.size[2]
@@ -188,7 +188,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_neighbors(agent::Agent2D{Symbol, Any}, model::SpaceModel2D{T,S,P}, dist::Int) where {T, S<:Int, P<:NPeriodic}
+function _get_neighbors(agent::Agent2D{Symbol, Any}, model::SpaceModel2D{T,S,P}, dist::Int) where {T, S<:Int, P<:NPeriodic}
     x,y = agent.pos
     xdim = model.size[1]
     ydim = model.size[2]
@@ -286,7 +286,7 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Returns active neighboring agents to given agent. If the metric is `:grid`, then with dist =0 only agents present in the current 
+Returns active neighboring agents of the given agent. If the metric is `:grid`, then with dist =0 only agents present in the current 
 block of the given agent are returned; with dist=1, agents in the current block of the given agent along with agents in the neighbouring 
 8 blocks are returned; with dist=2 agents in the current block of given agent, along with agents in 24 nearest blocks are returned, and 
 so on. With metric = `:euclidean` the agents within Euclidean distance `dist` are returned.
@@ -367,7 +367,7 @@ function random_empty_patch(model::SpaceModel2D; search_method = :exact, attempt
         empty_patches = Tuple{Int, Int}[]
         n = 0
         for p in CartesianIndices(model.patches)
-            if length(model.patches[p].agents) == 0
+            if length(model.patches[p].agents::Vector{Int}) == 0
                 push!(empty_patches, Tuple(p))
                 n+=1
             end
@@ -378,49 +378,6 @@ function random_empty_patch(model::SpaceModel2D; search_method = :exact, attempt
             return nothing
         end
     end
-end
-
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Returns patches satisfying the given condition.
-"""
-function get_patches(model::SpaceModel2D, condition::Function )
-    patches =  ((i,j) for i in 1:model.size[1] for j in 1:model.size[2])
-    req_patches = Iterators.filter(pt->condition(model.patches[pt...]), patches)
-    return req_patches
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Returns patches satisfying the given condition.
-"""
-function get_patches(model::SpaceModel2D)
-    return ((i,j) for i in 1:model.size[1] for j in 1:model.size[2])
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Returns number of patches satisfying the given condition.
-"""
-function num_patches(model::SpaceModel2D, condition::Function )
-    return count(x->true,get_patches(model, condition))
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Returns number of patches satisfying the given condition.
-"""
-function num_patches(model::SpaceModel2D)
-    return model.parameters._extras._num_patches::Int
 end
 
 """

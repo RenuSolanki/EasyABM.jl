@@ -37,7 +37,7 @@ end
 init_model!(model, initialiser = initialiser!, props_to_record = Dict("patches" => Set([:color])))
 ```
 
-## Step 3: Run the model
+## Step 3: Defining the step_rule! and running the model
 
 In this step we define the `step_rule!` function and run the model for 400 steps. The rule of the game is very simple. The `cl"red"` color of a patch will change to `cl"green"` if number of neighboring patches with color `cl"green"` exceeds the threshold( which we set to be 3 in the beginning). Similarly, if a `cl"green"` patch finds larger than the threshold number of `cl"blue"` patches in its neighborhood, it will change to `cl"blue"`, and if a `cl"blue"` patch finds larger than threshold number of `cl"red"` patches in its neighborhood it will change to `cl"red"`. Each step of the model consists of 500 Monte-Carlo steps in which a patch is selected at random and the above mentioned rule applied to it. 
 

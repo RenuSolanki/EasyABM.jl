@@ -10,8 +10,8 @@
     return colors
 end
 
-@inline function _get_tail(agent, model::SpaceModel2D{Mortal, S}, t, tail_length) where S<:AbstractFloat # we don't have tails for grid agents
-    agent_tail = GeometryBasics.Vec2{S}[]
+@inline function _get_tail(agent, model::SpaceModel2D{Mortal, S}, t, tail_length, agent_tail = GeometryBasics.Vec2{S}[]) where S<:AbstractFloat # we don't have tails for grid agents
+    
     if !(:pos in agent._keeps_record_of)
         push!(agent_tail, GeometryBasics.Vec(agent.pos...))
         return agent_tail
@@ -73,8 +73,8 @@ $(TYPEDSIGNATURES)
 @inline function draw_patches_static(model::SpaceModel2D)
     xdim = model.size[1]
     ydim = model.size[2]
-    width = model.parameters._extras.gparams_width
-    height = model.parameters._extras.gparams_height
+    width = gparams.width
+    height = gparams.height
     w = width/xdim
     h = height/ydim
 
@@ -94,8 +94,8 @@ $(TYPEDSIGNATURES)
 @inline function draw_patches(model::SpaceModel2D, frame::Int)
     xdim = model.size[1]
     ydim = model.size[2]
-    width = model.parameters._extras.gparams_width
-    height = model.parameters._extras.gparams_height
+    width = gparams.width
+    height = gparams.height
     w = width/xdim
     h = height/ydim
 
@@ -116,8 +116,8 @@ $(TYPEDSIGNATURES)
     agent_data = unwrap_data(agent)
     offset = model.parameters._extras._offset::Tuple{Float64, Float64}
 
-    width = model.parameters._extras.gparams_width
-    height = model.parameters._extras.gparams_height
+    width = gparams.width
+    height = gparams.height
     w = width/xdim
     h = height/ydim
 
@@ -137,7 +137,7 @@ $(TYPEDSIGNATURES)
     #     size = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat} : agent.size::Union{Int, <:AbstractFloat}
     # end
    
-    size = size*scl*w/100 # size = scl*(size% of single block w)
+    size = size*scl*w # size
 
     posx,posy = pos
     x =  w*posx #- w/2
@@ -190,7 +190,7 @@ $(TYPEDSIGNATURES)
                 if ((a^2+b^2) > 0.5*min(width^2,height^2)) && periodic
                     continue
                 else
-                    sethue("blue")
+                    setcolor(shape_color.val)  
                     setopacity(tail_opacity(ln-j, tail_length))
                     Luxor.line(p1, p2, :stroke)
                 end

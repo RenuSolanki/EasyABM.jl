@@ -44,7 +44,7 @@ end
 init_model!(model, initialiser = initialiser!)
 ```
 
-## Step 3: Running the model
+## Step 3: Defining the step_rule! and running the model
 
 In this step we implement the step logic of the flocking model in the `step_rule!` function and run the model for 500 steps. 
 

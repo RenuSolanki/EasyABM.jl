@@ -16,7 +16,7 @@ function manage_default_graphics_data!(agent::GraphAgent, graphics)
         end
 
         if !haskey(agent, :size)
-            agent.size = 20
+            agent.size = 20 # percentage of node size
         end
 
         if !haskey(agent, :orientation)
@@ -799,35 +799,58 @@ $(TYPEDSIGNATURES)
     return out_structure
 end
 
+
+
+
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _draw_da_vert(graph::AbstractPropGraph{Mortal}, vert, node_size, frame, nprops, eprops)
+@inline function _draw_da_vert(graph::AbstractPropGraph{Mortal}, vert, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
     vert_pos = _get_vert_pos(graph, vert, frame, nprops)
     vert_col = _get_vert_col(graph, vert, frame, nprops)
+    
+    vert_size=_get_vert_size(graph, vert, frame, nprops, node_size)
+    tail_length, tail_condition = tail
+    tail_cond = tail_condition(graph.nodesprops[vert])
+    tail_points = GeometryBasics.Vec2{Float64}[]
+    if tail_cond
+        tail_points = _get_node_tail(graph, vert, frame, nprops, tail_length)
+    end
+    
     out_structure = out_links(graph, vert) # each node nd in out_links(vert) is > vert for simple graph. 
     active_out_structure, indices = _get_active_out_structure(graph, vert, out_structure, frame) # indices[i] is the index to be used for accessing any recorded property of the edge from vert to active_out_structure[i] corresponding to given frame
     neighs_pos = [_get_vert_pos(graph, nd, frame, nprops) for nd in active_out_structure]
+    neighs_sizes = [_get_vert_size(graph, nd, frame, nprops, node_size) for nd in active_out_structure]
     edge_cols = [_get_edge_col(graph, vert, active_out_structure[i], indices[i], eprops) for i in 1:length(indices)]
-    draw_vert(vert_pos, vert_col, node_size, neighs_pos, is_digraph(graph), edge_cols)
+    draw_vert(vert, vert_pos, vert_col, vert_size, neighs_pos, neighs_sizes, is_digraph(graph), edge_cols, mark_nodes, tail_length, tail_cond, tail_points)
 end
 
-@inline function _draw_da_vert(graph::AbstractPropGraph{Static}, vert, node_size, frame, nprops, eprops)
+@inline function _draw_da_vert(graph::AbstractPropGraph{Static}, vert, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
     vert_pos = _get_vert_pos(graph, vert, frame, nprops)
     vert_col = _get_vert_col(graph, vert, frame, nprops)
+    
+    vert_size=_get_vert_size(graph, vert, frame, nprops, node_size)
+    tail_length, tail_condition = tail
+    tail_cond = tail_condition(graph.nodesprops[vert])
+    tail_points = GeometryBasics.Vec2{Float64}[]
+    if tail_cond
+        tail_points = _get_node_tail(graph, vert, frame, nprops, tail_length)
+    end
+
     out_structure = out_links(graph, vert) # each node nd in out_links(vert) is > vert for simple graph. 
     neighs_pos = [_get_vert_pos(graph, nd, frame, nprops) for nd in out_structure]
+    neighs_sizes = [_get_vert_size(graph, nd, frame, nprops, node_size) for nd in out_structure]
     edge_cols = [_get_edge_col(graph, vert, nd, frame, eprops) for nd in out_structure] 
-    draw_vert(vert_pos, vert_col, node_size, neighs_pos, is_digraph(graph), edge_cols)
+    draw_vert(vert, vert_pos, vert_col, vert_size, neighs_pos, neighs_sizes, is_digraph(graph), edge_cols, mark_nodes, tail_length, tail_cond, tail_points)
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _draw_graph(graph::AbstractPropGraph{Mortal}, verts, node_size, frame, nprops, eprops)
+@inline function _draw_graph(graph::AbstractPropGraph{Mortal}, verts, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
     alive_verts = verts[[(graph.nodesprops[nd]._extras._birth_time::Int <=frame)&&(frame<=graph.nodesprops[nd]._extras._death_time::Int) for nd in verts]]
     @sync for vert in alive_verts
-        @async _draw_da_vert(graph, vert, node_size, frame, nprops, eprops) 
+        @async _draw_da_vert(graph, vert, node_size, frame, nprops, eprops,  mark_nodes, tail, tail_length, tail_condition, tail_points) 
     end
 end
 
@@ -835,18 +858,18 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _draw_graph(graph::AbstractPropGraph{Static}, verts, node_size, frame, nprops, eprops)
+@inline function _draw_graph(graph::AbstractPropGraph{Static}, verts, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
     @sync for vert in verts
-        @async _draw_da_vert(graph, vert, node_size, frame, nprops, eprops) 
+        @async _draw_da_vert(graph, vert, node_size, frame, nprops, eprops, mark_nodes, tail) 
     end
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agents_and_graph(model::GraphModelDynAgNum, graph, verts, node_size, frame, scl)
+@inline function draw_agents_and_graph(model::GraphModelDynAgNum, graph, verts, node_size, frame, scl, mark_nodes=false, tail = (1, node-> false))
     if model.parameters._extras._show_space::Bool
-        _draw_graph(graph, verts, node_size, frame, model.record.nprops, model.record.eprops)
+        _draw_graph(graph, verts, node_size, frame, model.record.nprops, model.record.eprops, mark_nodes, tail)
     end
 
     all_agents = vcat(model.agents, model.agents_killed)
@@ -861,10 +884,10 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agents_and_graph(model::GraphModelFixAgNum, graph, verts, node_size, frame, scl)
+@inline function draw_agents_and_graph(model::GraphModelFixAgNum, graph, verts, node_size, frame, scl, mark_nodes=false, tail = (1, node-> false))
 
     if model.parameters._extras._show_space::Bool
-        _draw_graph(graph, verts, node_size, frame, model.record.nprops, model.record.eprops)
+        _draw_graph(graph, verts, node_size, frame, model.record.nprops, model.record.eprops, mark_nodes, tail)
     end
 
     @sync for agent in model.agents

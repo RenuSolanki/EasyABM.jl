@@ -103,7 +103,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_neighbors(agent::Agent3D{Symbol, Any}, model::SpaceModel3D{T,S,P}, dist::Int) where {T, S<:AbstractFloat,P<:Periodic}
+function _get_neighbors(agent::Agent3D{Symbol, Any}, model::SpaceModel3D{T,S,P}, dist::Int) where {T, S<:AbstractFloat,P<:Periodic}
     x,y,z = getfield(agent, :last_grid_loc)
     xdim = model.size[1]
     ydim = model.size[2]
@@ -117,7 +117,7 @@ $(TYPEDSIGNATURES)
                 x_n = mod1(x+i, xdim)
                 y_n = mod1(y+j, ydim)
                 z_n = mod1(z+k, zdim)
-                ags = model.patches[x_n, y_n, z_n].agents# all these agents are active for any inactive agent is removed from its container
+                ags = model.patches[x_n, y_n, z_n].agents # all these agents are active for any inactive agent is removed from its container
                 for l in ags
                     if l != id
                         push!(id_list, l)
@@ -141,7 +141,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_neighbors(agent::Agent3D{Symbol, Any}, model::SpaceModel3D{T,S,P}, dist) where {T, S<:AbstractFloat,P<:NPeriodic}
+function _get_neighbors(agent::Agent3D{Symbol, Any}, model::SpaceModel3D{T,S,P}, dist) where {T, S<:AbstractFloat,P<:NPeriodic}
     x,y,z = getfield(agent, :last_grid_loc)
     xdim = model.size[1]
     ydim = model.size[2]
@@ -177,7 +177,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_neighbors(agent::Agent3D{Symbol, Any}, model::SpaceModel3D{T,S,P}, dist) where {T, S<:Int,P<:Periodic}
+function _get_neighbors(agent::Agent3D{Symbol, Any}, model::SpaceModel3D{T,S,P}, dist) where {T, S<:Int,P<:Periodic}
     x,y,z = agent.pos
     xdim = model.size[1]
     ydim = model.size[2]
@@ -191,7 +191,7 @@ $(TYPEDSIGNATURES)
                 x_n = mod1(x+i, xdim)
                 y_n = mod1(y+j, ydim)
                 z_n = mod1(z+k, zdim)
-                ags = model.patches[x_n, y_n, z_n].agents# all these agents are active for any inactive agent is removed from its container
+                ags = model.patches[x_n, y_n, z_n].agents # all these agents are active for any inactive agent is removed from its container
                 for l in ags
                     if l != id
                         push!(id_list, l)
@@ -216,7 +216,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_neighbors(agent::Agent3D{Symbol, Any}, model::SpaceModel3D{T,S,P}, dist) where {T, S<:Int,P<:NPeriodic}
+function _get_neighbors(agent::Agent3D{Symbol, Any}, model::SpaceModel3D{T,S,P}, dist) where {T, S<:Int,P<:NPeriodic}
     x,y,z = agent.pos
     xdim = model.size[1]
     ydim = model.size[2]
@@ -408,46 +408,6 @@ function random_empty_patch(model::SpaceModel3D; search_method = :exact, attempt
             return nothing
         end
     end
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Returns patches satisfying given condition.
-"""
-function get_patches(model::SpaceModel3D, condition::Function)
-    patches = ((i,j, k) for i in 1:model.size[1] for j in 1:model.size[2] for k in 1:model.size[3])
-    req_patches = Iterators.filter(pt->condition(model.patches[pt...]), patches)
-    return req_patches
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Returns patches satisfying given condition.
-"""
-function get_patches(model::SpaceModel3D)
-    return ((i,j, k) for i in 1:model.size[1] for j in 1:model.size[2] for k in 1:model.size[3])
-end
-
-
-"""
-$(TYPEDSIGNATURES)
-
-Returns number of patches satisfying given condition.
-"""
-function num_patches(model::SpaceModel3D, condition::Function)
-    return count(x->true,get_patches(model, condition))
-end
-
-"""
-$(TYPEDSIGNATURES)
-
-Returns number of patches satisfying given condition.
-"""
-function num_patches(model::SpaceModel3D)
-    return model.parameters._extras._num_patches::Int
 end
 
 

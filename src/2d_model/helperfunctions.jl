@@ -42,7 +42,7 @@ $(TYPEDSIGNATURES)
         push!(patches[a,b].agents, i)
         setfield!(agent, :last_grid_loc, (a,b))
     else
-        p = S(0.5)
+        p = S(eps())
         setfield!(agent, :pos, Vect(p,p))
         push!(patches[1,1].agents, i)
         setfield!(agent, :last_grid_loc, (1,1))
@@ -98,8 +98,6 @@ $(TYPEDSIGNATURES)
     parameters._extras._len_model_agents = n #number of agents in model.agents
     parameters._extras._num_patches = xdim*ydim
     parameters._extras._keep_deads_data = true
-    parameters._extras.gparams_width = Int(ceil(gparams.width*xdim/ydim))
-    parameters._extras.gparams_height = gparams.height
     return parameters
 end
 
@@ -123,7 +121,7 @@ graphics related properties are added to the agent if not already defined.
         end
 
         if !haskey(agent, :size)
-            agent.size = 20 # % of a small block
+            agent.size = 0.5 # % absolute like position from 0 to xdim
         end
 
         if !haskey(agent, :orientation)

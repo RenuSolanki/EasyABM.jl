@@ -215,3 +215,72 @@ function set_patchprops!(patch, model::AbstractSpaceModel; kwargs...)
         end
     end
 end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns patches satisfying the given condition.
+"""
+function get_patches(model::AbstractSpaceModel, condition::Function )
+    patches =  (loc for loc in model.patch_locs)
+    req_patches = Iterators.filter(pt->condition(model.patches[pt...]), patches)
+    return req_patches
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns patches satisfying the given condition.
+"""
+function get_patches(model::AbstractSpaceModel)
+    return (loc for loc in model.patch_locs)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns patches satisfying the given condition.
+"""
+function get_random_patch(model::AbstractSpaceModel, condition::Function )
+    patches =  model.patch_locs
+    req_patches = filter(pt->condition(model.patches[pt...]), patches)
+    req_patch = nothing
+    if length(req_patches)>0
+        req_patch = req_patches[rand(1:length(req_patches))]
+    end
+    return req_patch
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns patches satisfying the given condition.
+"""
+function get_random_patch(model::AbstractSpaceModel)
+    patches =  model.patch_locs
+    req_patch = patches[rand(1:length(patches))]
+
+    return req_patch
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns number of patches satisfying given condition.
+"""
+function num_patches(model::AbstractSpaceModel, condition::Function)
+    return count(x->true,get_patches(model, condition))
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns number of patches satisfying given condition.
+"""
+function num_patches(model::AbstractSpaceModel)
+    return model.parameters._extras._num_patches::Int
+end

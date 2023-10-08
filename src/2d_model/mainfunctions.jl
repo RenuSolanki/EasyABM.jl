@@ -25,6 +25,7 @@ function create_2d_model(agents::Vector{Agent2D{Symbol, Any, S, A}};
     n = length(agents)
 
     patches = _set_patches(size)
+    patch_locs = reshape([Tuple(key) for key in keys(patches)], xdim*ydim)
 
     agents_new = Vector{Agent2D{Symbol, Any, S, P}}()
 
@@ -37,11 +38,10 @@ function create_2d_model(agents::Vector{Agent2D{Symbol, Any, S, A}};
     end
 
     agents = agents_new
-       
 
     parameters = _set_parameters(size, n, random_positions; kwargs...)
 
-    model = SpaceModel2D{T, S, P}(size, patches, agents, Ref(n), graphics, parameters, (aprops = Set{Symbol}([]), pprops = Set{Symbol}([]), mprops = Set{Symbol}([])), Ref(1))
+    model = SpaceModel2D{T, S, P}(size, patches, patch_locs, agents, Ref(n), graphics, parameters, (aprops = Set{Symbol}([]), pprops = Set{Symbol}([]), mprops = Set{Symbol}([])), Ref(1))
 
     for (i, agent) in enumerate(agents)
 
@@ -61,6 +61,7 @@ function create_2d_model(agents::Vector{Agent2D{Symbol, Any, S, A}};
         end
   
         _setup_grid!(agent, model, i, xdim, ydim)
+
         
         _init_agent_record!(agent)
          
@@ -68,7 +69,9 @@ function create_2d_model(agents::Vector{Agent2D{Symbol, Any, S, A}};
 
     end
 
-    return model
+    
+
+    return model::SpaceModel2D{T, S, P}
 
 end
 
@@ -100,15 +103,13 @@ end
 
 function _init_patches!(model::SpaceModel2D)
     if length(model.record.pprops)>0
-        @threads for j in 1:model.size[2]
-            @threads for i in 1:model.size[1]
-                patch_dict = unwrap(model.patches[i,j])
-                patch_data = unwrap_data(model.patches[i,j])
-                for key in model.record.pprops
-                    patch_data[key] = [patch_dict[key]]
-                end
+        @threads for patch_loc in model.patch_locs
+            patch_dict = unwrap(model.patches[patch_loc...])
+            patch_data = unwrap_data(model.patches[patch_loc...])
+            for key in model.record.pprops
+                patch_data[key] = [patch_dict[key]]
             end
-        end 
+        end
     end
 end
 
@@ -191,7 +192,7 @@ function save_sim_luxor(model::SpaceModel2D, frames::Int=model.tick, scl::Number
         ticks = getfield(model, :tick)[]
         model.parameters._extras._show_space = show_space
         fr = min(frames, ticks)
-        movie_abm = Movie(model.parameters._extras.gparams_width+gparams.border, model.parameters._extras.gparams_height+gparams.border, "movie_abm", 1:fr)
+        movie_abm = Movie(gparams.width+gparams.border, gparams.height+gparams.border, "movie_abm", 1:fr)
         scene_array = Vector{Luxor.Scene}()
         function with_grid(scene, frame)
             Luxor.background("white")
@@ -380,7 +381,7 @@ function animate_sim(model::SpaceModel2D, frames::Int=model.tick;
     fr = min(frames, ticks)
 
     function draw_frame_luxor(t, scl)
-        drawing = Drawing(model.parameters._extras.gparams_width+gparams.border, model.parameters._extras.gparams_height+gparams.border, :png)
+        drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
         if model.graphics
             Luxor.origin()
             Luxor.background("white")
@@ -439,7 +440,7 @@ Draws a specific frame.
 function draw_frame(model::SpaceModel2D; frame=model.tick, show_grid=false)
     frame = min(frame, model.tick)
     model.parameters._extras._show_space = show_grid
-    drawing = Drawing(model.parameters._extras.gparams_width+gparams.border, model.parameters._extras.gparams_height+gparams.border, :png)
+    drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
     if model.graphics
         Luxor.origin()
         Luxor.background("white")
@@ -516,7 +517,7 @@ function create_interactive_app(model::SpaceModel2D; initialiser::Function = nul
     end
 
     function _draw_interactive_frame_luxor(t, scl)
-        drawing = Drawing(model.parameters._extras.gparams_width+gparams.border, model.parameters._extras.gparams_height+gparams.border, :png)
+        drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
         if model.graphics
             Luxor.origin()
             Luxor.background("white")

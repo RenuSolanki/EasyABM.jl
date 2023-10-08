@@ -51,6 +51,7 @@ Base.broadcasted(::typeof(==), x::Vect{N}, y::Vect{N}) where N = x.v .== y.v
 
 Base.:+(x::Vect{N}, y::Vect{N}) where N = Vect(x.v .+ y.v)
 Base.:-(x::Vect{N}, y::Vect{N}) where N = Vect(x.v .- y.v)
+Base.:-(x::Vect{N}) where N = Vect(Tuple((-i for i in x)))
 Base.:*(x::Union{Int, AbstractFloat}, y::Vect{N}) where N = Vect(x .* y.v)
 Base.:*(x::Vect{N}, y::Union{Int, AbstractFloat}) where N = Vect(x.v .* y)
 Base.:/(x::Vect{N}, y::Union{Int, AbstractFloat}) where N = Vect(x.v ./ y)

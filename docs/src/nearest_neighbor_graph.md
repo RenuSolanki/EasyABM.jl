@@ -22,7 +22,7 @@ model = create_graph_model(graph, nns=10)
 In this model we use NearestNeighbors.jl package to produce a kdtree of points which will be used to get nearest neighbors in the step rule. We create a random 2xn matrix and initialise the positions of nodes with these vectors. 
 
 ```julia
-vecs = rand(2, n);
+vecs = rand(2, n).* 10;
 
 function initialiser!(model)
     for i in 1:n
@@ -33,7 +33,7 @@ end
 init_model!(model, initialiser= initialiser!)
 ```
 
-## Step 3: Run the model
+## Step 3: Defining the step_rule! and running the model
 
 In the `step_rule!` function we need to compute nearest neighbors of points for which we make use of NearestNeighbors.jl package.
 

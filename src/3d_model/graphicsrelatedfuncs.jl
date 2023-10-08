@@ -77,7 +77,7 @@ end
 
 function draw_tail(vis, agent, tail_length)
     @threads for i in 1:tail_length
-        bluel = LineBasicMaterial(color=RGBA(0,0,1,tail_opacity(i, tail_length)))
+        bluel = LineBasicMaterial(color=RGBA(0,0,1,tail_opacity(i, tail_length))) # set to blue by default
         setobject!(vis["tails"]["$(getfield(agent, :id))"]["$i"],MeshCat.LineSegments([MeshCat.Point(0.0, 0, 0),MeshCat.Point(0, 0, 1.0)], bluel)) 
         setvisible!(vis["tails"]["$(getfield(agent, :id))"]["$i"], false)
     end
@@ -129,7 +129,7 @@ end
         agent._extras._colors = clrs
         clrs_rgb = [cl.val for cl in clrs]
         materials = [MeshPhongMaterial(color=cl) for cl in clrs_rgb]
-        size = size*w/100 # size given by user is % or the patch size
+        size = size*w # 
 
         if !(pshp in keys(shapefunctions3d))
             pshp = :cone
@@ -339,7 +339,7 @@ end
 
     material = MeshPhongMaterial(color=pclr.val) 
         
-    size = size*scl*w/100
+    size = size*scl*w
 
     if !(pshp in keys(shapefunctions3d))
         pshp = :cone

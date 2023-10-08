@@ -28,6 +28,8 @@ function create_3d_model(agents::Vector{Agent3D{Symbol, Any, S, A}};
 
     patches = _set_patches3d(size)
 
+    patch_locs = reshape([Tuple(key) for key in keys(patches)], xdim*ydim*zdim)
+
     agents_new = Vector{Agent3D{Symbol, Any, S, P}}()
 
     for agent in agents
@@ -44,7 +46,7 @@ function create_3d_model(agents::Vector{Agent3D{Symbol, Any, S, A}};
     parameters = _set_parameters3d(size, n, random_positions; kwargs...)
 
 
-    model = SpaceModel3D{T, S, P}(size, patches, agents, Ref(n), graphics, parameters, (aprops = Set{Symbol}([]), pprops = Set{Symbol}([]), mprops = Set{Symbol}([])), Ref(1))
+    model = SpaceModel3D{T, S, P}(size, patches, patch_locs, agents, Ref(n), graphics, parameters, (aprops = Set{Symbol}([]), pprops = Set{Symbol}([]), mprops = Set{Symbol}([])), Ref(1))
 
     for (i, agent) in enumerate(agents)
 
@@ -101,17 +103,13 @@ end
 
 function _init_patches!(model::SpaceModel3D)
     if length(model.record.pprops)>0
-        for k in 1:model.size[3]
-            for j in 1:model.size[2]
-                for i in 1:model.size[1]
-                    patch_dict = unwrap(model.patches[i,j,k])
-                    patch_data = unwrap_data(model.patches[i,j,k])
-                    for key in model.record.pprops
-                        patch_data[key] = [patch_dict[key]]
-                    end
+    @threads for patch_loc in model.patch_locs
+                patch_dict = unwrap(model.patches[patch_loc...])
+                patch_data = unwrap_data(model.patches[patch_loc...])
+                for key in model.record.pprops
+                    patch_data[key] = [patch_dict[key]]
                 end
             end
-        end
     end
 end
 

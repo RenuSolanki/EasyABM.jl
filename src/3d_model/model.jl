@@ -2,6 +2,7 @@
 struct SpaceModel3D{T, S<:Union{Int, AbstractFloat}, P<:SType} <:AbstractSpaceModel3D{T,S,P}
     size::NTuple{3, Int}
     patches:: Array{ContainerDataDict{Symbol, Any},3}  
+    patch_locs::Vector{Tuple{Int, Int, Int}}
     agents::Vector{Agent3D{Symbol, Any,S, P}}
     agents_added::Vector{Agent3D{Symbol, Any,S, P}}
     agents_killed::Vector{Agent3D{Symbol, Any,S, P}}
@@ -13,6 +14,8 @@ struct SpaceModel3D{T, S<:Union{Int, AbstractFloat}, P<:SType} <:AbstractSpaceMo
 
     SpaceModel3D{S,P}() where {S,P} =  begin #needed for initially attaching with agents
         size = (1,1,1)
+        patches = [ContainerDataDict(Dict{Symbol, Any}(:color => Col(1,1,1,0.1))) for i in 1:1, j in 1:1, k in 1:1]
+        patch_locs = [(1,1,1)]
         agents = Vector{Agent3D{Symbol, Any, S, P}}()
         agents_added =  Vector{Agent3D{Symbol, Any, S, P}}()
         agents_killed = Vector{Agent3D{Symbol, Any, S, P}}()
@@ -21,22 +24,22 @@ struct SpaceModel3D{T, S<:Union{Int, AbstractFloat}, P<:SType} <:AbstractSpaceMo
         parameters = PropDataDict()
         record = (aprops=Set{Symbol}([]), pprops=Set{Symbol}([]), mprops = Set{Symbol}([]))
         tick = Ref(1)
-        new{Mortal,S,P}(size, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick) 
+        new{Mortal,S,P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick) 
     end
 
-    function SpaceModel3D{T, S, P}(size, patches, agents, max_id, graphics, parameters, record, tick) where {T, S<:AbstractFloat, P} 
+    function SpaceModel3D{T, S, P}(size, patches, patch_locs, agents, max_id, graphics, parameters, record, tick) where {T, S<:AbstractFloat, P} 
         parameters._extras._offset = (0.0,0.0,0.0)
         agents_added = Vector{Agent3D{Symbol, Any, S, P}}()
         agents_killed = Vector{Agent3D{Symbol, Any, S, P}}()
 
-        new{T, S, P}(size, patches, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick)
+        new{T, S, P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick)
     end
-    function SpaceModel3D{T, S, P}(size, patches, agents, max_id, graphics, parameters, record, tick) where {T, S<:Int, P} 
+    function SpaceModel3D{T, S, P}(size, patches, patch_locs, agents, max_id, graphics, parameters, record, tick) where {T, S<:Int, P} 
         parameters._extras._offset = (-0.5,-0.5,-0.5)
         agents_added = Vector{Agent3D{Symbol, Any, S, P}}()
         agents_killed = Vector{Agent3D{Symbol, Any, S, P}}()
 
-        new{T, S, P}(size, patches, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick)
+        new{T, S, P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick)
     end
 end
 

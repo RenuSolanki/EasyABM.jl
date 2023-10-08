@@ -43,7 +43,7 @@ $(TYPEDSIGNATURES)
         push!(patches[a,b,c].agents, i)
         setfield!(agent, :last_grid_loc, (a,b,c))
     else
-        p = S(0.5)
+        p = S(eps())
         setfield!(agent, :pos, Vect(p,p,p))
         push!(patches[1,1,1].agents, i)
         setfield!(agent, :last_grid_loc, (1,1,1))
@@ -84,7 +84,7 @@ $(TYPEDSIGNATURES)
 """
 @inline function _set_patches3d(grid_size)
     xdim, ydim, zdim = grid_size
-    patches = [ContainerDataDict(Dict{Symbol, Any}(:color => Col(1,0,0,0.1))) for i in 1:xdim, j in 1:ydim, k in 1:zdim]   
+    patches = [ContainerDataDict(Dict{Symbol, Any}(:color => Col(1,1,1,0.1))) for i in 1:xdim, j in 1:ydim, k in 1:zdim]   
     return patches
 end
 
@@ -126,7 +126,7 @@ graphics related properties are added to the agent if not already defined.
         end
 
         if !haskey(agent, :size)
-            agent.size = 20 # % of patch size
+            agent.size = 0.5 # absolute size like position from 0 to xdim ...
         end
 
         if !haskey(agent, :orientation)

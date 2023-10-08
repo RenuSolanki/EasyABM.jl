@@ -522,9 +522,7 @@ function square_grid_graph(n, k; periodic = false, dynamic=false)
         end
     end
     for ed in edges(gr)
-        if !(ed in keys(gr.edgesprops))
-            gr.edgesprops[ed] = PropDataDict()
-        end
+        gr.edgesprops[ed] = PropDataDict()
     end
     return gr
 end
@@ -594,9 +592,7 @@ function hex_grid_graph(n, k; dynamic=false)
         end
     end
     for ed in edges(gr)
-        if !(ed in keys(gr.edgesprops))
-            gr.edgesprops[ed] = PropDataDict()
-        end
+        gr.edgesprops[ed] = PropDataDict()
     end
     return gr
 end
@@ -608,7 +604,13 @@ $(TYPEDSIGNATURES)
 function triangular_grid_graph(n, k; dynamic=false)
     m = n*k
     nodenum(i,j) = (j-1)*k+i
-
+    
+    diag_full = sqrt(2)*gsize
+    diag_part = diag_full*0.05
+    in_pos = (diag_part*cos(pi*45/180), diag_part*sin(pi*45/180))
+    y_vec = ((diag_full-2*diag_part)*0.5/((n-1)*cos(pi/6))) .* (cos(pi*75/180), sin(pi*75/180))
+    x_vec = ((diag_full-2*diag_part)*0.5/((k-1)*cos(pi/6))) .* (cos(pi*15/180), sin(pi*15/180))
+ 
     if dynamic
         gr = dynamic_simple_graph(m)
     else
@@ -631,47 +633,49 @@ function triangular_grid_graph(n, k; dynamic=false)
         for j in 2:(n-1)
             _add_edge_f!(gr, nodenum(1,j),nodenum(2,j))
         end
-        _add_edge_f!(gr,nodenum(1,1),nodenum(2,2))
+        _add_edge_f!(gr,nodenum(2,1),nodenum(1,2))
     end
 
     if (n==2)&&(k>=2)
         for i in 2:(k-1)
             _add_edge_f!(gr, nodenum(i,1),nodenum(i,2))
         end
-        _add_edge_f!(gr,nodenum(1,1),nodenum(2,2))
+        _add_edge_f!(gr,nodenum(2,1),nodenum(1,2))
+    end
+    
+    if (k>=2)&&(n>=2)
+        _add_edge_f!(gr,nodenum(k,n-1),nodenum(k-1,n))
     end
 
     for i in 1:k
         for j in 1:n
             node = nodenum(i,j)
             gr.nodesprops[node] = ContainerDataDict()
-            gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
+            gr.nodesprops[node]._extras._pos = in_pos .+ ((i-1) .* x_vec) .+ ((j-1) .* y_vec) #((i-0.5)*gsize/k,(j-0.5)*gsize/n)
             if (i <k)&&(i>1)&&(j<n)&&(j>1)
                 _add_edge_f!(gr, nodenum(i,j),nodenum(i+1,j))
                 _add_edge_f!(gr, nodenum(i,j),nodenum(i-1,j))
                 _add_edge_f!(gr, nodenum(i,j),nodenum(i,j+1))
                 _add_edge_f!(gr, nodenum(i,j),nodenum(i,j-1))
-                _add_edge_f!(gr, nodenum(i,j),nodenum(i+1,j+1))
-                _add_edge_f!(gr, nodenum(i,j),nodenum(i-1,j-1))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i-1,j+1))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i+1,j-1))
             elseif ((i==1)||(i==k))&&(j>1)&&(j<n)
                 _add_edge_f!(gr,nodenum(i,j),nodenum(i,j-1))
                 _add_edge_f!(gr, nodenum(i,j), nodenum(i,j+1))
                 if (i==1)&&(k>=2)
-                    _add_edge_f!(gr, nodenum(1,j), nodenum(2,j+1))
+                    _add_edge_f!(gr, nodenum(1,j+1), nodenum(2,j))
                 end
             elseif ((j==1)||(j==n))&&(i>1)&&(i<k)
                 _add_edge_f!(gr,nodenum(i,j),nodenum(i-1,j))
                 _add_edge_f!(gr, nodenum(i,j), nodenum(i+1,j))
                 if (j==1)&&(n>=2)
-                    _add_edge_f!(gr, nodenum(i,j), nodenum(i+1,j+1))
+                    _add_edge_f!(gr, nodenum(i,j), nodenum(i-1,j+1))
                 end
             end
         end
     end
     for ed in edges(gr)
-        if !(ed in keys(gr.edgesprops))
-            gr.edgesprops[ed] = PropDataDict()
-        end
+        gr.edgesprops[ed] = PropDataDict()
     end
     return gr
 end
@@ -701,6 +705,9 @@ function double_triangular_grid_graph(n, k; dynamic=false)
         _add_edge_f!(gr,nodenum(1,n),nodenum(2,n))
         _add_edge_f!(gr,nodenum(k,1),nodenum(k-1,1))
         _add_edge_f!(gr,nodenum(k,n),nodenum(k-1,n))
+    end
+    if (k>=2)&&(n>=2)
+        _add_edge_f!(gr,nodenum(k,n-1),nodenum(k-1,n))
     end
     if (k==2)&&(n>=2)
         for j in 2:(n-1)
@@ -750,10 +757,114 @@ function double_triangular_grid_graph(n, k; dynamic=false)
         end
     end
     for ed in edges(gr)
-        if !(ed in keys(gr.edgesprops))
-            gr.edgesprops[ed] = PropDataDict()
+        gr.edgesprops[ed] = PropDataDict()
+    end
+    return gr
+end
+
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function graph_from_dict(dict::Dict)
+    num_nodes=0
+    if haskey(dict, "num_nodes")
+        num_nodes = dict["num_nodes"]
+    elseif haskey(dict, "edges")
+        mx=0
+        for ed in dict["edges"]
+            mx=max(mx, ed...)
+        end
+        num_nodes=mx
+    end
+
+    is_directed = false
+    if haskey(dict, "is_directed")
+        is_directed = dict["is_directed"]
+    end
+
+    is_dynamic = false
+    if haskey(dict, "is_dynamic")
+        is_dynamic = dict["is_dynamic"]
+    end
+
+    if is_directed && is_dynamic
+        gr = dynamic_dir_graph(num_nodes)
+    elseif is_directed && !(is_dynamic)
+        gr = static_dir_graph(num_nodes)
+    elseif !(is_directed) && is_dynamic
+        gr = dynamic_simple_graph(num_nodes)
+    else
+        gr = static_simple_graph(num_nodes)
+    end
+
+    edgs = Vector{Tuple{Int64, Int64}}()
+
+    if haskey(dict, "edges")
+        edgs = dict["edges"]
+    end
+
+    for nd in 1:num_nodes
+        gr.nodesprops[nd] = ContainerDataDict()
+    end
+
+    if haskey(dict, "positions")
+        positions = dict["positions"]
+        for nd in 1:num_nodes
+            gr.nodesprops[nd].pos = positions[nd]
         end
     end
+
+    if haskey(dict,"colors")
+        colors = dict["colors"]
+        if length(colors)==0
+            colors = Col[]
+            for _ in 1:num_nodes
+                push!(colors, cl"white")
+            end
+        end
+        if (length(colors)>0)&& (length(colors)< num_nodes)
+            extra = num_nodes-length(colors)
+            for _ in 1:extra
+                push!(colors, cl"white")
+            end
+        end
+        for nd in 1:num_nodes
+            gr.nodesprops[nd].color = colors[nd]
+        end
+    end
+
+    if haskey(dict,"sizes")
+        sizes = dict["sizes"]
+        if length(sizes)==0
+            sizes = Float64[]
+            sz = _get_node_size(num_nodes)
+            for _ in 1:num_nodes
+                push!(sizes, sz)
+            end
+        end
+        if (length(sizes)>0)&& (length(sizes)< num_nodes)
+            extra = num_nodes-length(sizes)
+            sz = sizes[end]
+            for _ in 1:extra
+                push!(sizes, sz)
+            end
+        end
+        for nd in 1:num_nodes
+            gr.nodesprops[nd].size = sizes[nd]
+        end
+    end
+
+    for ed in edgs 
+        a,b=ed
+        _add_edge_f!(gr,a,b)
+    end
+
+    for ed in edges(gr)
+        gr.edgesprops[ed] = PropDataDict()
+    end
+
     return gr
 end
 

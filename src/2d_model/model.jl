@@ -2,6 +2,7 @@
 struct SpaceModel2D{T, S<:Union{Int, AbstractFloat}, P<:SType} <:AbstractSpaceModel2D{T,S,P}
     size::NTuple{2, Int}
     patches:: Matrix{ContainerDataDict{Symbol, Any}}  
+    patch_locs::Vector{Tuple{Int, Int}}
     agents::Vector{Agent2D{Symbol, Any, S, P}}
     agents_added::Vector{Agent2D{Symbol, Any, S, P}}
     agents_killed::Vector{Agent2D{Symbol, Any, S, P}}
@@ -13,6 +14,8 @@ struct SpaceModel2D{T, S<:Union{Int, AbstractFloat}, P<:SType} <:AbstractSpaceMo
 
     SpaceModel2D{S,P}() where {S,P} =  begin #needed for initially attaching with agents
         size = (1,1)
+        patches = [ContainerDataDict(Dict{Symbol, Any}(:color => Col("white"))) for i in 1:1, j in 1:1]
+        patch_locs = [(1,1)]
         agents = Vector{Agent2D{Symbol, Any, S, P}}()
         agents_added =  Vector{Agent2D{Symbol, Any, S, P}}()
         agents_killed = Vector{Agent2D{Symbol, Any, S, P}}()
@@ -21,22 +24,22 @@ struct SpaceModel2D{T, S<:Union{Int, AbstractFloat}, P<:SType} <:AbstractSpaceMo
         parameters = PropDataDict()
         record = (aprops=Set{Symbol}([]), pprops=Set{Symbol}([]), mprops = Set{Symbol}([]))
         tick = Ref(1)
-        new{Mortal,S,P}(size, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick) 
+        new{Mortal,S,P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick) 
     end
 
-    function SpaceModel2D{T, S, P}(size, patches, agents, max_id, graphics, parameters, record, tick) where {T, S<:AbstractFloat, P} 
+    function SpaceModel2D{T, S, P}(size, patches, patch_locs, agents, max_id, graphics, parameters, record, tick) where {T, S<:AbstractFloat, P} 
         parameters._extras._offset = (0.0,0.0)
         agents_added = Vector{Agent2D{Symbol, Any, S, P}}()
         agents_killed = Vector{Agent2D{Symbol, Any, S, P}}()
 
-        new{T, S, P}(size, patches, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick)
+        new{T, S, P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick)
     end
-    function SpaceModel2D{T, S, P}(size, patches, agents, max_id, graphics, parameters, record, tick) where {T, S<:Int, P} 
+    function SpaceModel2D{T, S, P}(size, patches, patch_locs, agents, max_id, graphics, parameters, record, tick) where {T, S<:Int, P} 
         parameters._extras._offset = (-0.5,-0.5)
         agents_added = Vector{Agent2D{Symbol, Any, S, P}}()
         agents_killed = Vector{Agent2D{Symbol, Any, S, P}}()
 
-        new{T, S, P}(size, patches, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick)
+        new{T, S, P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick)
     end
 end
 
@@ -96,11 +99,11 @@ function update_grid!(agent::Agent2D{Symbol, Any, <:AbstractFloat, P}, model::Sp
     patches = model.patches
 
     last_grid_loc = getfield(agent,:last_grid_loc)
-    deleteat!(patches[last_grid_loc...].agents, findfirst(m->m==i, patches[last_grid_loc...].agents))
+    deleteat!(patches[last_grid_loc...].agents::Vector{Int}, findfirst(m->m==i, patches[last_grid_loc...].agents::Vector{Int}))
     a, b = mod1(x,size[1]), mod1(y,size[2])
     setfield!(agent, :pos, Vect(a,b))
     a,b = Int(ceil(a)), Int(ceil(b))
-    push!(patches[a,b].agents, i)
+    push!(patches[a,b].agents::Vector{Int}, i)
     setfield!(agent, :last_grid_loc, (a,b))
 end
 
@@ -112,10 +115,10 @@ function update_grid!(agent::Agent2D{Symbol, Any, <:AbstractFloat, P}, model::Sp
 
     if (all(0 .< pos) && all( pos .<= size))
         last_grid_loc = getfield(agent, :last_grid_loc)
-        deleteat!(patches[last_grid_loc...].agents, findfirst(m->m==i, patches[last_grid_loc...].agents))
+        deleteat!(patches[last_grid_loc...].agents::Vector{Int}, findfirst(m->m==i, patches[last_grid_loc...].agents::Vector{Int}))
         setfield!(agent, :pos, pos)
         a,b = Int(ceil(x)), Int(ceil(y))
-        push!(patches[a,b].agents, i)
+        push!(patches[a,b].agents::Vector{Int}, i)
         setfield!(agent, :last_grid_loc, (a,b))
     end
 end
@@ -128,9 +131,9 @@ function update_grid!(agent::Agent2D{Symbol, Any, Int, P},  model::SpaceModel2D{
     size = model.size
     patches = model.patches
 
-    deleteat!(patches[x0,y0].agents, findfirst(m->m==i, patches[x0,y0].agents))
+    deleteat!(patches[x0,y0].agents::Vector{Int}, findfirst(m->m==i, patches[x0,y0].agents::Vector{Int}))
     a, b = mod1(x,size[1]), mod1(y,size[2])
-    push!(patches[a,b].agents, i)
+    push!(patches[a,b].agents::Vector{Int}, i)
     setfield!(agent, :pos, Vect(a,b))
 end
 

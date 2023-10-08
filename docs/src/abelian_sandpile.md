@@ -35,7 +35,7 @@ end
 init_model!(model, initialiser = initialiser!, props_to_record = Dict("patches" => Set([:color,:sand])))
 ```
 
-## Step 3: Running the model
+## Step 3: Defining the step_rule! and running the model
 
 In the step function we loop over all the patches and if a patch has sand >= 4, we topple that patch which means that i) We reduce the amount of sand on that patch by 4 ii) We increase the amount of sand on its Von Neumann neighboring patches by 1. 
 

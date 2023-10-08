@@ -56,8 +56,6 @@ function create_graph_model(agents::Vector{GraphAgent{Symbol, Any, A}},
     parameters._extras._len_model_agents = n #number of agents in model.agents
     parameters._extras._show_space = true
     parameters._extras._keep_deads_data = true
-    parameters._extras.gparams_width = gparams.width
-    parameters._extras.gparams_height = gparams.height
 
     if graphics
         locs_x, locs_y = spring_layout(structure)
@@ -345,7 +343,9 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function save_sim_luxor(model::GraphModel, frames::Int=model.tick, scl::Number=1.0; path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_space = true) 
+function save_sim_luxor(model::GraphModel, frames::Int=model.tick, scl::Number=1.0; 
+    path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_space = true, 
+    mark_nodes=false, tail = (1, node-> false)) 
     if model.graphics
         graph = is_static(model.graph) ? model.graph : combined_graph(model.graph, model.dead_meta_graph)
         ticks = getfield(model, :tick)[]
@@ -364,7 +364,7 @@ function save_sim_luxor(model::GraphModel, frames::Int=model.tick, scl::Number=1
 
         push!(scene_array, Luxor.Scene(movie_abm, use_backdrop, 1:fr))
         for i in 1:fr
-            draw_all(scene, frame) = draw_agents_and_graph(model, graph, verts, node_size, frame,scl)
+            draw_all(scene, frame) = draw_agents_and_graph(model, graph, verts, node_size, frame,scl, mark_nodes)
 
             push!(scene_array, Luxor.Scene(movie_abm, draw_all, i:i))
         end
@@ -382,8 +382,10 @@ $(TYPEDSIGNATURES)
 
 Creates and saves the gif of simulation from the data collected during model run. 
 """
-function save_sim(model::GraphModel, frames::Int=model.tick, scl::Number=1.0; path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_space=true)
-    save_sim_luxor(model, frames, scl, path= path , show_space= show_space)
+function save_sim(model::GraphModel, frames::Int=model.tick, scl::Number=1.0; 
+    path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_space=true, 
+    mark_nodes=false, tail = (1, node -> false))
+    save_sim_luxor(model, frames, scl, path= path , show_space= show_space, mark_nodes=mark_nodes, tail=tail)
     println("Animation saved at ", path)
 end
 
@@ -399,7 +401,8 @@ function animate_sim(model::GraphModel, frames::Int=model.tick;
     node_plots::Dict{String, <:Function} = Dict{String, Function}(), 
     model_plots::Vector{Symbol} = Symbol[],
     plots_only = false, 
-    path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_graph = true)
+    path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), 
+    show_graph = true, mark_nodes=false, tail = (1, node-> false))
 
     ticks = getfield(model, :tick)[]
     model.parameters._extras._show_space = show_graph
@@ -413,14 +416,14 @@ function animate_sim(model::GraphModel, frames::Int=model.tick;
         if model.graphics
             Luxor.origin()
             Luxor.background("white")
-            draw_agents_and_graph(model,graph, verts, node_size, t, scl)
+            draw_agents_and_graph(model,graph, verts, node_size, t, scl, mark_nodes, tail)
         end
         finish()
         drawing
     end
 
     function _save_sim(scl)
-        save_sim(model, fr, scl, path= path, show_space=show_graph, backend = :luxor)
+        save_sim(model, fr, scl, path= path, show_space=show_graph, mark_nodes=mark_nodes, tail=tail)
     end
 
     function _does_nothing(t,scl::Number=1)
@@ -462,7 +465,7 @@ $(TYPEDSIGNATURES)
 
 Draws a specific frame.
 """
-function draw_frame(model::GraphModel; frame=model.tick, show_graph=true)
+function draw_frame(model::GraphModel; frame=model.tick, show_graph=true, mark_nodes=false)
     frame = min(frame, model.tick)
     model.parameters._extras._show_space = show_graph
     graph = combined_graph(model.graph, model.dead_meta_graph)
@@ -472,7 +475,7 @@ function draw_frame(model::GraphModel; frame=model.tick, show_graph=true)
     if model.graphics
         Luxor.origin()
         Luxor.background("white")
-        draw_agents_and_graph(model,graph, verts, node_size, frame, 1.0)
+        draw_agents_and_graph(model,graph, verts, node_size, frame, 1.0, mark_nodes)
     end
     finish()
     drawing
@@ -494,7 +497,7 @@ function create_interactive_app(model::GraphModel; initialiser::Function = null_
     model_plots::Vector{Symbol} = Symbol[],
     plots_only = false,
     path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"),
-    frames=200, show_graph=true) 
+    frames=200, show_graph=true, mark_nodes=false, tail = (1, node-> false)) 
     
     # if !is_static(model.graph)
     #     combined_graph!(model.graph, model.dead_meta_graph)
@@ -509,6 +512,8 @@ function create_interactive_app(model::GraphModel; initialiser::Function = null_
     function _run_interactive_model(t)
         run_model!(model, steps=t, step_rule=step_rule)
     end
+
+    graph = Ref(model.graph)
 
 
     lblsa = String[]
@@ -531,8 +536,7 @@ function create_interactive_app(model::GraphModel; initialiser::Function = null_
         ufun(model)
         _run_interactive_model(frames)
         if !is_static(model.graph)
-            combined_graph!(model.graph, model.dead_meta_graph)
-            empty!(model.dead_meta_graph)
+            graph[] = combined_graph(model.graph, model.dead_meta_graph)
         end
         agent_df = get_agents_avg_props(model, condsa..., labels= lblsa)
         node_df = get_nodes_avg_props(model, condsp..., labels= lblsp)
@@ -543,7 +547,7 @@ function create_interactive_app(model::GraphModel; initialiser::Function = null_
     agent_df, patch_df, node_df, model_df= DataFrame(), DataFrame(), DataFrame(), DataFrame() #_init_interactive_model()
 
     function _save_sim(scl)
-        save_sim(model, frames, scl, path= path, show_space=show_graph, backend = :luxor)
+        save_sim(model, frames, scl, path= path, show_space=show_graph, mark_nodes=mark_nodes, tail=tail)
     end
 
     function _does_nothing(t,scl::Number=1)
@@ -557,7 +561,7 @@ function create_interactive_app(model::GraphModel; initialiser::Function = null_
         if model.graphics
             Luxor.origin()
             Luxor.background("white")
-            draw_agents_and_graph(model,model.graph, verts, node_size, t, scl)
+            draw_agents_and_graph(model,graph[], verts, node_size, t, scl, mark_nodes, tail)
         end
         finish()
         drawing

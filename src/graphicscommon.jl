@@ -18,9 +18,16 @@ const gparams3d = GrParams3D(xlen=10, ylen=10, zlen=10)
 const type_dict = Dict(:color => Col, :shape => Symbol, :pos => GeometryBasics.Vec2{Float64}, :orientation => Float64, :size => Union{Int, Float64})
 const makie_shape_dict = Dict(:circle => :circle, :star=>:star5, :arrow=>:utriangle, :diamond => :diamond, :square=>:rect, :box => 'B')
 
+function set_screen!(a::Int, b::Int)
+    if a>0 && b>0
+        gparams.width = a
+        gparams.height = b
+    end
+end
+
 
 @inline function _draw_title(scene, frame)
-    Luxor.text(string("frame $frame of $(scene.framerange.stop)"),  Luxor.Point(O.x, O.y-gparams.height/2+20),halign=:center)
+    Luxor.text(string("frame $frame of $(scene.framerange.stop)"),  Luxor.Point(O.x, O.y-gparams.height*0.5-gparams.border*0.1),halign=:center)
 end
 
 

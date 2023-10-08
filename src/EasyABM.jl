@@ -14,7 +14,7 @@ export  Static, Mortal, PropDict, Vect,
         
         # initialise, run, visualise
         init_model!, run_model!, run_model_epochs!, 
-        draw_frame, animate_sim, 
+        draw_frame, animate_sim, set_screen!, 
         create_interactive_app, save_model, open_model,
 
         # data 
@@ -28,7 +28,7 @@ export  Static, Mortal, PropDict, Vect,
         static_simple_graph, static_dir_graph, 
         dynamic_simple_graph, dynamic_dir_graph, convert_type,
         hex_grid_graph, square_grid_graph, triangular_grid_graph, 
-        double_triangular_grid_graph, draw_graph,
+        double_triangular_grid_graph, graph_from_dict, draw_graph,
         adjacency_matrix, add_node!, add_nodes!, kill_node!, 
         create_edge!, kill_edge!, kill_all_edges!, flush_graph!,
         is_digraph, is_static,
@@ -46,7 +46,7 @@ export  Static, Mortal, PropDict, Vect,
         is_occupied, get_nodeprop, get_edgeprop, set_nodeprops!, 
         set_edgeprops!, get_patchprop, set_patchprops!, 
         neighbor_nodes, neighbor_patches, in_neighbor_nodes, out_neighbor_nodes, 
-        get_nodes, num_nodes, get_edges, num_edges, get_patches, num_patches, 
+        get_nodes, num_nodes, get_edges, num_edges, get_patches, get_random_patch, num_patches, 
         random_empty_node, random_empty_patch, 
 
         #neighbor agents
