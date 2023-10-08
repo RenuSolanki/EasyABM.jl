@@ -68,7 +68,7 @@ end
 init_model!(model, initialiser = initialiser!, props_to_record = Dict("patches"=>Set([:color])))
 ```
 
-## Step 3: Run the model
+## Step 3: Defining the step_rule! and running the model
 
 In this step we implement the step logic of the predator prey model in the `step_rule!` function and run the model for 100 steps. 
 
