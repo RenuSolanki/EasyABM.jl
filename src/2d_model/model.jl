@@ -3,9 +3,9 @@ struct SpaceModel2D{T, S<:Union{Int, AbstractFloat}, P<:SType} <:AbstractSpaceMo
     size::NTuple{2, Int}
     patches:: Matrix{ContainerDataDict{Symbol, Any}}  
     patch_locs::Vector{Tuple{Int, Int}}
-    agents::Vector{Agent2D{Symbol, Any, S, P}}
-    agents_added::Vector{Agent2D{Symbol, Any, S, P}}
-    agents_killed::Vector{Agent2D{Symbol, Any, S, P}}
+    agents::Vector{Agent2D{S, P, T}}
+    agents_added::Vector{Agent2D{S, P, T}}
+    agents_killed::Vector{Agent2D{S, P, T}}
     max_id::Base.RefValue{Int64}
     graphics::Bool
     parameters::PropDataDict{Symbol, Any}
@@ -16,9 +16,9 @@ struct SpaceModel2D{T, S<:Union{Int, AbstractFloat}, P<:SType} <:AbstractSpaceMo
         size = (1,1)
         patches = [ContainerDataDict(Dict{Symbol, Any}(:color => Col("white"))) for i in 1:1, j in 1:1]
         patch_locs = [(1,1)]
-        agents = Vector{Agent2D{Symbol, Any, S, P}}()
-        agents_added =  Vector{Agent2D{Symbol, Any, S, P}}()
-        agents_killed = Vector{Agent2D{Symbol, Any, S, P}}()
+        agents = Vector{Agent2D{S, P, Mortal}}()
+        agents_added =  Vector{Agent2D{S, P, Mortal}}()
+        agents_killed = Vector{Agent2D{S, P, Mortal}}()
         max_id = Ref(1)
         graphics = true
         parameters = PropDataDict()
@@ -27,17 +27,17 @@ struct SpaceModel2D{T, S<:Union{Int, AbstractFloat}, P<:SType} <:AbstractSpaceMo
         new{Mortal,S,P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick) 
     end
 
-    function SpaceModel2D{T, S, P}(size, patches, patch_locs, agents, max_id, graphics, parameters, record, tick) where {T, S<:AbstractFloat, P} 
+    function SpaceModel2D{T, S, P}(size, patches, patch_locs, agents, max_id, graphics, parameters, record, tick) where {T<:MType, S<:AbstractFloat, P<:SType} 
         parameters._extras._offset = (0.0,0.0)
-        agents_added = Vector{Agent2D{Symbol, Any, S, P}}()
-        agents_killed = Vector{Agent2D{Symbol, Any, S, P}}()
+        agents_added = Vector{Agent2D{S, P, T}}()
+        agents_killed = Vector{Agent2D{S, P, T}}()
 
         new{T, S, P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick)
     end
-    function SpaceModel2D{T, S, P}(size, patches, patch_locs, agents, max_id, graphics, parameters, record, tick) where {T, S<:Int, P} 
+    function SpaceModel2D{T, S, P}(size, patches, patch_locs, agents, max_id, graphics, parameters, record, tick) where {T<:MType, S<:Int, P<:SType} 
         parameters._extras._offset = (-0.5,-0.5)
-        agents_added = Vector{Agent2D{Symbol, Any, S, P}}()
-        agents_killed = Vector{Agent2D{Symbol, Any, S, P}}()
+        agents_added = Vector{Agent2D{S, P, T}}()
+        agents_killed = Vector{Agent2D{S, P, T}}()
 
         new{T, S, P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick)
     end
@@ -72,7 +72,7 @@ function Base.show(io::IO, v::SpaceModel2D{T, S,P}) where {T,S,P} # works with p
     println(io, "EasyABM SpaceModel2D{$T, $S, $P}: $str.")
 end
 
-function Base.setproperty!(agent::Agent2D{Symbol, Any, S, P}, key::Symbol, x) where {S<:Union{Int, AbstractFloat}, P<:SType}
+function Base.setproperty!(agent::Agent2D{S, P, Mortal}, key::Symbol, x) where {S<:Union{Int, AbstractFloat}, P<:SType}
 
     if !(agent._extras._active::Bool)
         return
@@ -83,7 +83,19 @@ function Base.setproperty!(agent::Agent2D{Symbol, Any, S, P}, key::Symbol, x) wh
     if (key!=:pos)
         dict[key] = x
     else
-        update_grid!(agent, getfield(agent, :model)::SpaceModel2D{<:MType,S,P}, x)
+        update_grid!(agent, getfield(agent, :model)::SpaceModel2D{Mortal,S,P}, x)
+    end
+end
+
+function Base.setproperty!(agent::Agent2D{S, P, Static}, key::Symbol, x) where {S<:Union{Int, AbstractFloat}, P<:SType}
+
+    
+    dict = unwrap(agent)
+
+    if (key!=:pos)
+        dict[key] = x
+    else
+        update_grid!(agent, getfield(agent, :model)::SpaceModel2D{Static,S,P}, x)
     end
 end
 
@@ -92,7 +104,7 @@ function update_grid!(agent::Agent2D, model::Nothing, pos)
     return
 end
 
-function update_grid!(agent::Agent2D{Symbol, Any, <:AbstractFloat, P}, model::SpaceModel2D{T,S,P}, pos) where {T, S<:AbstractFloat, P<:Periodic}
+function update_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, pos) where {T<:MType, S<:AbstractFloat, P<:Periodic}
     x,y = pos
     i = getfield(agent, :id)
     size = model.size
@@ -107,7 +119,7 @@ function update_grid!(agent::Agent2D{Symbol, Any, <:AbstractFloat, P}, model::Sp
     setfield!(agent, :last_grid_loc, (a,b))
 end
 
-function update_grid!(agent::Agent2D{Symbol, Any, <:AbstractFloat, P}, model::SpaceModel2D{T,S,P}, pos) where {T, S<:AbstractFloat, P<:NPeriodic}
+function update_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, pos) where {T<:MType, S<:AbstractFloat, P<:NPeriodic}
     x,y = pos
     i = getfield(agent, :id)
     size = model.size
@@ -124,7 +136,7 @@ function update_grid!(agent::Agent2D{Symbol, Any, <:AbstractFloat, P}, model::Sp
 end
 
 
-function update_grid!(agent::Agent2D{Symbol, Any, Int, P},  model::SpaceModel2D{T,S,P}, pos) where {T, S<:Int, P<:Periodic}
+function update_grid!(agent::Agent2D{S, P, T},  model::SpaceModel2D{T,S,P}, pos) where {T<:MType, S<:Int, P<:Periodic}
     x,y = pos
     x0,y0 = agent.pos
     i = getfield(agent, :id)
@@ -138,7 +150,7 @@ function update_grid!(agent::Agent2D{Symbol, Any, Int, P},  model::SpaceModel2D{
 end
 
 
-function update_grid!(agent::Agent2D{Symbol, Any, Int, P},  model::SpaceModel2D{T,S,P}, pos) where {T, S<:Int, P<:NPeriodic}
+function update_grid!(agent::Agent2D{S, P, T},  model::SpaceModel2D{T,S,P}, pos) where {T<:MType, S<:Int, P<:NPeriodic}
     x,y = pos
     x0,y0 = agent.pos
     i = getfield(agent, :id)

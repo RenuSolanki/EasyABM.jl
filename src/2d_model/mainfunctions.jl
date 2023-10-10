@@ -1,3 +1,15 @@
+@inline function _agent_extra_props(agent::Agent2D{S, P, Mortal}) where {S<:Union{Int, AbstractFloat}, P<:SType}
+    agent._extras._active = true
+    agent._extras._birth_time = 1 
+    agent._extras._death_time = typemax(Int)
+    return
+end
+
+@inline function _agent_extra_props(agent::Agent2D{S, P, Static}) where {S<:Union{Int, AbstractFloat}, P<:SType}
+    return
+end
+
+
 
 """
 $(TYPEDSIGNATURES)
@@ -15,11 +27,11 @@ its own properties.
 - `space_type` : Set it to Periodic or NPeriodic depending upon if the space is periodic or not. 
 - `kwargs`` : Keyword argments used as model parameters. 
 """
-function create_2d_model(agents::Vector{Agent2D{Symbol, Any, S, A}}; 
+function create_2d_model(agents::Vector{Agent2D{S, A, B}}; 
     graphics=true, agents_type::Type{T} = Static, 
     size::NTuple{2,Int}= (10,10), random_positions=false, 
     space_type::Type{P} = Periodic,
-    kwargs...) where {T<:MType, S<:Union{Int, AbstractFloat}, P<:SType, A<:SType}
+    kwargs...) where {T<:MType, S<:Union{Int, AbstractFloat}, P<:SType, A<:SType, B<:MType}
 
     xdim, ydim = size 
     n = length(agents)
@@ -27,17 +39,20 @@ function create_2d_model(agents::Vector{Agent2D{Symbol, Any, S, A}};
     patches = _set_patches(size)
     patch_locs = reshape([Tuple(key) for key in keys(patches)], xdim*ydim)
 
-    agents_new = Vector{Agent2D{Symbol, Any, S, P}}()
+    if !(A<:P) || !(B<:T)
 
-    for agent in agents
-        dc = unwrap(agent)
-        dcd = unwrap_data(agent)
-        pos = getfield(agent, :pos)
-        ag = Agent2D{P}(1, pos, dc, dcd, nothing)
-        push!(agents_new, ag)
+        agents_new = Vector{Agent2D{S, P, T}}()
+
+        for agent in agents
+            dc = unwrap(agent)
+            dcd = unwrap_data(agent)
+            pos = getfield(agent, :pos)
+            ag = Agent2D{S, P, T}(1, pos, dc, dcd, nothing)
+            push!(agents_new, ag)
+        end
+
+        agents = agents_new
     end
-
-    agents = agents_new
 
     parameters = _set_parameters(size, n, random_positions; kwargs...)
 
@@ -54,15 +69,16 @@ function create_2d_model(agents::Vector{Agent2D{Symbol, Any, S, A}};
 
         manage_default_graphics_data!(agent, graphics, size)
 
-        if T<:Mortal
-            agent._extras._active = true
-            agent._extras._birth_time = 1 
-            agent._extras._death_time = typemax(Int)
-        end
+        # if T<:Mortal
+        #     agent._extras._active = true
+        #     agent._extras._birth_time = 1 
+        #     agent._extras._death_time = typemax(Int)
+        # end
+
+        _agent_extra_props(agent)
   
         _setup_grid!(agent, model, i, xdim, ydim)
 
-        
         _init_agent_record!(agent)
          
         setfield!(agent, :model, model)
@@ -85,7 +101,7 @@ function create_2d_model(;
     space_type::Type{P} = Periodic,
     kwargs...) where {P<:SType}
 
-    agents = Agent2D{Symbol, Any, Int, P}[] # Can also use Float64 instead of Int. Wont matter as there are no agents. 
+    agents = Agent2D{Int, P, Static}[] # Can also use Float64 instead of Int. Wont matter as there are no agents. 
     model = create_2d_model(agents; graphics=graphics, agents_type=Static, 
     size=size, random_positions=random_positions, space_type = space_type, kwargs...)   
     return model
@@ -293,10 +309,10 @@ end
 #     patch_plots::Dict{String, <:Function} = Dict{String, Function}(),
 #     model_plots::Vector{Symbol} = Symbol[],
 #     plots_only = false,
-#     path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"), show_grid=false, tail = (1, agent->false))
+#     path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"), show_patches=false, tail = (1, agent->false))
 
 #     ticks = getfield(model, :tick)[]
-#     model.parameters._extras._show_space = show_grid
+#     model.parameters._extras._show_space = show_patches
 #     fr = min(frames, ticks)
 
 #     fig = Figure(resolution = (model.parameters._extras.gparams_height, model.parameters._extras.gparams_width))
@@ -310,10 +326,10 @@ end
 #         rotations = _get_propvals(model, t, :orientation)
 #         sizes = _get_propvals(model, t, :size, scl)
 #         grid_colors = Symbol[]
-#         if show_grid
+#         if show_patches
 #             grid_colors = _get_grid_colors(model, t)
 #         end
-#         _create_makie_frame(ax, model, points, markers, colors, rotations, sizes, grid_colors, show_grid)
+#         _create_makie_frame(ax, model, points, markers, colors, rotations, sizes, grid_colors, show_patches)
 #         tail_condition = tail[2]
 #         tail_length = tail[1]
 #         all_agents=_get_all_agents(model)
@@ -327,7 +343,7 @@ end
 #     end
 
 #     function _save_sim(scl)
-#         save_sim(model, fr, scl, path= path, show_space=show_grid, backend = :makie, tail = tail)
+#         save_sim(model, fr, scl, path= path, show_space=show_patches, backend = :makie, tail = tail)
 #     end
 
 #     function _does_nothing(t,scl::Number=1)
@@ -374,10 +390,10 @@ function animate_sim(model::SpaceModel2D, frames::Int=model.tick;
     patch_plots::Dict{String, <:Function} = Dict{String, Function}(),
     model_plots::Vector{Symbol} = Symbol[],
     plots_only = false,
-    path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"), show_grid=false, tail = (1, agent->false))
+    path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"), show_patches=false, tail = (1, agent->false))
 
     ticks = getfield(model, :tick)[]
-    model.parameters._extras._show_space = show_grid
+    model.parameters._extras._show_space = show_patches
     fr = min(frames, ticks)
 
     function draw_frame_luxor(t, scl)
@@ -385,7 +401,7 @@ function animate_sim(model::SpaceModel2D, frames::Int=model.tick;
         if model.graphics
             Luxor.origin()
             Luxor.background("white")
-            if show_grid && !(:color in model.record.pprops)
+            if show_patches && !(:color in model.record.pprops)
                 draw_patches_static(model)
             end
             draw_agents_and_patches(model, t, scl, tail...)
@@ -395,7 +411,7 @@ function animate_sim(model::SpaceModel2D, frames::Int=model.tick;
     end
 
     function _save_sim(scl)
-        save_sim(model, fr, scl, path= path, show_space=show_grid, tail = tail)
+        save_sim(model, fr, scl, path= path, show_space=show_patches, tail = tail)
     end
 
     function _does_nothing(t,scl::Number=1)
@@ -437,14 +453,14 @@ $(TYPEDSIGNATURES)
 
 Draws a specific frame.
 """
-function draw_frame(model::SpaceModel2D; frame=model.tick, show_grid=false)
+function draw_frame(model::SpaceModel2D; frame=model.tick, show_patches=false)
     frame = min(frame, model.tick)
-    model.parameters._extras._show_space = show_grid
+    model.parameters._extras._show_space = show_patches
     drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
     if model.graphics
         Luxor.origin()
         Luxor.background("white")
-        if show_grid && !(:color in model.record.pprops)
+        if show_patches && !(:color in model.record.pprops)
             draw_patches_static(model)
         end
         draw_agents_and_patches(model, frame, 1.0)
@@ -469,9 +485,9 @@ function create_interactive_app(model::SpaceModel2D; initialiser::Function = nul
     model_plots::Vector{Symbol} = Symbol[],
     plots_only = false,
     path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"),
-    frames=200, show_grid=false, tail =(1, agent-> false)) 
+    frames=200, show_patches=false, tail =(1, agent-> false)) 
 
-    model.parameters._extras._show_space = show_grid
+    model.parameters._extras._show_space = show_patches
 
     init_model!(model, initialiser=initialiser, props_to_record = props_to_record)
 
@@ -509,7 +525,7 @@ function create_interactive_app(model::SpaceModel2D; initialiser::Function = nul
    agent_df, patch_df, node_df, model_df = DataFrame(), DataFrame(), DataFrame(), DataFrame() #_init_interactive_model()
 
     function _save_sim(scl)
-        save_sim(model, frames, scl, path= path, show_space=show_grid, tail = tail)
+        save_sim(model, frames, scl, path= path, show_space=show_patches, tail = tail)
     end
 
     function _does_nothing(t,scl::Number=1)
@@ -521,7 +537,7 @@ function create_interactive_app(model::SpaceModel2D; initialiser::Function = nul
         if model.graphics
             Luxor.origin()
             Luxor.background("white")
-            if show_grid && !(:color in model.record.pprops)
+            if show_patches && !(:color in model.record.pprops)
                 draw_patches_static(model)
             end
             draw_agents_and_patches(model, t, scl, tail...)

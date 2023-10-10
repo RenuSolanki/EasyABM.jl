@@ -850,7 +850,7 @@ $(TYPEDSIGNATURES)
 @inline function _draw_graph(graph::AbstractPropGraph{Mortal}, verts, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
     alive_verts = verts[[(graph.nodesprops[nd]._extras._birth_time::Int <=frame)&&(frame<=graph.nodesprops[nd]._extras._death_time::Int) for nd in verts]]
     @sync for vert in alive_verts
-        @async _draw_da_vert(graph, vert, node_size, frame, nprops, eprops,  mark_nodes, tail, tail_length, tail_condition, tail_points) 
+        @async _draw_da_vert(graph, vert, node_size, frame, nprops, eprops,  mark_nodes, tail) 
     end
 end
 

@@ -10,8 +10,8 @@ Base.showerror(io::IO, e::StaticPropException) = print(io, e.err)
 
 abstract type AbstractPropDict{K, V} <: AbstractDict{K, V} end
 abstract type AbstractAgent{K, V} <: AbstractPropDict{K, V} end
-abstract type AbstractAgent2D{K, V, S, P} <: AbstractAgent{K, V} end #S grid or cont, , P periodic 
-abstract type AbstractAgent3D{K, V, S, P} <: AbstractAgent{K, V} end
+abstract type AbstractAgent2D{K, V, S, P, T} <: AbstractAgent{K, V} end #S grid or cont, , P periodic 
+abstract type AbstractAgent3D{K, V, S, P, T} <: AbstractAgent{K, V} end
 
 import Base.==
 ==(a::T, b::T) where T<:AbstractAgent = getfield(a, :id)== getfield(b, :id)

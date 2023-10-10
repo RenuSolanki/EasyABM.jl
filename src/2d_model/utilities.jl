@@ -71,7 +71,7 @@ $(TYPEDSIGNATURES)
 
 Returns patches neighboring the given patch.
 """
-function neighbor_patches(agent::Agent2D{Symbol, Any, <:AbstractFloat}, model::SpaceModel2D, dist::Real; dist_func::Function = moore_distance, range::Int=Int(ceil(dist)))
+function neighbor_patches(agent::Agent2D{<:AbstractFloat}, model::SpaceModel2D, dist::Real; dist_func::Function = moore_distance, range::Int=Int(ceil(dist)))
     patch = getfield(agent, :last_grid_loc)
     return neighbor_patches(patch, model, dist, dist_func=dist_func, range=range)
 end
@@ -82,7 +82,7 @@ $(TYPEDSIGNATURES)
 
 Returns patches neighboring the given patch.
 """
-function neighbor_patches(agent::Agent2D{Symbol, Any, Int}, model::SpaceModel2D, dist::Real; dist_func::Function = moore_distance, range::Int=Int(ceil(dist)))
+function neighbor_patches(agent::Agent2D{Int}, model::SpaceModel2D, dist::Real; dist_func::Function = moore_distance, range::Int=Int(ceil(dist)))
     patch = agent.pos
     return neighbor_patches(patch, model, dist, dist_func=dist_func, range=range)
 end
@@ -90,7 +90,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _get_neighbors(agent::Agent2D{Symbol, Any}, model::SpaceModel2D{T,S,P}, dist::Int) where {T, S<:AbstractFloat, P<:Periodic}
+function _get_neighbors(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:AbstractFloat, P<:Periodic}
     x,y = getfield(agent, :last_grid_loc)
     xdim = model.size[1]
     ydim = model.size[2]
@@ -121,7 +121,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _get_neighbors(agent::Agent2D{Symbol, Any}, model::SpaceModel2D{T,S,P}, dist::Int) where {T, S<:AbstractFloat, P<:NPeriodic}
+function _get_neighbors(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:AbstractFloat, P<:NPeriodic}
     x,y = getfield(agent, :last_grid_loc)
     xdim = model.size[1]
     ydim = model.size[2]
@@ -155,7 +155,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _get_neighbors(agent::Agent2D{Symbol, Any}, model::SpaceModel2D{T,S,P}, dist::Int) where {T, S<:Int, P<:Periodic}
+function _get_neighbors(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:Int, P<:Periodic}
     x,y = agent.pos
     xdim = model.size[1]
     ydim = model.size[2]
@@ -188,7 +188,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _get_neighbors(agent::Agent2D{Symbol, Any}, model::SpaceModel2D{T,S,P}, dist::Int) where {T, S<:Int, P<:NPeriodic}
+function _get_neighbors(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:Int, P<:NPeriodic}
     x,y = agent.pos
     xdim = model.size[1]
     ydim = model.size[2]
@@ -241,7 +241,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _find_eu_neighbors(agent::Agent2D{Symbol, Any}, neighbors_list, model::SpaceModel2D{T, S, P},dist ) where {T, S<:Union{Int, AbstractFloat}, P<:NPeriodic}
+function _find_eu_neighbors(agent::Agent2D, neighbors_list, model::SpaceModel2D{T, S, P},dist ) where {T<:MType, S<:Union{Int, AbstractFloat}, P<:NPeriodic}
     distsq = dist^2
     return Iterators.filter(ag->begin vec = ag.pos .- agent.pos; dotprod(vec,vec)<distsq end, neighbors_list)       
 end
@@ -250,7 +250,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _find_eu_neighbors(agent::Agent2D{Symbol, Any}, neighbors_list, model::SpaceModel2D{T, S, P},dist ) where {T, S<:Union{Int, AbstractFloat}, P<:Periodic}
+function _find_eu_neighbors(agent::Agent2D, neighbors_list, model::SpaceModel2D{T, S, P},dist ) where {T<:MType, S<:Union{Int, AbstractFloat}, P<:Periodic}
     distsq = dist^2
     xdim, ydim = model.size
     return Iterators.filter(ag-> toroidal_distancesq(ag.pos, agent.pos, xdim, ydim)<distsq, neighbors_list)
@@ -268,7 +268,7 @@ so on. With metric = `:euclidean` the agents within Euclidean distance `dist` ar
 """
 function neighbors(agent::Agent2D, model::SpaceModel2D{Mortal, S, P}, dist::Number=1.0; metric::Symbol =:euclidean) where {S<:Union{Int, AbstractFloat}, P<:SType}
     if !(agent._extras._active::Bool)
-        return (ag for ag in Agent2D{Symbol, Any, S, P}[])
+        return (ag for ag in Agent2D{S, P, Mortal}[])
     end
     distint = Int(ceil(dist))
     neighbors_list = _get_neighbors(agent, model, distint)
@@ -309,7 +309,7 @@ $(TYPEDSIGNATURES)
 """
 function grid_neighbors(agent::Agent2D, model::SpaceModel2D{Mortal, S, P}, dist::Int=1) where {S<:Union{Int, AbstractFloat}, P<:SType}
     if !(agent._extras._active::Bool)
-        return (ag for ag in Agent2D{Symbol, Any, S, P}[])
+        return (ag for ag in Agent2D{S, P, Mortal}[])
     end
     return _get_neighbors(agent, model, dist)
 
@@ -329,7 +329,7 @@ $(TYPEDSIGNATURES)
 """
 function euclidean_neighbors(agent::Agent2D, model::SpaceModel2D{Mortal, S, P}, dist::Number=1.0) where {S<:Union{Int, AbstractFloat}, P<:SType}
     if !(agent._extras._active::Bool)
-        return (ag for ag in Agent2D{Symbol, Any, S, P}[])
+        return (ag for ag in Agent2D{S, P, Mortal}[])
     end
     distint = Int(ceil(dist))
     neighbors_list = _get_neighbors(agent, model, distint)
@@ -385,7 +385,7 @@ $(TYPEDSIGNATURES)
 
 Returns grid location of the agent.
 """
-function get_grid_loc(agent::Agent2D{Symbol, Any, <:AbstractFloat})
+function get_grid_loc(agent::Agent2D{<:AbstractFloat})
     return getfield(agent, :last_grid_loc)
 end
 
@@ -394,7 +394,7 @@ $(TYPEDSIGNATURES)
 
 Returns grid location of the agent.
 """
-function get_grid_loc(agent::Agent2D{Symbol, Any, Int})
+function get_grid_loc(agent::Agent2D{Int})
     return agent.pos
 end
 

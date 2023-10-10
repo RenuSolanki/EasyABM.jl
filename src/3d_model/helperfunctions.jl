@@ -4,21 +4,21 @@
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _set_pos!(agent::Agent3D{Symbol, Any, <:AbstractFloat}, xdim, ydim, zdim)
+@inline function _set_pos!(agent::Agent3D{<:AbstractFloat}, xdim, ydim, zdim)
     setfield!(agent, :pos, Vect(rand()*xdim, rand()*ydim, rand()*zdim) )
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _set_pos!(agent::Agent3D{Symbol, Any, Int}, xdim, ydim, zdim)
+@inline function _set_pos!(agent::Agent3D{Int}, xdim, ydim, zdim)
     setfield!(agent, :pos, Vect(rand(1:xdim), rand(1:ydim), rand(1:zdim)))
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent3D{Symbol, Any, S, P}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T,S<:AbstractFloat,P<:Periodic}
+@inline function _setup_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T<:MType,S<:AbstractFloat,P<:Periodic}
     patches = model.patches
     x,y,z = agent.pos
     a = mod1(x, xdim)
@@ -35,7 +35,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent3D{Symbol, Any, S, P}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T,S<:AbstractFloat,P<:NPeriodic}
+@inline function _setup_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T<:MType,S<:AbstractFloat,P<:NPeriodic}
     patches = model.patches
     x,y,z = agent.pos
     if (x>0 && x<=xdim && y>0 && y<=ydim && z>0 && z<=zdim)
@@ -54,7 +54,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent3D{Symbol, Any, S, P}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T,S<:Int,P<:Periodic}
+@inline function _setup_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T<:MType,S<:Int,P<:Periodic}
     patches = model.patches
     x,y,z = agent.pos
     a = mod1(x, xdim)
@@ -68,7 +68,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent3D{Symbol, Any, S, P}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T,S<:Int,P<:NPeriodic}
+@inline function _setup_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T<:MType,S<:Int,P<:NPeriodic}
     patches = model.patches
     x,y,z = agent.pos
     if (x>0 && x<=xdim && y>0 && y<=ydim  && z>0 && z<=zdim)
@@ -126,7 +126,7 @@ graphics related properties are added to the agent if not already defined.
         end
 
         if !haskey(agent, :size)
-            agent.size = 0.5 # absolute size like position from 0 to xdim ...
+            agent.size = 0.25 # absolute size like position from 0 to xdim ...
         end
 
         if !haskey(agent, :orientation)
@@ -291,8 +291,8 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function draw_agents_and_patches(vis, model::SpaceModel3D{Mortal}, frame, scl::Number=1.0, tail_length = 1, tail_condition = agent->false)
-    show_grid = model.parameters._extras._show_space
-    if show_grid
+    show_patches = model.parameters._extras._show_space
+    if show_patches
         if :color in model.record.pprops
             draw_patches(vis, model, frame)
         end
@@ -308,8 +308,8 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function draw_agents_and_patches(vis, model::SpaceModel3D{Static}, frame, scl::Number=1.0, tail_length = 1, tail_condition = agent->false)
-    show_grid = model.parameters._extras._show_space::Bool
-    if show_grid
+    show_patches = model.parameters._extras._show_space::Bool
+    if show_patches
         if :color in model.record.pprops
             draw_patches(vis, model, frame)
         end
@@ -332,8 +332,8 @@ end
 # @inline function draw_agents_and_patches(model::SpaceModel3D{Mortal}, frame, scl, ep, tail_length = 1, tail_condition = agent-> false)
 #     # eyepoint(Point3D(ep.xe,ep.ye,ep.ze))
 #     # perspective(ep.zoom)
-#     show_grid = model.parameters._extras._show_space::Bool
-#     if show_grid
+#     show_patches = model.parameters._extras._show_space::Bool
+#     if show_patches
 #         if :color in model.record.pprops
 #             draw_patches(model, frame)
 #         end
@@ -353,8 +353,8 @@ end
 # @inline function draw_agents_and_patches(model::SpaceModel3D{Static}, frame, scl, ep, tail_length = 1, tail_condition = agent-> false)
 #     # eyepoint(Point3D(ep.xe,ep.ye,ep.ze))
 #     # perspective(ep.zoom)
-#     show_grid = model.parameters._extras._show_space::Bool
-#     if show_grid
+#     show_patches = model.parameters._extras._show_space::Bool
+#     if show_patches
 #         if :color in model.record.pprops
 #             draw_patches(model, frame)
 #         end

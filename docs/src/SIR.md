@@ -122,7 +122,7 @@ agent_plots = Dict(
         "Infected" => ag -> ag.atype == infectious ? 1 : 0,
         "Recovered" => ag -> ag.atype == recovered ? 1 : 0
         ),
-show_grid=true
+show_patches=true
 )
 ```
 
@@ -144,7 +144,7 @@ create_interactive_app(model, initialiser= initialiser!,
         "Recovered" => ag -> ag.atype == recovered ? 1 : 0
         ),
     frames=70,
-    show_grid=true)   
+    show_patches=true)   
 ```
 
 ![png](assets/SIR/SIRIntApp.png)

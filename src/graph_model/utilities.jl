@@ -77,7 +77,7 @@ end
 
 end
 
-@inline function _append_agents_node_mates!(agent, model, neighbors_list::Vector{GraphAgent{Symbol, Any, S}}) where S<:MType
+@inline function _append_agents_node_mates!(agent, model, neighbors_list::Vector{GraphAgent{S, T}}) where {S<:MType, T<:MType}
     i = getfield(agent, :id)
     for l in model.graph.nodesprops[agent.node].agents
         if l !=i
@@ -346,7 +346,7 @@ function agents_at(node, model::GraphModel{Mortal, T}) where T<:MType #modifiabl
     lst = model.graph.nodesprops[node].agents
 
     if !(model.graph.nodesprops[node]._extras._active::Bool)
-        return (ag for ag in GraphAgent{Symbol, Any}[])
+        return (ag for ag in GraphAgent{Mortal, T}[])
     end
     return (agent_with_id(l, model) for l in lst)
 end

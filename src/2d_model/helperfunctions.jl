@@ -4,14 +4,14 @@
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _set_pos!(agent::Agent2D{Symbol, Any, <:AbstractFloat}, xdim, ydim)
+@inline function _set_pos!(agent::Agent2D{<:AbstractFloat}, xdim, ydim)
     setfield!(agent, :pos, Vect(rand()*xdim, rand()*ydim) )
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _set_pos!(agent::Agent2D{Symbol, Any, Int}, xdim, ydim)
+@inline function _set_pos!(agent::Agent2D{Int}, xdim, ydim)
     setfield!(agent, :pos, Vect(rand(1:xdim), rand(1:ydim)) )
 end
 
@@ -19,7 +19,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent2D{Symbol, Any, S, P}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T,S<:AbstractFloat,P<:Periodic}
+@inline function _setup_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T<:MType,S<:AbstractFloat,P<:Periodic}
     patches = model.patches
     x,y = agent.pos
     a = mod1(x, xdim)
@@ -34,7 +34,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent2D{Symbol, Any, S, P}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T,S<:AbstractFloat,P<:NPeriodic}
+@inline function _setup_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T<:MType,S<:AbstractFloat,P<:NPeriodic}
     patches = model.patches
     x,y = agent.pos
     if (x>0 && x<=xdim && y>0 && y<=ydim )
@@ -52,7 +52,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent2D{Symbol, Any, S, P}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T,S<:Int,P<:Periodic}
+@inline function _setup_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T<:MType,S<:Int,P<:Periodic}
     patches = model.patches
     x,y = agent.pos
     a = mod1(x, xdim)
@@ -64,7 +64,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent2D{Symbol, Any, S, P}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T,S<:Int,P<:NPeriodic}
+@inline function _setup_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T<:MType,S<:Int,P<:NPeriodic}
     patches = model.patches
     x,y = agent.pos
     if (x>0 && x<=xdim && y>0 && y<=ydim )
@@ -121,7 +121,7 @@ graphics related properties are added to the agent if not already defined.
         end
 
         if !haskey(agent, :size)
-            agent.size = 0.5 # % absolute like position from 0 to xdim
+            agent.size = 0.25 # % absolute like position from 0 to xdim
         end
 
         if !haskey(agent, :orientation)
@@ -250,8 +250,8 @@ $(TYPEDSIGNATURES)
 @inline function draw_agents_and_patches(model::SpaceModel2D{Mortal}, frame, scl, tail_length = 1, tail_condition = agent-> false)
     xdim = model.size[1]
     ydim = model.size[2]
-    show_grid = model.parameters._extras._show_space::Bool
-    if show_grid
+    show_patches = model.parameters._extras._show_space::Bool
+    if show_patches
         if :color in model.record.pprops
             draw_patches(model, frame)
         end
@@ -271,8 +271,8 @@ $(TYPEDSIGNATURES)
 @inline function draw_agents_and_patches(model::SpaceModel2D{Static}, frame, scl, tail_length = 1, tail_condition = agent-> false)
     xdim = model.size[1]
     ydim = model.size[2]
-    show_grid = model.parameters._extras._show_space::Bool
-    if show_grid
+    show_patches = model.parameters._extras._show_space::Bool
+    if show_patches
         if :color in model.record.pprops
             draw_patches(model, frame)
         end

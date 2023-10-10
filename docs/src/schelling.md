@@ -77,10 +77,10 @@ run_model!(model, steps=200, step_rule = step_rule! )
 
 ## Step 4: Visualisation 
 
-In order to draw the model at a specific frame, say 4th, one can use `draw_frame(model, frame = 4, show_grid=true)`. If one wants to see the animation of the model run, it can be done as 
+In order to draw the model at a specific frame, say 4th, one can use `draw_frame(model, frame = 4, show_patches=true)`. If one wants to see the animation of the model run, it can be done as 
 
 ```julia
-animate_sim(model,agent_plots=Dict("happy"=> agent-> agent.mood == happy, "sad"=> agent-> agent.mood == sad), show_grid=true)
+animate_sim(model,agent_plots=Dict("happy"=> agent-> agent.mood == happy, "sad"=> agent-> agent.mood == sad), show_patches=true)
 ```
 
 ![png](assets/Schelling/SchellingAnim1.png)
@@ -96,7 +96,7 @@ create_interactive_app(model,
     agent_plots=Dict(
         "happy"=> agent-> agent.mood == happy, 
         "sad"=> agent-> agent.mood == sad),
-    frames=200, show_grid=true) 
+    frames=200, show_patches=true) 
 ```
 
 ![png](assets/Schelling/SchellingIntApp.png)

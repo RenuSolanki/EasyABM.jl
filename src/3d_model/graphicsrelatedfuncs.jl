@@ -1,5 +1,5 @@
 
-@inline function _adjust_origin_and_draw_bounding_box(vis, show_grid=true)
+@inline function _adjust_origin_and_draw_bounding_box(vis, show_patches=true)
     xlen = gparams3d.xlen+0.0
     ylen = gparams3d.ylen+0.0
     zlen = gparams3d.zlen+0.0

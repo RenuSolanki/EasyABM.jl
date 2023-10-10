@@ -84,10 +84,10 @@ end
 run_model!(model, steps=100, step_rule = step_rule! )
 ```
 
-In order to draw the model at a specific frame, say 4th, one can use `draw_frame(model, frame = 4, show_grid=true)`. If one wants to see the animation of the model run, it can be done as 
+In order to draw the model at a specific frame, say 4th, one can use `draw_frame(model, frame = 4, show_patches=true)`. If one wants to see the animation of the model run, it can be done as 
 
 ```julia
-animate_sim(model, show_grid=true)
+animate_sim(model, show_patches=true)
 ```
 
 ![png](assets/CGOL/CGOLAnim1.png)
@@ -101,7 +101,7 @@ create_interactive_app(model, initialiser= initialiser!,
     model_controls=[
         (:alive_percent, "slider", 0:0.01:1.0)
         ], 
-    frames=200, show_grid=true) 
+    frames=200, show_patches=true) 
 ```
 
 ![png](assets/CGOL/CGOLIntApp.png)

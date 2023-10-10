@@ -2,9 +2,9 @@
 struct GraphModel{S<:MType,T<:MType,G<:GType} <: AbstractGraphModel{S,T,G} #S graph mortality, T agent mortality, G dir or simple graph
     graph::AbstractPropGraph{S, G}
     dead_meta_graph::AbstractPropGraph{S, G}
-    agents::Vector{GraphAgent{Symbol, Any, S}}
-    agents_added::Vector{GraphAgent{Symbol, Any, S}}
-    agents_killed::Vector{GraphAgent{Symbol, Any, S}}
+    agents::Vector{GraphAgent{S, T}}
+    agents_added::Vector{GraphAgent{S, T}}
+    agents_killed::Vector{GraphAgent{S, T}}
     max_id::Base.RefValue{Int64}
     graphics::Bool
     parameters::PropDataDict{Symbol, Any}
@@ -14,9 +14,9 @@ struct GraphModel{S<:MType,T<:MType,G<:GType} <: AbstractGraphModel{S,T,G} #S gr
     GraphModel{S}() where {S} =  begin #needed for initially attaching with agents
         graph = SimplePropGraph{S}()
         dead_meta_graph = SimplePropGraph{S}()
-        agents = Vector{GraphAgent{Symbol, Any, S}}()
-        agents_added =  Vector{GraphAgent{Symbol, Any, S}}()
-        agents_killed = Vector{GraphAgent{Symbol, Any, S}}()
+        agents = Vector{GraphAgent{S, Mortal}}()
+        agents_added =  Vector{GraphAgent{S, Mortal}}()
+        agents_killed = Vector{GraphAgent{S, Mortal}}()
         max_id = Ref(1)
         graphics = true
         parameters = PropDataDict()
@@ -26,8 +26,8 @@ struct GraphModel{S<:MType,T<:MType,G<:GType} <: AbstractGraphModel{S,T,G} #S gr
     end
     function GraphModel{S,T,G}(graph::AbstractPropGraph{S, G}, dead_meta_graph::AbstractPropGraph{S, G}, agents, max_id, graphics, parameters, record, tick) where {S<:MType, T<:MType, G<:GType} 
     
-        agents_added =  Vector{GraphAgent{Symbol, Any, S}}()
-        agents_killed = Vector{GraphAgent{Symbol, Any, S}}()
+        agents_added =  Vector{GraphAgent{S, T}}()
+        agents_killed = Vector{GraphAgent{S, T}}()
         
         new{S, T, G}(graph, dead_meta_graph, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick) 
     end
@@ -84,7 +84,7 @@ function Base.show(io::IO, v::GraphModel{T,S, G}) where {T,S, G} # works with pr
 end
 
 
-function Base.setproperty!(agent::GraphAgent{Symbol, Any, S}, key::Symbol, x) where S<:MType
+function Base.setproperty!(agent::GraphAgent{S, Mortal}, key::Symbol, x) where S<:MType
 
     if !(agent._extras._active::Bool)
         return
@@ -95,7 +95,19 @@ function Base.setproperty!(agent::GraphAgent{Symbol, Any, S}, key::Symbol, x) wh
     if key != :node
         dict[key] = x
     else 
-        update_nodesprops!(agent, getfield(agent, :model)::GraphModel{S}, x)
+        update_nodesprops!(agent, getfield(agent, :model)::GraphModel{S, Mortal}, x)
+    end
+
+end
+
+function Base.setproperty!(agent::GraphAgent{S, Static}, key::Symbol, x) where S<:MType
+    
+    dict = unwrap(agent)
+    
+    if key != :node
+        dict[key] = x
+    else 
+        update_nodesprops!(agent, getfield(agent, :model)::GraphModel{S, Static}, x)
     end
 
 end
@@ -104,7 +116,7 @@ function update_nodesprops!(agent::GraphAgent, model::Nothing)
     return
 end
 
-function update_nodesprops!(agent::GraphAgent{Symbol, Any, S}, model::GraphModel{S}, node_new) where {S<:Static}
+function update_nodesprops!(agent::GraphAgent{S}, model::GraphModel{S}, node_new) where {S<:Static}
     node_old = agent.node
     graph = model.graph
 
@@ -118,7 +130,7 @@ function update_nodesprops!(agent::GraphAgent{Symbol, Any, S}, model::GraphModel
 end
 
 
-function update_nodesprops!(agent::GraphAgent{Symbol, Any, S}, model::GraphModel{S}, node_new) where {S<:Mortal}
+function update_nodesprops!(agent::GraphAgent{S}, model::GraphModel{S}, node_new) where {S<:Mortal}
     graph = model.graph
     if !graph.nodesprops[node_new]._extras._active::Bool
         return 

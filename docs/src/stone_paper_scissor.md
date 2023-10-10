@@ -68,10 +68,10 @@ run_model!(model, steps = 400, step_rule = step_rule!)
 
 ## Step 4: Visualisation
 
-In order to draw the model at a specific frame, say 4th, one can use `draw_frame(model, frame = 4, show_grid=true)`. If one wants to see the animation of the model run, it can be done as 
+In order to draw the model at a specific frame, say 4th, one can use `draw_frame(model, frame = 4, show_patches=true)`. If one wants to see the animation of the model run, it can be done as 
 
 ```julia
-animate_sim(model, show_grid=true) #since there are only patches and no agents, show_grid must be true for the animation
+animate_sim(model, show_patches=true) #since there are only patches and no agents, show_patches must be true for the animation
 ```
 
 ![png](assets/StonePaperScissor/SPSAnim1.png)
@@ -84,7 +84,7 @@ create_interactive_app(model, initialiser= initialiser!,
     props_to_record = Dict("patches" => Set([:color])),
     step_rule= step_rule!,
     model_controls=[(:threshold, "slider", 1:8)], 
-    frames=400, show_grid=true) 
+    frames=400, show_patches=true) 
 ```
 
 ![png](assets/StonePaperScissor/SPSIntApp.png)

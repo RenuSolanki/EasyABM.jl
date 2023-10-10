@@ -1,3 +1,15 @@
+@inline function _agent_extra_props(agent::Agent3D{S, P, Mortal}) where {S<:Union{Int, AbstractFloat}, P<:SType}
+    agent._extras._active = true
+    agent._extras._birth_time = 1 
+    agent._extras._death_time = typemax(Int)
+    return
+end
+
+@inline function _agent_extra_props(agent::Agent3D{S, P, Static}) where {S<:Union{Int, AbstractFloat}, P<:SType}
+    return
+end
+
+
 
 """
 $(TYPEDSIGNATURES)
@@ -15,11 +27,11 @@ its own properties.
 - `space_type` : Set it to Periodic or NPeriodic depending upon if the space is periodic or not. 
 - `kwargs`` : Keyword argments used as model parameters. 
 """
-function create_3d_model(agents::Vector{Agent3D{Symbol, Any, S, A}}; 
+function create_3d_model(agents::Vector{Agent3D{S, A, B}}; 
     graphics=true, agents_type::Type{T} = Static, 
     size::NTuple{3,Int}= (10,10,10), random_positions=false, 
     space_type::Type{P} = Periodic,
-    kwargs...) where {S<:Union{Int, AbstractFloat}, T<:MType, P<:SType, A<:SType}
+    kwargs...) where {S<:Union{Int, AbstractFloat}, T<:MType, P<:SType, A<:SType, B<:MType}
 
     xdim = size[1]
     ydim = size[2]
@@ -30,18 +42,21 @@ function create_3d_model(agents::Vector{Agent3D{Symbol, Any, S, A}};
 
     patch_locs = reshape([Tuple(key) for key in keys(patches)], xdim*ydim*zdim)
 
-    agents_new = Vector{Agent3D{Symbol, Any, S, P}}()
+    if !(A<:P) || !(B<:T)
 
-    for agent in agents
-        dc = unwrap(agent)
-        dcd = unwrap_data(agent)
-        pos = getfield(agent, :pos)
-        ag = Agent3D{P}(1, pos, dc, dcd, nothing)
-        push!(agents_new, ag)
-    end
+        agents_new = Vector{Agent3D{S, P, T}}()
 
-    agents = agents_new
+        for agent in agents
+            dc = unwrap(agent)
+            dcd = unwrap_data(agent)
+            pos = getfield(agent, :pos)
+            ag = Agent3D{S, P, T}(1, pos, dc, dcd, nothing)
+            push!(agents_new, ag)
+        end
+
+        agents = agents_new
     
+    end
 
     parameters = _set_parameters3d(size, n, random_positions; kwargs...)
 
@@ -59,11 +74,9 @@ function create_3d_model(agents::Vector{Agent3D{Symbol, Any, S, A}};
 
         manage_default_graphics_data!(agent, graphics, size)
 
-        if T<:Mortal
-            agent._extras._active = true
-            agent._extras._birth_time = 1 
-            agent._extras._death_time = typemax(Int)
-        end
+        
+        _agent_extra_props(agent)
+        
         
         _setup_grid!(agent, model, i, xdim, ydim, zdim)
 
@@ -86,7 +99,7 @@ function create_3d_model(;
     space_type::Type{P} = Periodic,
     kwargs...) where {P<:SType}
 
-    agents = Agent3D{Symbol, Any, Float64, P}[]
+    agents = Agent3D{Int, P, Static}[]
     model = create_3d_model(agents; graphics=graphics, agents_type=Static, 
     size= size, random_positions=random_positions, space_type=space_type, kwargs...)
     return model
@@ -210,17 +223,17 @@ $(TYPEDSIGNATURES)
 
 Creates a 3d animation from the data collected during the model run.
 """
-function animate_sim(model::SpaceModel3D, frames::Int=model.tick; show_grid=false, tail=(1, agent->false))
+function animate_sim(model::SpaceModel3D, frames::Int=model.tick; show_patches=false, tail=(1, agent->false))
     if model.graphics
         ticks = getfield(model, :tick)[]
-        model.parameters._extras._show_space = show_grid
+        model.parameters._extras._show_space = show_patches
         fr = min(frames, ticks)
         vis = Visualizer()
         anim = Animation()
         
         _adjust_origin_and_draw_bounding_box(vis, true)
 
-        if show_grid
+        if show_patches
             draw_patches_static(vis,model)
         end
 
@@ -255,7 +268,7 @@ $(TYPEDSIGNATURES)
 
 Draws a specific frame.
 """
-function draw_frame(model::SpaceModel3D; frame=model.tick, show_grid=false, vis::Any = nothing)
+function draw_frame(model::SpaceModel3D; frame=model.tick, show_patches=false, vis::Any = nothing)
     frame = min(frame, model.tick)
 
     if vis == nothing
@@ -265,7 +278,7 @@ function draw_frame(model::SpaceModel3D; frame=model.tick, show_grid=false, vis:
     delete!(vis)
     _adjust_origin_and_draw_bounding_box(vis)
 
-    if show_grid
+    if show_patches
         draw_patches_interact_frame(vis, model, frame)
     end
 
@@ -289,9 +302,9 @@ function create_interactive_app(model::SpaceModel3D; initialiser::Function = nul
     patch_plots::Dict{String, <:Function} = Dict{String, Function}(),
     model_plots::Vector{Symbol} = Symbol[],
     plots_only = false,
-    frames=200, show_grid=false, tail=(1, agent->false)) 
+    frames=200, show_patches=false, tail=(1, agent->false)) 
 
-    model.parameters._extras._show_space = show_grid
+    model.parameters._extras._show_space = show_patches
 
     init_model!(model, initialiser=initialiser, props_to_record = props_to_record)
 
@@ -336,7 +349,7 @@ function create_interactive_app(model::SpaceModel3D; initialiser::Function = nul
             delete!(vis["agents"])
             delete!(vis["tails"])
             delete!(vis["patches"])
-            if show_grid
+            if show_patches
                 draw_patches_static(vis,model)
             end
             all_agents = _get_all_agents(model)

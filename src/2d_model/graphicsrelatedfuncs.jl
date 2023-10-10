@@ -1,6 +1,8 @@
 
 ############################
 
+const _grid_lines_color = RGBA(0.5,0.5,0.5,0.5)
+
 @inline function _get_grid_colors(model::SpaceModel2D, t)
     if :color in model.record.pprops
         colors = [unwrap_data(model.patches[i,j])[:color][t]::Col for i in 1:model.size[1] for j in 1:model.size[2]]
@@ -78,7 +80,8 @@ $(TYPEDSIGNATURES)
     w = width/xdim
     h = height/ydim
 
-    sethue("black")
+    #sethue("black")
+    setcolor(_grid_lines_color)
     box(Luxor.Point(0, 0), width, height, 0.0001, :fill)
  
  
@@ -99,7 +102,8 @@ $(TYPEDSIGNATURES)
     w = width/xdim
     h = height/ydim
 
-    sethue("black")
+    #sethue("black")
+    setcolor(_grid_lines_color)
     box(Luxor.Point(0, 0), width, height, 0.0001, :fill)
                 
     @sync for j in 1:model.size[2], i in 1:model.size[1]

@@ -1,20 +1,20 @@
-mutable struct Agent2D{K, V, S<:Union{Int, AbstractFloat}, P<:SType} <: AbstractAgent2D{K, V, S, P}
+mutable struct Agent2D{S<:Union{Int, AbstractFloat}, P<:SType, T<:MType} <: AbstractAgent2D{Symbol, Any, S, P, T}
     id::Int
     pos::Vect{2, <:S}
     d::Dict{Symbol, Any}
     data::Dict{Symbol, Any}
     last_grid_loc::Tuple{Int, Int}
-    model::Union{AbstractSpaceModel2D{<:MType, S, P}, Nothing}
+    model::Union{AbstractSpaceModel2D{T, S, P}, Nothing}
 
-    Agent2D() = new{Symbol, Any, Int, Periodic}(1, Vect(1,1),
+    Agent2D() = new{Int, Periodic, Static}(1, Vect(1,1),
     Dict{Symbol, Any}(:_extras => PropDict(Dict{Symbol,Any}(:_active=>true))), 
     Dict{Symbol, Any}(), (1,1), nothing)
-    function Agent2D{P}(id::Int, pos::Vect{2, S}, d::Dict{Symbol, Any}, model) where {S<:Union{Int, AbstractFloat}, P<:SType}
+    function Agent2D{S, P, T}(id::Int, pos::Vect{2, S}, d::Dict{Symbol, Any}, model) where {S<:Union{Int, AbstractFloat}, P<:SType, T<:MType}
         data = Dict{Symbol, Any}() 
-        new{Symbol, Any, S, P}(id, pos, d, data, (1,1), model)
+        new{S, P, T}(id, pos, d, data, (1,1), model)
     end
-    function Agent2D{P}(id::Int, pos::Vect{2, S}, d::Dict{Symbol, Any}, data::Dict{Symbol, Any},model) where {S<:Union{Int, AbstractFloat}, P<:SType}
-        new{Symbol, Any, S, P}(id, pos, d, data, (1,1), model)
+    function Agent2D{S, P, T}(id::Int, pos::Vect{2, S}, d::Dict{Symbol, Any}, data::Dict{Symbol, Any},model) where {S<:Union{Int, AbstractFloat}, P<:SType, T<:MType}
+        new{S, P, T}(id, pos, d, data, (1,1), model)
     end
 end
 
@@ -36,8 +36,8 @@ Following property names are reserved for some specific agent properties
     - `keeps_record_of` : Set of properties that the agent records during time evolution. 
 """
 function con_2d_agent(;pos::Vect{2, S}=Vect(1.0,1.0),#GeometryBasics.Vec{2, S} = GeometryBasics.Vec(1.0,1.0), #NTuple{2, S}=(1.0,1.0), 
-    space_type::Type{P}=Periodic,
-    kwargs...) where {P<:SType, S<:AbstractFloat}
+    space_type::Type{P}=Periodic, agent_type::Type{T}=Static, 
+    kwargs...) where {P<:SType, S<:AbstractFloat, T<:MType}
 
     dict_agent = Dict{Symbol, Any}(kwargs)
 
@@ -52,7 +52,7 @@ function con_2d_agent(;pos::Vect{2, S}=Vect(1.0,1.0),#GeometryBasics.Vec{2, S} =
     dict_agent[:_extras]._active = true
     dict_agent[:_extras]._new = true
 
-    return Agent2D{P}(1, pos, dict_agent, nothing)
+    return Agent2D{S, P, T}(1, pos, dict_agent, nothing)
 end
 
 """
@@ -61,12 +61,12 @@ $(TYPEDSIGNATURES)
 Creates a list of n 2d agents with properties specified as keyword arguments.
 """
 function con_2d_agents(n::Int; pos::Vect{2, S}=Vect(1.0,1.0), #GeometryBasics.Vec{2, S} = GeometryBasics.Vec(1.0,1.0), #, 
-    space_type::Type{P} = Periodic, 
-    kwargs...) where {S<:AbstractFloat, P<:SType}
+    space_type::Type{P} = Periodic, agent_type::Type{T}=Static, 
+    kwargs...) where {S<:AbstractFloat, P<:SType, T<:MType}
 
-    list = Vector{Agent2D{Symbol, Any, S, P}}()
+    list = Vector{Agent2D{S, P, T}}()
     for i in 1:n
-        agent = con_2d_agent(;pos=pos, space_type = P, kwargs...)
+        agent = con_2d_agent(;pos=pos, space_type = P, agent_type=T, kwargs...)
         push!(list, agent)
     end
     return list
@@ -77,12 +77,12 @@ $(TYPEDSIGNATURES)
 
 Returns a list of n 2d agents all having same (other than _extras) properties as `agent` if `agent` is alive.  
 """
-function create_similar(agent::Agent2D{Symbol, Any, S, P}, n::Int) where {S<:Union{Int, AbstractFloat},P<:SType}
+function create_similar(agent::Agent2D{S, P, T}, n::Int) where {S<:Union{Int, AbstractFloat},P<:SType, T<:MType}
     dc = Dict{Symbol, Any}()
     dc_agent = unwrap(agent)
     pos = getfield(agent, :pos)
     model = getfield(agent, :model)
-    list = Vector{Agent2D{Symbol, Any, S, P}}()
+    list = Vector{Agent2D{S, P, T}}()
     for i in 1:n
         for (key, val) in dc_agent
             if key != :_extras 
@@ -92,7 +92,7 @@ function create_similar(agent::Agent2D{Symbol, Any, S, P}, n::Int) where {S<:Uni
         dc[:_extras] = PropDict()
         dc[:_extras]._active = agent._extras._active # property of being alive or dead is same as of previous agent
         dc[:_extras]._new = true
-        agnew = Agent2D{P}(1, pos, dc, model)
+        agnew = Agent2D{S, P, T}(1, pos, dc, model)
         push!(list, agnew)
     end
     return list
@@ -103,7 +103,7 @@ end
 $(TYPEDSIGNATURES)
 Returns an agent with same (other than _extras) properties as given `agent`. 
 """
-function create_similar(agent::Agent2D{Symbol, Any, S, P}) where {S<:Union{Int, AbstractFloat}, P<:SType}
+function create_similar(agent::Agent2D{S, P, T}) where {S<:Union{Int, AbstractFloat}, P<:SType, T<:MType}
     dc = Dict{Symbol, Any}()
     dc_agent = unwrap(agent)
     pos = getfield(agent, :pos)
@@ -116,7 +116,7 @@ function create_similar(agent::Agent2D{Symbol, Any, S, P}) where {S<:Union{Int, 
     dc[:_extras] = PropDict()
     dc[:_extras]._active = agent._extras._active # property of being alive or dead is same as of previous agent
     dc[:_extras]._new = true
-    agnew= Agent2D{P}(1, pos, dc, model)
+    agnew= Agent2D{S, P, T}(1, pos, dc, model)
     return agnew
 end
 

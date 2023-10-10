@@ -322,7 +322,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _kill_agent!(agent::AbstractAgent, push_to, tick)
+@inline function _kill_agent!(agent::AbstractAgent, push_to, tick)#internal use
         agent._extras._active= false
         agent._extras._death_time = tick
         push!(push_to, agent)

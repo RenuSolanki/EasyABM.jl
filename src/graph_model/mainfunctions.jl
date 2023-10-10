@@ -1,3 +1,36 @@
+@inline function _agent_extra_props(agent::GraphAgent{S, Mortal}) where {S<:MType}   # S is graph mortality
+    agent._extras._active = true
+    agent._extras._birth_time = 1 
+    agent._extras._death_time = typemax(Int)
+    return
+end
+
+@inline function _agent_extra_props(agent::GraphAgent{S, Static}) where {S<:MType}
+    return
+end
+
+@inline function _node_extra_props(graph::AbstractPropGraph{Mortal, G}, vt::Int) where {G<:GType}
+    graph.nodesprops[vt]._extras._active = true
+    graph.nodesprops[vt]._extras._birth_time = 1
+    graph.nodesprops[vt]._extras._death_time = typemax(Int)
+    return
+end
+
+@inline function _node_extra_props(graph::AbstractPropGraph{Static, G}, vt::Int) where {G<:GType}
+    return
+end
+
+
+@inline function _edge_extra_props(graph::AbstractPropGraph{Mortal, G}, ed::Tuple{Int, Int}) where {G<:GType}
+    graph.edgesprops[ed]._extras._active = true
+    graph.edgesprops[ed]._extras._bd_times = [(1, typemax(Int))]
+    return
+end
+
+@inline function _edge_extra_props(graph::AbstractPropGraph{Static, G}, ed::Tuple{Int, Int}) where {G<:GType}
+    return
+end
+
 """
 $(TYPEDSIGNATURES)
 
@@ -9,23 +42,27 @@ Creates a model with
 - `random_positions` : If this property is true, each agent will be assigned a random node on the graph. 
 - `kwargs` : Keyword argments used as model parameters. 
 """
-function create_graph_model(agents::Vector{GraphAgent{Symbol, Any, A}}, 
+function create_graph_model(agents::Vector{GraphAgent{A, B}}, 
     graph::AbstractPropGraph{S, G}; agents_type::Type{T} = Static,
-    graphics=true, random_positions=false, kwargs...) where {S<:MType, T<:MType, G<:GType, A<:MType}
+    graphics=true, random_positions=false, kwargs...) where {S<:MType, T<:MType, G<:GType, A<:MType, B<:MType}
     
     n = length(agents)
 
-    agents_new = Vector{GraphAgent{Symbol, Any, S}}()
+    if !(A<:S) || !(B<:T)
 
-    for agent in agents
-        dc = unwrap(agent)
-        dcd = unwrap_data(agent)
-        nd = getfield(agent, :node)
-        ag = GraphAgent{S}(1, nd, dc, dcd, nothing)
-        push!(agents_new, ag)
+        agents_new = Vector{GraphAgent{S, T}}()
+
+        for agent in agents
+            dc = unwrap(agent)
+            dcd = unwrap_data(agent)
+            nd = getfield(agent, :node)
+            ag = GraphAgent{S, T}(1, nd, dc, dcd, nothing)
+            push!(agents_new, ag)
+        end
+
+        agents = agents_new
+
     end
-
-    agents = agents_new
     
 
     dict_parameters = Dict{Symbol, Any}(kwargs)
@@ -71,11 +108,8 @@ function create_graph_model(agents::Vector{GraphAgent{Symbol, Any, A}},
             graph.nodesprops[vt]._extras._pos = (locs_x[i], locs_y[i])
         end
 
-        if S<:Mortal #dynamic graph
-            graph.nodesprops[vt]._extras._active = true
-            graph.nodesprops[vt]._extras._birth_time = 1
-            graph.nodesprops[vt]._extras._death_time = typemax(Int)
-        end
+        _node_extra_props(graph, vt)
+
         v_dict = unwrap(graph.nodesprops[vt])
         v_data = unwrap_data(graph.nodesprops[vt])
         for (key, value) in v_dict
@@ -89,10 +123,9 @@ function create_graph_model(agents::Vector{GraphAgent{Symbol, Any, A}},
         if !(ed in keys(graph.edgesprops))
             graph.edgesprops[ed] = PropDataDict()
         end
-        if S<:Mortal
-            graph.edgesprops[ed]._extras._active = true
-            graph.edgesprops[ed]._extras._bd_times = [(1, typemax(Int))]
-        end
+
+        _edge_extra_props(graph, ed)
+        
         e_dict = unwrap(graph.edgesprops[ed])
         e_data = unwrap_data(graph.edgesprops[ed])
         for (key, value) in e_dict
@@ -113,11 +146,7 @@ function create_graph_model(agents::Vector{GraphAgent{Symbol, Any, A}},
         setfield!(agent, :id, i)
         agent._extras._new = false
 
-        if T<:Mortal
-            agent._extras._active = true
-            agent._extras._birth_time = 1 
-            agent._extras._death_time = typemax(Int)
-        end
+        _agent_extra_props(agent)
 
         ag_node = random_positions ? verts[rand(1:num_verts)] : default_node
 
@@ -148,7 +177,7 @@ function create_graph_model(
     graph::AbstractPropGraph{S, G};
     graphics=true, random_positions=false, kwargs...) where {S<:MType, G<:GType}
 
-    agents = GraphAgent{Symbol, Any, S}[]
+    agents = GraphAgent{S, Static}[]
     model = create_graph_model(agents, graph; agents_type=Static, 
     graphics=graphics, random_positions=random_positions, kwargs...)
     return model

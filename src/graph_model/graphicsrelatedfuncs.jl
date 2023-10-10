@@ -1,5 +1,5 @@
 
-const _node_size = 0.5 # absolute from 0 to gsize
+const _node_size = 0.25 # absolute from 0 to gsize
 
 const _scale_graph = 0.95
 const _boundary_frame = 0.025
@@ -10,7 +10,7 @@ const gsize = 10
 $(TYPEDSIGNATURES)
 """
 function _get_node_size(n::Int)
-    node_size = min(gsize*0.5/sqrt(n),4)
+    node_size = min(gsize*0.25/sqrt(n),0.25)
     return node_size        
 end
 

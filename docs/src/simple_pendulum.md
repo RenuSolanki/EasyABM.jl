@@ -1,5 +1,5 @@
 # Simple pendulum 
-We will implement simulation of a simple pendulusing using graph space model.  
+We will implement simulation of a simple pendulum using using graph space model.  
 
 
 ```julia
@@ -31,7 +31,7 @@ function initialiser!(model)
     pos1 = Vect(5.0, 8.0)
     pos2 = pos1 + Vect(len*sin(theta), -len*cos(theta))
     model.graph.nodesprops[1].pos = pos1
-    model.graph.nodesprops[1].size = 0.1 # make the peg node invisible
+    model.graph.nodesprops[1].size = 0.1 # make the peg node small
     model.graph.nodesprops[2].pos = pos2
     model.graph.nodesprops[2].ang_vel = 0.0
     model.graph.nodesprops[2].angle = theta

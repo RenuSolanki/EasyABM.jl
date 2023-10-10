@@ -85,7 +85,7 @@ After defining the `step_rule!` function we can also choose to create an interac
 create_interactive_app(model, initialiser= initialiser!,
     props_to_record = Dict("patches" => Set([:color])),
     model_controls = [(:threshold, "slider", 1:10)],
-    step_rule= step_rule!,frames=500, show_grid=true) 
+    step_rule= step_rule!,frames=500, show_patches=true) 
 ```
 
 ![png](assets/AbelianSandpile/AbelianSandpileIntApp1.png)
