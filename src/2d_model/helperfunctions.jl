@@ -4,7 +4,7 @@
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _set_pos!(agent::Agent2D{<:AbstractFloat}, xdim, ydim)
+@inline function _set_pos!(agent::Agent2D{<:Float64}, xdim, ydim)
     setfield!(agent, :pos, Vect(rand()*xdim, rand()*ydim) )
 end
 
@@ -19,7 +19,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T<:MType,S<:AbstractFloat,P<:Periodic}
+@inline function _setup_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T<:MType,S<:Float64,P<:Periodic}
     patches = model.patches
     x,y = agent.pos
     a = mod1(x, xdim)
@@ -34,7 +34,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T<:MType,S<:AbstractFloat,P<:NPeriodic}
+@inline function _setup_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T<:MType,S<:Float64,P<:NPeriodic}
     patches = model.patches
     x,y = agent.pos
     if (x>0 && x<=xdim && y>0 && y<=ydim )

@@ -1,4 +1,4 @@
-mutable struct Agent3D{S<:Union{Int, AbstractFloat}, P<:SType, T<:MType} <: AbstractAgent3D{Symbol, Any, S, P, T}
+mutable struct Agent3D{S<:Union{Int, Float64}, P<:SType, T<:MType} <: AbstractAgent3D{Symbol, Any, S, P, T}
     id::Int
     pos::Vect{3, <:S}
     d::Dict{Symbol, Any}
@@ -10,11 +10,11 @@ mutable struct Agent3D{S<:Union{Int, AbstractFloat}, P<:SType, T<:MType} <: Abst
     Dict{Symbol, Any}(:_extras => PropDict(Dict{Symbol,Any}(:_active=>true))), 
     Dict{Symbol, Any}(), (1,1,1), nothing)
 
-    function Agent3D{S, P, T}(id::Int, pos::Vect{3, S}, d::Dict{Symbol, Any}, model) where {S<:Union{Int, AbstractFloat}, P<:SType, T<:MType}
+    function Agent3D{S, P, T}(id::Int, pos::Vect{3, S}, d::Dict{Symbol, Any}, model) where {S<:Union{Int, Float64}, P<:SType, T<:MType}
         data = Dict{Symbol, Any}()  
         new{S, P, T}(id, pos, d, data, (1,1,1), model)
     end
-    function Agent3D{S, P, T}(id::Int, pos::Vect{3, S}, d::Dict{Symbol, Any}, data::Dict{Symbol, Any}, model) where {S<:Union{Int, AbstractFloat}, P<:SType, T<:MType}
+    function Agent3D{S, P, T}(id::Int, pos::Vect{3, S}, d::Dict{Symbol, Any}, data::Dict{Symbol, Any}, model) where {S<:Union{Int, Float64}, P<:SType, T<:MType}
         new{S, P, T}(id, pos, d, data, (1,1,1), model)
     end
 end
@@ -39,7 +39,7 @@ Following property names are reserved for some specific agent properties
 """
 function con_3d_agent(;pos::Vect{3, S}=Vect(1.0,1.0,1.0),#GeometryBasics.Vec{3, S} = GeometryBasics.Vec(1.0,1.0, 1.0),#NTuple{3, S}=(1.0,1.0,1.0), 
     space_type::Type{P}=Periodic, agent_type::Type{T}=Static,
-    kwargs...) where {P<:SType, S<:AbstractFloat, T<:MType}
+    kwargs...) where {P<:SType, S<:Float64, T<:MType}
     dict_agent = Dict{Symbol, Any}(kwargs)
 
     if !haskey(dict_agent, :keeps_record_of)
@@ -63,7 +63,7 @@ Creates a list of n 3d agents with properties specified as keyword arguments.
 """
 function con_3d_agents(n::Int; pos::Vect{3, S}=Vect(1.0,1.0,1.0), #GeometryBasics.Vec{3, S} = GeometryBasics.Vec(1.0,1.0, 1.0), #NTuple{3, S}=(1.0,1.0,1.0),
     space_type::Type{P} = Periodic, agent_type::Type{T}=Static,
-    kwargs...) where {S<:AbstractFloat,P<:SType, T<:MType}
+    kwargs...) where {S<:Float64,P<:SType, T<:MType}
     list = Vector{Agent3D{S, P, T}}()
     for i in 1:n
         agent = con_3d_agent(; pos = pos, space_type = P, agent_type=T, kwargs...)
@@ -77,7 +77,7 @@ $(TYPEDSIGNATURES)
 
 Returns a list of n 2d agents all having same properties as `agent`.  
 """
-function create_similar(agent::Agent3D{S, P, T}, n::Int) where {S<:Union{Int, AbstractFloat},P<:SType,T<:MType}
+function create_similar(agent::Agent3D{S, P, T}, n::Int) where {S<:Union{Int, Float64},P<:SType,T<:MType}
     dc = Dict{Symbol, Any}()
     dc_agent = unwrap(agent)
     pos = getfield(agent, :pos)
@@ -102,7 +102,7 @@ end
 $(TYPEDSIGNATURES)
 Returns an agent with same properties as given `agent`. 
 """
-function create_similar(agent::Agent3D{S, P, T}) where {S<:Union{Int, AbstractFloat}, P<:SType, T<:MType}
+function create_similar(agent::Agent3D{S, P, T}) where {S<:Union{Int, Float64}, P<:SType, T<:MType}
     dc = Dict{Symbol, Any}()
     dc_agent = unwrap(agent)
     pos = getfield(agent, :pos)

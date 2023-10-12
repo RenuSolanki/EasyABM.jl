@@ -176,7 +176,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _get_neighbors(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:Union{Int,AbstractFloat}, P<:Periodic}
+function _get_neighbors(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:Union{Int,Float64}, P<:Periodic}
     x,y = getfield(agent, :last_grid_loc)
     xdim = model.size[1]
     ydim = model.size[2]
@@ -207,7 +207,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _get_neighbors(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:Union{Int,AbstractFloat}, P<:NPeriodic}
+function _get_neighbors(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:Union{Int,Float64}, P<:NPeriodic}
     x,y = getfield(agent, :last_grid_loc)::Tuple{Int, Int} 
     xdim = model.size[1]
     ydim = model.size[2]
@@ -246,7 +246,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _get_neighbors_neumann(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:Union{Int,AbstractFloat}, P<:Periodic}
+function _get_neighbors_neumann(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:Union{Int,Float64}, P<:Periodic}
     x,y = getfield(agent, :last_grid_loc)
     xdim = model.size[1]
     ydim = model.size[2]
@@ -279,7 +279,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _get_neighbors_neumann(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:Union{Int,AbstractFloat}, P<:NPeriodic}
+function _get_neighbors_neumann(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:Union{Int,Float64}, P<:NPeriodic}
     x,y = getfield(agent, :last_grid_loc)
     xdim = model.size[1]
     ydim = model.size[2]
@@ -334,7 +334,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _find_eu_neighbors(agent::Agent2D, neighbors_list, model::SpaceModel2D{T, S, P},dist::Real ) where {T<:MType, S<:Union{Int, AbstractFloat}, P<:NPeriodic}
+function _find_eu_neighbors(agent::Agent2D, neighbors_list, model::SpaceModel2D{T, S, P},dist::Real ) where {T<:MType, S<:Union{Int, Float64}, P<:NPeriodic}
     distsq = dist^2
     return Iterators.filter(ag->begin vec = ag.pos .- agent.pos; dotprod(vec,vec)<distsq end, neighbors_list)       
 end
@@ -343,7 +343,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _find_eu_neighbors(agent::Agent2D, neighbors_list, model::SpaceModel2D{T, S, P},dist::Real ) where {T<:MType, S<:Union{Int, AbstractFloat}, P<:Periodic}
+function _find_eu_neighbors(agent::Agent2D, neighbors_list, model::SpaceModel2D{T, S, P},dist::Real ) where {T<:MType, S<:Union{Int, Float64}, P<:Periodic}
     distsq = dist^2
     xdim, ydim = model.size
     return Iterators.filter(ag-> toroidal_distancesq(ag.pos, agent.pos, xdim, ydim)<distsq, neighbors_list)
@@ -356,7 +356,7 @@ $(TYPEDSIGNATURES)
 
 Returns active neighboring agents to given agent within euclidean distance `dist`. 
 """
-function neighbors(agent::Agent2D, model::SpaceModel2D{Mortal, S, P}, dist::Real=1.0) where {S<:Union{Int, AbstractFloat}, P<:SType}
+function neighbors(agent::Agent2D, model::SpaceModel2D{Mortal, S, P}, dist::Real=1.0) where {S<:Union{Int, Float64}, P<:SType}
     if !(agent._extras._active::Bool)
         return (ag for ag in Agent2D{S, P, Mortal}[])
     end
@@ -386,7 +386,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function neighbors_moore(agent::Agent2D, model::SpaceModel2D{Mortal, S, P}, dist::Int=1) where {S<:Union{Int, AbstractFloat}, P<:SType}
+function neighbors_moore(agent::Agent2D, model::SpaceModel2D{Mortal, S, P}, dist::Int=1) where {S<:Union{Int, Float64}, P<:SType}
     if !(agent._extras._active::Bool)
         return (ag for ag in Agent2D{S, P, Mortal}[])
     end
@@ -398,7 +398,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function neighbors_moore(agent::Agent2D, model::SpaceModel2D{Static, S, P},dist::Int=1) where {S<:Union{Int, AbstractFloat}, P<:SType}
+function neighbors_moore(agent::Agent2D, model::SpaceModel2D{Static, S, P},dist::Int=1) where {S<:Union{Int, Float64}, P<:SType}
 
     return _get_neighbors(agent, model, dist)#_get_grid_neighbors(agent, model, dist, metric=metric)
 
@@ -408,7 +408,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function neighbors_neumann(agent::Agent2D, model::SpaceModel2D{Mortal, S, P}, dist::Int=1) where {S<:Union{Int, AbstractFloat}, P<:SType}
+function neighbors_neumann(agent::Agent2D, model::SpaceModel2D{Mortal, S, P}, dist::Int=1) where {S<:Union{Int, Float64}, P<:SType}
     if !(agent._extras._active::Bool)
         return (ag for ag in Agent2D{S, P, Mortal}[])
     end
@@ -447,7 +447,7 @@ $(TYPEDSIGNATURES)
 
 Returns grid location of the agent.
 """
-function get_grid_loc(agent::Agent2D{<:AbstractFloat})
+function get_grid_loc(agent::Agent2D{<:Float64})
     return getfield(agent, :last_grid_loc)
 end
 
@@ -474,7 +474,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function get_agents(model::SpaceModel2D{Mortal, S, P}, condition::Function) where {S<:Union{Int, AbstractFloat}, P<:SType}
+@inline function get_agents(model::SpaceModel2D{Mortal, S, P}, condition::Function) where {S<:Union{Int, Float64}, P<:SType}
     all_agents = [model.agents, model.agents_added]
     all_agents_itr = (ag for i in 1:2 for ag in all_agents[i])
     return Iterators.filter(ag-> (ag._extras._active::Bool)&&(condition(ag)), all_agents_itr)
@@ -483,7 +483,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function get_agents(model::SpaceModel2D{Mortal, S, P}) where {S<:Union{Int, AbstractFloat}, P<:SType}
+@inline function get_agents(model::SpaceModel2D{Mortal, S, P}) where {S<:Union{Int, Float64}, P<:SType}
     all_agents = [model.agents, model.agents_added]
     all_agents_itr = (ag for i in 1:2 for ag in all_agents[i])
     return  Iterators.filter(ag->ag._extras._active::Bool, all_agents_itr)
@@ -509,7 +509,7 @@ $(TYPEDSIGNATURES)
 
 Returns agent having given id.
 """
-function agent_with_id(i::Int, model::SpaceModel2D{Mortal, S, P}) where {S<:Union{Int, AbstractFloat}, P<:SType}
+function agent_with_id(i::Int, model::SpaceModel2D{Mortal, S, P}) where {S<:Union{Int, Float64}, P<:SType}
     m = model.parameters._extras._len_model_agents::Int
 
     if i<=m  

@@ -12,7 +12,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function dotprod(a::NTuple{N, <:Union{Integer, AbstractFloat}}, b::NTuple{N, <:Union{Integer, AbstractFloat}}) where N
+@inline function dotprod(a::NTuple{N, <:Union{Integer, Float64}}, b::NTuple{N, <:Union{Integer, Float64}}) where N
     sum = 0.0
     for (x,y) in zip(a,b)
         sum+=x*y
@@ -39,7 +39,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function veclength(a::NTuple{N, <:Union{Integer, AbstractFloat}}) where N
+@inline function veclength(a::NTuple{N, <:Union{Integer, Float64}}) where N
     return sqrt(dotprod(a,a))
 end
 
@@ -62,7 +62,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function distance(a::NTuple{N, Union{Integer, AbstractFloat}}, b::NTuple{N, Union{Integer, AbstractFloat}}) where N
+@inline function distance(a::NTuple{N, Union{Integer, Float64}}, b::NTuple{N, Union{Integer, Float64}}) where N
     return veclength(a .- b)
 end
 

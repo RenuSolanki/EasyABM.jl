@@ -83,7 +83,7 @@ function draw_tail(vis, agent, tail_length)
     end
 end
 
-@inline function draw_agents_static(vis, model::SpaceModel3D{T, S}, all_agents, tail_length = 1,  tail_condition = agent -> false) where {T, S<:Union{Int, AbstractFloat}}
+@inline function draw_agents_static(vis, model::SpaceModel3D{T, S}, all_agents, tail_length = 1,  tail_condition = agent -> false) where {T, S<:Union{Int, Float64}}
     
     if length(all_agents)==0
         return
@@ -111,7 +111,7 @@ end
         pos = (:pos in record) ? agent_data[:pos][index]::Vect{3, S} .+ offset : agent.pos .+ offset
         orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
         pclr = (:color in record) ? agent_data[:color][index]::Col : agent.color::Col
-        size = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat} : agent.size::Union{Int, <:AbstractFloat}
+        size = (:size in record) ? agent_data[:size][index]::Union{Int, <:Float64} : agent.size::Union{Int, <:Float64}
         pshp = (:shape in record) ? agent_data[:shape][index]::Symbol : agent.shape::Symbol
     
     
@@ -191,7 +191,7 @@ end
 end
 
 
-@inline function draw_agent(vis, agent::Agent3D, model::SpaceModel3D{T, S}, index::Int, scl::Number=1.0, tail_length = 1, tail_condition= agent-> false) where {T, S<:Union{Int, AbstractFloat}}
+@inline function draw_agent(vis, agent::Agent3D, model::SpaceModel3D{T, S}, index::Int, scl::Number=1.0, tail_length = 1, tail_condition= agent-> false) where {T, S<:Union{Int, Float64}}
         record = agent._keeps_record_of::Set{Symbol}
         periodic = is_periodic(model)
         agent_data = unwrap_data(agent)
@@ -214,7 +214,7 @@ end
         pshp = (:shape in record) ? agent_data[:shape][index]::Symbol : agent.shape::Symbol
         clrs = agent._extras._colors::Vector{Col}
         shps = agent._extras._shapes::Vector{Symbol}
-        sc = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat}/(agent_data[:size][1]::Union{Int, <:AbstractFloat})  : 1.0 # scale
+        sc = (:size in record) ? agent_data[:size][index]::Union{Int, <:Float64}/(agent_data[:size][1]::Union{Int, <:Float64})  : 1.0 # scale
         sc = sc*scl
         ao,bo,co = orientation
         periodic_viz_hack = 0.3 
@@ -307,7 +307,7 @@ end
     end
 end
 
-@inline function draw_agent_interact_frame(vis, agent::Agent3D, model::SpaceModel3D{T, S}, index::Int, scl) where {T, S<:Union{Int, AbstractFloat}}
+@inline function draw_agent_interact_frame(vis, agent::Agent3D, model::SpaceModel3D{T, S}, index::Int, scl) where {T, S<:Union{Int, Float64}}
     record = agent._keeps_record_of::Set{Symbol}
     agent_data = unwrap_data(agent)
 
@@ -325,7 +325,7 @@ end
     orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
     pclr = (:color in record) ? agent_data[:color][index]::Col : agent.color::Col
     pshp = (:shape in record) ? agent_data[:shape][index]::Symbol : agent.shape::Symbol
-    size = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat} : agent.size::Union{Int, <:AbstractFloat}
+    size = (:size in record) ? agent_data[:size][index]::Union{Int, <:Float64} : agent.size::Union{Int, <:Float64}
 
     ao,bo,co = orientation
 

@@ -1,11 +1,11 @@
-@inline function _agent_extra_props(agent::Agent3D{S, P, Mortal}) where {S<:Union{Int, AbstractFloat}, P<:SType}
+@inline function _agent_extra_props(agent::Agent3D{S, P, Mortal}) where {S<:Union{Int, Float64}, P<:SType}
     agent._extras._active = true
     agent._extras._birth_time = 1 
     agent._extras._death_time = typemax(Int)
     return
 end
 
-@inline function _agent_extra_props(agent::Agent3D{S, P, Static}) where {S<:Union{Int, AbstractFloat}, P<:SType}
+@inline function _agent_extra_props(agent::Agent3D{S, P, Static}) where {S<:Union{Int, Float64}, P<:SType}
     return
 end
 
@@ -31,7 +31,7 @@ function create_3d_model(agents::Vector{Agent3D{S, A, B}};
     graphics=true, agents_type::Type{T} = Static, 
     size::NTuple{3,Int}= (10,10,10), random_positions=false, 
     space_type::Type{P} = Periodic,
-    kwargs...) where {S<:Union{Int, AbstractFloat}, T<:MType, P<:SType, A<:SType, B<:MType}
+    kwargs...) where {S<:Union{Int, Float64}, T<:MType, P<:SType, A<:SType, B<:MType}
 
     xdim = size[1]
     ydim = size[2]

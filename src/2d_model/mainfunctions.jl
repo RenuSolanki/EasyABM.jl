@@ -1,11 +1,11 @@
-@inline function _agent_extra_props(agent::Agent2D{S, P, Mortal}) where {S<:Union{Int, AbstractFloat}, P<:SType}
+@inline function _agent_extra_props(agent::Agent2D{S, P, Mortal}) where {S<:Union{Int, Float64}, P<:SType}
     agent._extras._active = true
     agent._extras._birth_time = 1 
     agent._extras._death_time = typemax(Int)
     return
 end
 
-@inline function _agent_extra_props(agent::Agent2D{S, P, Static}) where {S<:Union{Int, AbstractFloat}, P<:SType}
+@inline function _agent_extra_props(agent::Agent2D{S, P, Static}) where {S<:Union{Int, Float64}, P<:SType}
     return
 end
 
@@ -27,11 +27,12 @@ its own properties.
 - `space_type` : Set it to Periodic or NPeriodic depending upon if the space is periodic or not. 
 - `kwargs`` : Keyword argments used as model parameters. 
 """
+
 function create_2d_model(agents::Vector{Agent2D{S, A, B}}; 
     graphics=true, agents_type::Type{T} = Static, 
     size::NTuple{2,Int}= (10,10), random_positions=false, 
     space_type::Type{P} = Periodic,
-    kwargs...) where {T<:MType, S<:Union{Int, AbstractFloat}, P<:SType, A<:SType, B<:MType}
+    kwargs...) where {T<:MType, S<:Union{Int, Float64}, P<:SType, A<:SType, B<:MType}
 
     xdim, ydim = size 
     n = length(agents)

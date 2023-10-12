@@ -12,7 +12,7 @@ struct DirG <: GType end
 struct SimG <: GType end
 
 
-abstract type AbstractSpaceModel{T<:MType, S<:Union{Int, AbstractFloat}, P<:SType} end
+abstract type AbstractSpaceModel{T<:MType, S<:Union{Int, Float64}, P<:SType} end
 abstract type AbstractSpaceModel2D{T,S,P}<:AbstractSpaceModel{T,S,P} end
 abstract type AbstractSpaceModel3D{T,S,P}<:AbstractSpaceModel{T,S,P} end
 abstract type AbstractGraphModel{S<:MType, T<:MType, G<:GType} end

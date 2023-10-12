@@ -56,7 +56,7 @@ get_patches_avg_props
 get_nodes_avg_props
 get_edges_avg_props
 save_model
-open_saved_model
+open_model
 ```
 
 ## Functions for creating and modifying a graph

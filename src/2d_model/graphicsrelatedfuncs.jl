@@ -12,7 +12,7 @@ const _grid_lines_color = RGBA(0.5,0.5,0.5,0.5)
     return colors
 end
 
-@inline function _get_tail(agent, model::SpaceModel2D{Mortal, S}, t, tail_length, agent_tail = GeometryBasics.Vec2{S}[]) where S<:AbstractFloat # we don't have tails for grid agents
+@inline function _get_tail(agent, model::SpaceModel2D{Mortal, S}, t, tail_length, agent_tail = GeometryBasics.Vec2{S}[]) where S<:Float64 # we don't have tails for grid agents
     
     if !(:pos in agent._keeps_record_of)
         push!(agent_tail, GeometryBasics.Vec(agent.pos...))
@@ -36,7 +36,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_tail(agent, model::SpaceModel2D{Static, S}, t::Int, tail_length) where S<:AbstractFloat
+@inline function _get_tail(agent, model::SpaceModel2D{Static, S}, t::Int, tail_length) where S<:Float64
     agent_tail = GeometryBasics.Vec2{S}[]
     if !(:pos in agent._keeps_record_of)
         push!(agent_tail, GeometryBasics.Vec(agent.pos...))
@@ -129,7 +129,7 @@ $(TYPEDSIGNATURES)
     orientation = (:orientation in record) ? agent_data[:orientation][index]::Float64 : agent.orientation::Float64
     shape = (:shape in record) ? agent_data[:shape][index]::Symbol : agent.shape::Symbol
     shape_color = (:color in record) ? agent_data[:color][index]::Col : agent.color::Col
-    size = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat} : agent.size::Union{Int, <:AbstractFloat}
+    size = (:size in record) ? agent_data[:size][index]::Union{Int, <:Float64} : agent.size::Union{Int, <:Float64}
 
     if !(shape in keys(shapefunctions2d))
         shape = :circle
@@ -138,7 +138,7 @@ $(TYPEDSIGNATURES)
     #size = xdim/50
 
     # if haskey(agent_data, :size)
-    #     size = (:size in record) ? agent_data[:size][index]::Union{Int, <:AbstractFloat} : agent.size::Union{Int, <:AbstractFloat}
+    #     size = (:size in record) ? agent_data[:size][index]::Union{Int, <:Float64} : agent.size::Union{Int, <:Float64}
     # end
    
     size = size*scl*w # size

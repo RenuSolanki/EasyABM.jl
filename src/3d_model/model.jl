@@ -1,5 +1,5 @@
 
-struct SpaceModel3D{T, S<:Union{Int, AbstractFloat}, P<:SType} <:AbstractSpaceModel3D{T,S,P}
+struct SpaceModel3D{T, S<:Union{Int, Float64}, P<:SType} <:AbstractSpaceModel3D{T,S,P}
     size::NTuple{3, Int}
     patches:: Array{ContainerDataDict{Symbol, Any},3}  
     patch_locs::Vector{Tuple{Int, Int, Int}}
@@ -27,7 +27,7 @@ struct SpaceModel3D{T, S<:Union{Int, AbstractFloat}, P<:SType} <:AbstractSpaceMo
         new{Mortal,S,P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick) 
     end
 
-    function SpaceModel3D{T, S, P}(size, patches, patch_locs, agents, max_id, graphics, parameters, record, tick) where {T<:MType, S<:AbstractFloat, P} 
+    function SpaceModel3D{T, S, P}(size, patches, patch_locs, agents, max_id, graphics, parameters, record, tick) where {T<:MType, S<:Float64, P} 
         parameters._extras._offset = (0.0,0.0,0.0)
         agents_added = Vector{Agent3D{S, P, T}}()
         agents_killed = Vector{Agent3D{S, P, T}}()
@@ -72,7 +72,7 @@ function Base.show(io::IO, v::SpaceModel3D{T,S,P}) where {T,S,P} # works with pr
 end
 
 
-function Base.setproperty!(agent::Agent3D{S, P, Mortal}, key::Symbol, x) where {S<:Union{Int, AbstractFloat}, P<:SType}
+function Base.setproperty!(agent::Agent3D{S, P, Mortal}, key::Symbol, x) where {S<:Union{Int, Float64}, P<:SType}
 
     if !(agent._extras._active::Bool)
         return
@@ -87,7 +87,7 @@ function Base.setproperty!(agent::Agent3D{S, P, Mortal}, key::Symbol, x) where {
     end
 end
 
-function Base.setproperty!(agent::Agent3D{S, P, Static}, key::Symbol, x) where {S<:Union{Int, AbstractFloat}, P<:SType}
+function Base.setproperty!(agent::Agent3D{S, P, Static}, key::Symbol, x) where {S<:Union{Int, Float64}, P<:SType}
 
     if !(agent._extras._active::Bool)
         return
@@ -107,7 +107,7 @@ function update_grid!(agent::Agent3D, model::Nothing, pos)
     return
 end
 
-function update_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, pos) where {T<:MType,S<:AbstractFloat,P<:Periodic}
+function update_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, pos) where {T<:MType,S<:Float64,P<:Periodic}
     x,y,z = pos
     i = getfield(agent, :id)
     size = model.size
@@ -122,7 +122,7 @@ function update_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, pos) 
     setfield!(agent, :last_grid_loc, (a,b,c))
 end
 
-function update_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, pos) where {T<:MType,S<:AbstractFloat,P<:NPeriodic}
+function update_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, pos) where {T<:MType,S<:Float64,P<:NPeriodic}
     x,y,z = pos
     i = getfield(agent, :id)
     size = model.size

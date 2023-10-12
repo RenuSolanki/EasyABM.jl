@@ -4,7 +4,7 @@
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _set_pos!(agent::Agent3D{<:AbstractFloat}, xdim, ydim, zdim)
+@inline function _set_pos!(agent::Agent3D{<:Float64}, xdim, ydim, zdim)
     setfield!(agent, :pos, Vect(rand()*xdim, rand()*ydim, rand()*zdim) )
 end
 
@@ -18,7 +18,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T<:MType,S<:AbstractFloat,P<:Periodic}
+@inline function _setup_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T<:MType,S<:Float64,P<:Periodic}
     patches = model.patches
     x,y,z = agent.pos
     a = mod1(x, xdim)
@@ -35,7 +35,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T<:MType,S<:AbstractFloat,P<:NPeriodic}
+@inline function _setup_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T<:MType,S<:Float64,P<:NPeriodic}
     patches = model.patches
     x,y,z = agent.pos
     if (x>0 && x<=xdim && y>0 && y<=ydim && z>0 && z<=zdim)
