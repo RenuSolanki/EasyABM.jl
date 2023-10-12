@@ -150,6 +150,7 @@ function update_grid!(agent::Agent3D{Int, P, T}, model::SpaceModel3D{T,S,P}, pos
     a, b, c = mod1(x,size[1]), mod1(y,size[2]), mod1(z,size[3])
     push!(patches[a,b,c].agents, i)
     setfield!(agent, :pos, Vect(a,b,c))
+    setfield!(agent, :last_grid_loc, (a,b,c))
 end
 
 function update_grid!(agent::Agent3D{Int, P, T}, model::SpaceModel3D{T,S,P}, pos) where {T<:MType,S<:Int,P<:NPeriodic}
@@ -163,6 +164,7 @@ function update_grid!(agent::Agent3D{Int, P, T}, model::SpaceModel3D{T,S,P}, pos
         deleteat!(patches[x0,y0,z0].agents, findfirst(m->m==i, patches[x0,y0,z0].agents))
         push!(patches[x,y,z].agents, i)
         setfield!(agent, :pos, pos)
+        setfield!(agent, :last_grid_loc, (x,y,z))
     end
 end
 

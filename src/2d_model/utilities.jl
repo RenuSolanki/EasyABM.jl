@@ -14,24 +14,34 @@ $(TYPEDSIGNATURES)
 
 Returns patches neighboring the given agent's patch.
 """
-function neighbor_patches(patch::Tuple{Int, Int}, model::SpaceModel2D{T,S,P}, dist::Real; dist_func::Function = moore_distance, range::Int=Int(ceil(dist))) where {T,S,P<:Periodic} # -range to range for both x and y
+function neighbor_patches_moore(patch::Tuple{Int, Int}, model::SpaceModel2D{T,S,P}, dist::Int=1) where {T,S,P<:Periodic} # -range to range for both x and y 
+    
+    # patch_dict = unwrap(model.patches[patch...])
+    # key = Symbol((metric, dist))
+    # if haskey(patch_dict, key)
+    #     return patch_dict[key]
+    # end
     x,y = patch
     lst = NTuple{2, Int}[]
-    for i in -range:range
-        for j in -range:range
-            if dist_func(patch, (x+i,y+j))<=dist
-                pnew = (mod1(x+i, model.size[1]), mod1(y+j, model.size[2]))
-                if pnew != (x,y)
-                    push!(lst, pnew)
-                end
+    xdim = model.size[1]
+    ydim = model.size[2]
+    for i in -dist:dist
+        for j in -dist:dist
+            pnew = (mod1(x+i, xdim), mod1(y+j, ydim))
+            if pnew != (x,y)
+                push!(lst, pnew)
             end
         end
     end
 
-    sz = min(model.size...)
-    if div(sz, 2)+ sz%2 < range+1
+    sz = min(xdim, ydim)
+    if div(sz, 2)+ sz%2 < dist+1
         unique!(lst)
     end
+    
+    #if dist<=2
+    # patch_dict[key] = lst
+    #end
 
     return lst
 end
@@ -41,25 +51,27 @@ $(TYPEDSIGNATURES)
 
 Returns patches neighboring the given agent's patch.
 """
-function neighbor_patches(patch::Tuple{Int, Int}, model::SpaceModel2D{T,S,P}, dist::Real; dist_func::Function = moore_distance, range::Int=Int(ceil(dist))) where {T,S,P<:NPeriodic}
+function neighbor_patches_moore(patch::Tuple{Int, Int}, model::SpaceModel2D{T,S,P}, dist::Int=1) where {T,S,P<:NPeriodic}
+
     x,y = patch
+    xdim=model.size[1]
+    ydim=model.size[2]
     lst = NTuple{2, Int}[]
 
-    for i in -range:range
-        for j in -range:range
-            if (i,j)!=(0,0) && (dist_func(patch, (x+i,y+j)) <= dist)
-                pnew = (x+i, y+j)
-                if all(1 .<= pnew) && all(pnew .<= model.size)
-                    push!(lst, pnew)
-                end
+    for i in -dist:dist
+        for j in -dist:dist
+            x_n = x+i
+            y_n = y+j 
+            if (i,j)!=(0,0) && checkbound(x_n, y_n, xdim, ydim)
+                push!(lst, (x_n,y_n))
             end
         end
     end
 
-    sz = min(model.size...)
-    if div(sz, 2)+ sz%2 < range+1
-        unique!(lst)
-    end
+    # sz = min(size...)
+    # if div(sz, 2)+ sz%2 < dist+1
+    #     unique!(lst)
+    # end
 
     return lst
 end
@@ -71,10 +83,83 @@ $(TYPEDSIGNATURES)
 
 Returns patches neighboring the given patch.
 """
-function neighbor_patches(agent::Agent2D{<:AbstractFloat}, model::SpaceModel2D, dist::Real; dist_func::Function = moore_distance, range::Int=Int(ceil(dist)))
-    patch = getfield(agent, :last_grid_loc)
-    return neighbor_patches(patch, model, dist, dist_func=dist_func, range=range)
+function neighbor_patches_moore(agent::Agent2D, model::SpaceModel2D, dist::Int=1)
+    patch = getfield(agent, :last_grid_loc)::Tuple{Int, Int}
+    return neighbor_patches_moore(patch, model, dist)
 end
+
+
+#################
+##############
+"""
+$(TYPEDSIGNATURES)
+
+Returns patches neighboring the given agent's patch.
+"""
+function neighbor_patches_neumann(patch::Tuple{Int, Int}, model::SpaceModel2D{T,S,P}, dist::Int=1) where {T,S,P<:Periodic} # -range to range for both x and y 
+    
+    # patch_dict = unwrap(model.patches[patch...])
+    # key = Symbol((metric, dist))
+    # if haskey(patch_dict, key)
+    #     return patch_dict[key]
+    # end
+    x,y = patch
+    lst = NTuple{2, Int}[]
+    xdim = model.size[1]
+    ydim = model.size[2]
+    for i in -dist:dist
+        for j in -dist:dist
+            if manhattan_distance(patch, (x+i,y+j))<=dist
+                pnew = (mod1(x+i, xdim), mod1(y+j, ydim))
+                if pnew != (x,y)
+                    push!(lst, pnew)
+                end
+            end
+        end
+    end
+
+    sz = min(xdim, ydim)
+    if div(sz, 2)+ sz%2 < dist+1
+        unique!(lst)
+    end
+    
+    #if dist<=2
+    # patch_dict[key] = lst
+    #end
+
+    return lst
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Returns patches neighboring the given agent's patch.
+"""
+function neighbor_patches_neumann(patch::Tuple{Int, Int}, model::SpaceModel2D{T,S,P}, dist::Int=1) where {T,S,P<:NPeriodic}
+
+    x,y = patch
+    xdim=model.size[1]
+    ydim=model.size[2]
+    lst = NTuple{2, Int}[]
+
+    for i in -dist:dist
+        for j in -dist:dist
+            x_n = x+i
+            y_n = y+j 
+            if (i,j)!=(0,0) && (manhattan_distance(patch, (x_n,y_n)) <= dist) && checkbound(x_n, y_n, xdim, ydim)
+                push!(lst, (x_n,y_n))
+            end
+        end
+    end
+
+    # sz = min(size...)
+    # if div(sz, 2)+ sz%2 < dist+1
+    #     unique!(lst)
+    # end
+
+    return lst
+end
+
 
 
 """
@@ -82,15 +167,16 @@ $(TYPEDSIGNATURES)
 
 Returns patches neighboring the given patch.
 """
-function neighbor_patches(agent::Agent2D{Int}, model::SpaceModel2D, dist::Real; dist_func::Function = moore_distance, range::Int=Int(ceil(dist)))
-    patch = agent.pos
-    return neighbor_patches(patch, model, dist, dist_func=dist_func, range=range)
+function neighbor_patches_neumann(agent::Agent2D, model::SpaceModel2D, dist::Int=1)
+    patch = getfield(agent, :last_grid_loc)::Tuple{Int, Int}
+    return neighbor_patches_moore(patch, model, dist)
 end
+
 
 """
 $(TYPEDSIGNATURES)
 """
-function _get_neighbors(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:AbstractFloat, P<:Periodic}
+function _get_neighbors(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:Union{Int,AbstractFloat}, P<:Periodic}
     x,y = getfield(agent, :last_grid_loc)
     xdim = model.size[1]
     ydim = model.size[2]
@@ -109,7 +195,7 @@ function _get_neighbors(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) w
         end
     end
 
-    sz = min(model.size...)
+    sz = min(xdim, ydim)
     if div(sz, 2)+ sz%2 < dist+1
         unique!(sort!(id_list)) # unique! directly used with Agents list will be highly inefficient
     end
@@ -121,8 +207,8 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _get_neighbors(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:AbstractFloat, P<:NPeriodic}
-    x,y = getfield(agent, :last_grid_loc)
+function _get_neighbors(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:Union{Int,AbstractFloat}, P<:NPeriodic}
+    x,y = getfield(agent, :last_grid_loc)::Tuple{Int, Int} 
     xdim = model.size[1]
     ydim = model.size[2]
     id = getfield(agent, :id)
@@ -142,63 +228,36 @@ function _get_neighbors(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) w
     end
 
 
-    sz = min(model.size...)
-    if div(sz, 2)+ sz%2 < dist+1
-        unique!(sort!(id_list)) # unique! directly used with Agents list will be highly inefficient
-    end
+    # sz = min(model.size...)
+    # if div(sz, 2)+ sz%2 < dist+1
+    #     unique!(sort!(id_list)) # unique! directly used with Agents list will be highly inefficient
+    # end
 
     return (agent_with_id(l,model) for l in id_list)
 end
 
 
 
-"""
-$(TYPEDSIGNATURES)
-"""
-function _get_neighbors(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:Int, P<:Periodic}
-    x,y = agent.pos
-    xdim = model.size[1]
-    ydim = model.size[2]
-    id_list = Int[]
-    id = getfield(agent, :id)
 
-    for j in -dist:dist
-        for i in -dist:dist
-            x_n = mod1(x+i, xdim)
-            y_n = mod1(y+j, ydim)
-            ags = model.patches[x_n, y_n].agents # all these agents are active for any inactive agent is removed from its container
-            for l in ags
-                if l != id
-                    push!(id_list, l)
-                end
-            end
-        end
-    end
-
-    sz = min(model.size...)
-    if div(sz, 2)+ sz%2 < dist+1
-        unique!(sort!(id_list)) # unique! directly used with Agents list will be highly inefficient
-    end
-    
-
-    return (agent_with_id(l,model) for l in id_list)
-end
+#########################
+##########################
 
 
 """
 $(TYPEDSIGNATURES)
 """
-function _get_neighbors(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:Int, P<:NPeriodic}
-    x,y = agent.pos
+function _get_neighbors_neumann(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:Union{Int,AbstractFloat}, P<:Periodic}
+    x,y = getfield(agent, :last_grid_loc)
     xdim = model.size[1]
     ydim = model.size[2]
-    id_list = Int[]
     id = getfield(agent, :id)
-
+    id_list = Int[]
     for j in -dist:dist
         for i in -dist:dist
-            if checkbound(x+i, y+j, xdim, ydim)
-                ags = model.patches[x+i, y+j].agents
+            if manhattan_distance((x+i,y+j),(x,y))<=dist
+                x_n = mod1(x+i, xdim)
+                y_n = mod1(y+j, ydim)
+                ags = model.patches[x_n, y_n].agents # all these agents are active for any inactive agent is removed from its container
                 for l in ags
                     if l != id
                         push!(id_list, l)
@@ -208,11 +267,45 @@ function _get_neighbors(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) w
         end
     end
 
-    sz = min(model.size...)
+    sz = min(xdim, ydim)
     if div(sz, 2)+ sz%2 < dist+1
         unique!(sort!(id_list)) # unique! directly used with Agents list will be highly inefficient
     end
-    
+
+    return (agent_with_id(l,model) for l in id_list)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function _get_neighbors_neumann(agent::Agent2D, model::SpaceModel2D{T,S,P}, dist::Int) where {T<:MType, S<:Union{Int,AbstractFloat}, P<:NPeriodic}
+    x,y = getfield(agent, :last_grid_loc)
+    xdim = model.size[1]
+    ydim = model.size[2]
+    id = getfield(agent, :id)
+    id_list = Int[]
+
+    for j in -dist:dist
+        for i in -dist:dist
+            x_n=x+i
+            y_n=y+j
+            if checkbound(x_n, y_n, xdim, ydim) && (manhattan_distance((x_n,y_n),(x,y))<=dist)
+                ags = model.patches[x+i,y+j].agents
+                for l in ags
+                    if l != id::Int
+                        push!(id_list, l)
+                    end
+                end
+            end
+        end
+    end
+
+
+    # sz = min(model.size...)
+    # if div(sz, 2)+ sz%2 < dist+1
+    #     unique!(sort!(id_list)) # unique! directly used with Agents list will be highly inefficient
+    # end
 
     return (agent_with_id(l,model) for l in id_list)
 end
@@ -241,7 +334,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _find_eu_neighbors(agent::Agent2D, neighbors_list, model::SpaceModel2D{T, S, P},dist ) where {T<:MType, S<:Union{Int, AbstractFloat}, P<:NPeriodic}
+function _find_eu_neighbors(agent::Agent2D, neighbors_list, model::SpaceModel2D{T, S, P},dist::Real ) where {T<:MType, S<:Union{Int, AbstractFloat}, P<:NPeriodic}
     distsq = dist^2
     return Iterators.filter(ag->begin vec = ag.pos .- agent.pos; dotprod(vec,vec)<distsq end, neighbors_list)       
 end
@@ -250,7 +343,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _find_eu_neighbors(agent::Agent2D, neighbors_list, model::SpaceModel2D{T, S, P},dist ) where {T<:MType, S<:Union{Int, AbstractFloat}, P<:Periodic}
+function _find_eu_neighbors(agent::Agent2D, neighbors_list, model::SpaceModel2D{T, S, P},dist::Real ) where {T<:MType, S<:Union{Int, AbstractFloat}, P<:Periodic}
     distsq = dist^2
     xdim, ydim = model.size
     return Iterators.filter(ag-> toroidal_distancesq(ag.pos, agent.pos, xdim, ydim)<distsq, neighbors_list)
@@ -261,24 +354,16 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Returns active neighboring agents to given agent. If the metric is `:grid`, then with dist =0 only agents present in the current 
-block of the given agent are returned; with dist=1, agents in the current block of the given agent along with agents in the neighbouring 
-8 blocks are returned; with dist=2 agents in the current block of given agent, along with agents in 24 nearest blocks are returned, and 
-so on. With metric = `:euclidean` the agents within Euclidean distance `dist` are returned.
+Returns active neighboring agents to given agent within euclidean distance `dist`. 
 """
-function neighbors(agent::Agent2D, model::SpaceModel2D{Mortal, S, P}, dist::Number=1.0; metric::Symbol =:euclidean) where {S<:Union{Int, AbstractFloat}, P<:SType}
+function neighbors(agent::Agent2D, model::SpaceModel2D{Mortal, S, P}, dist::Real=1.0) where {S<:Union{Int, AbstractFloat}, P<:SType}
     if !(agent._extras._active::Bool)
         return (ag for ag in Agent2D{S, P, Mortal}[])
     end
     distint = Int(ceil(dist))
     neighbors_list = _get_neighbors(agent, model, distint)
-
-    if metric == :grid
-        return neighbors_list
-    else
-        eu_neighbors = _find_eu_neighbors(agent, neighbors_list, model, dist)
-        return eu_neighbors
-    end
+    eu_neighbors = _find_eu_neighbors(agent, neighbors_list, model, dist)
+    return eu_neighbors
 
 end
 
@@ -286,31 +371,26 @@ end
 """
 $(TYPEDSIGNATURES)
 
-Returns active neighboring agents of the given agent. If the metric is `:grid`, then with dist =0 only agents present in the current 
-block of the given agent are returned; with dist=1, agents in the current block of the given agent along with agents in the neighbouring 
-8 blocks are returned; with dist=2 agents in the current block of given agent, along with agents in 24 nearest blocks are returned, and 
-so on. With metric = `:euclidean` the agents within Euclidean distance `dist` are returned.
+Returns active neighboring agents to given agent within euclidean distance `dist`. 
 """
-function neighbors(agent::Agent2D, model::SpaceModel2D{Static}, dist::Number=1.0; metric::Symbol =:euclidean)
+function neighbors(agent::Agent2D, model::SpaceModel2D{Static}, dist::Real=1.0)
     distint = Int(ceil(dist))
     neighbors_list = _get_neighbors(agent, model, distint)
 
-    if metric == :grid
-        return neighbors_list
-    else
-        eu_neighbors = _find_eu_neighbors(agent, neighbors_list, model, dist)
-        return eu_neighbors
-    end
-
+    eu_neighbors = _find_eu_neighbors(agent, neighbors_list, model, dist)
+    return eu_neighbors
 end
+
+
 
 """
 $(TYPEDSIGNATURES)
 """
-function grid_neighbors(agent::Agent2D, model::SpaceModel2D{Mortal, S, P}, dist::Int=1) where {S<:Union{Int, AbstractFloat}, P<:SType}
+function neighbors_moore(agent::Agent2D, model::SpaceModel2D{Mortal, S, P}, dist::Int=1) where {S<:Union{Int, AbstractFloat}, P<:SType}
     if !(agent._extras._active::Bool)
         return (ag for ag in Agent2D{S, P, Mortal}[])
     end
+    
     return _get_neighbors(agent, model, dist)
 
 end
@@ -318,32 +398,32 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function grid_neighbors(agent::Agent2D, model::SpaceModel2D{Static}, dist::Int=1)
+function neighbors_moore(agent::Agent2D, model::SpaceModel2D{Static, S, P},dist::Int=1) where {S<:Union{Int, AbstractFloat}, P<:SType}
 
-    return _get_neighbors(agent, model, dist)
+    return _get_neighbors(agent, model, dist)#_get_grid_neighbors(agent, model, dist, metric=metric)
 
 end
+
 
 """
 $(TYPEDSIGNATURES)
 """
-function euclidean_neighbors(agent::Agent2D, model::SpaceModel2D{Mortal, S, P}, dist::Number=1.0) where {S<:Union{Int, AbstractFloat}, P<:SType}
+function neighbors_neumann(agent::Agent2D, model::SpaceModel2D{Mortal, S, P}, dist::Int=1) where {S<:Union{Int, AbstractFloat}, P<:SType}
     if !(agent._extras._active::Bool)
         return (ag for ag in Agent2D{S, P, Mortal}[])
     end
-    distint = Int(ceil(dist))
-    neighbors_list = _get_neighbors(agent, model, distint)
-    return _find_eu_neighbors(agent, neighbors_list, model, dist)
+    
+    return _get_neighbors_neumann(agent, model, dist)
 
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-function euclidean_neighbors(agent::Agent2D, model::SpaceModel2D{Static}, dist::Number=1.0)
-    distint = Int(ceil(dist))
-    neighbors_list = _get_neighbors(agent, model, distint)
-    return _find_eu_neighbors(agent, neighbors_list, model, dist)
+function neighbors_neumann(agent::Agent2D, model::SpaceModel2D{Static},dist::Int=1)
+
+    return _get_neighbors_neumann(agent, model, dist)#_get_grid_neighbors(agent, model, dist, metric=metric)
+
 end
 
 
@@ -353,30 +433,12 @@ $(TYPEDSIGNATURES)
 
 Returns a random patch where no agents are present. Rerurns nothing if there is no such patch.
 """
-function random_empty_patch(model::SpaceModel2D; search_method = :exact, attempts=*(model.size...))
-    if search_method !=:exact
-        a,b = model.size
-        for i in 1:attempts
-            x,y = rand(1:a), rand(1:b)
-            if length(model.patches[x,y].agents) == 0
-                return (x,y)
-            end
-        end
-        return nothing
+function random_empty_patch(model::SpaceModel2D)
+    empty_patches = filter(pt -> length(model.patches[pt...].agents::Vector{Int})==0, model.patch_locs)
+    if length(empty_patches)>0
+        return rand(empty_patches)
     else
-        empty_patches = Tuple{Int, Int}[]
-        n = 0
-        for p in CartesianIndices(model.patches)
-            if length(model.patches[p].agents::Vector{Int}) == 0
-                push!(empty_patches, Tuple(p))
-                n+=1
-            end
-        end
-        if n>0
-            return rand(empty_patches)
-        else
-            return nothing
-        end
+        return nothing
     end
 end
 

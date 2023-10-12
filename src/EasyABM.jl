@@ -45,12 +45,13 @@ export  Static, Mortal, PropDict, Vect,
         #patches, nodes, edges
         is_occupied, get_nodeprop, get_edgeprop, set_nodeprops!, 
         set_edgeprops!, get_patchprop, set_patchprops!, 
-        neighbor_nodes, neighbor_patches, in_neighbor_nodes, out_neighbor_nodes, 
+        neighbor_nodes, neighbor_patches_moore, neighbor_patches_neumann, 
+        in_neighbor_nodes, out_neighbor_nodes, 
         get_nodes, num_nodes, get_edges, num_edges, get_patches, get_random_patch, num_patches, 
         random_empty_node, random_empty_patch, 
 
         #neighbor agents
-        neighbors, in_neighbors, out_neighbors, grid_neighbors, euclidean_neighbors,
+        neighbors, in_neighbors, out_neighbors, neighbors_moore, neighbors_neumann,
 
         #misc utilities
         dotprod, veclength, distance, calculate_direction, Col, @cl_str, moore_distance,

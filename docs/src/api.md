@@ -102,11 +102,13 @@ add_agent!
 ## Functions for getting neighbor agents.
 
 ```@docs
+neighbor_patches_moore
+neighbor_patches_neumann
 neighbors
 in_neighbors
 out_neighbors
-grid_neighbors
-euclidean_neighbors
+neighbors_moore
+neighbors_neumann
 ```
 
 ## Helper functions for patches, nodes, edges
@@ -120,7 +122,7 @@ set_edgeprops!
 get_patchprop
 set_patchprops!
 neighbor_nodes
-neighbor_patches
+neighbor_patches_moore
 in_neighbor_nodes
 out_neighbor_nodes
 get_nodes

@@ -1,29 +1,29 @@
 @testset "utilities_neighbors" begin
     agents = con_2d_agents(5, pos = Vect(1.0,1.0))
-    model = create_2d_model(agents, grid_size = (10,10),space_type = NPeriodic)
+    model = create_2d_model(agents, size = (10,10),space_type = NPeriodic)
     @test Set(neighbors(model.agents[1], model))==Set(model.agents[2:5])   
-    @test Set(neighbor_patches(model.agents[1], model, 1)) == Set([(1,2),(2,1),(2,2)])
+    @test Set(neighbor_patches_moore(model.agents[1], model, 1)) == Set([(1,2),(2,1),(2,2)])
     model = create_2d_model(agents, grid_size = (10,10),space_type = Periodic)
-    @test Set(neighbor_patches(model.agents[1], model, 1)) == Set([(1,2),(2,1),(2,2),(10,1),(1,10),(10,10),(2,10),(10,2)])
+    @test Set(neighbor_patches_moore(model.agents[1], model, 1)) == Set([(1,2),(2,1),(2,2),(10,1),(1,10),(10,10),(2,10),(10,2)])
     model.agents[1].pos = Vect(5.0,5.0)
     model.agents[2].pos = Vect(5.0,6.0)
     model.agents[3].pos = Vect(6.0,5.0)
     @test model.patches[5,6].agents == [2]
     @test Set(neighbors(model.agents[1], model, 1.5)) == Set(model.agents[2:3])
-    @test Set(neighbors(model.agents[1], model, 1.5, metric = :euclidean)) == Set(model.agents[2:3])
+    @test Set(neighbors(model.agents[1], model, 1.5)) == Set(model.agents[2:3])
 
     agents = con_3d_agents(5, pos = Vect(1.0,1.0,1.0))
     model = create_3d_model(agents, grid_size = (5,5,5),space_type = NPeriodic)
     @test Set(neighbors(model.agents[1], model))==Set(model.agents[2:5])   
-    @test Set(neighbor_patches(model.agents[1], model, 1)) == Set([(1,1,2),(1,2,1),(2,1,1),(1,2,2),(2,1,2),(2,2,1),(2,2,2)])
+    @test Set(neighbor_patches_moore(model.agents[1], model, 1)) == Set([(1,1,2),(1,2,1),(2,1,1),(1,2,2),(2,1,2),(2,2,1),(2,2,2)])
     #model = create_3d_model(agents, grid_size = (5,5,5),periodic=true)
-    # @test Set(neighbor_patches(model.agents[1], model, 1)) == Set([(1,1,2),(1,2,1),(2,1,1),(1,2,2),(2,1,2),(2,2,1),(2,2,2), (5,1,1),(1,5,1),(1,1,5),(5,2,2),(2,5,2),(2,2,5),(5,5,5)])
+    # @test Set(neighbor_patches_moore(model.agents[1], model, 1)) == Set([(1,1,2),(1,2,1),(2,1,1),(1,2,2),(2,1,2),(2,2,1),(2,2,2), (5,1,1),(1,5,1),(1,1,5),(5,2,2),(2,5,2),(2,2,5),(5,5,5)])
     model.agents[1].pos = Vect(4.0,4.0,4.0)
     model.agents[2].pos = Vect(4.0,4.0,3.0)
     model.agents[3].pos = Vect(3.0,4.0,4.0)
     @test model.patches[4,4,3].agents == [2]
     @test Set(neighbors(model.agents[1], model, 1.1)) == Set(model.agents[2:3])
-    @test Set(neighbors(model.agents[1], model, 1.1, metric = :euclidean)) == Set(model.agents[2:3])
+    @test Set(neighbors(model.agents[1], model, 1.1)) == Set(model.agents[2:3])
 
 
 
@@ -222,7 +222,7 @@ end
 # #patches, nodes, edges
 # is_occupied, get_nodeprop, get_edgeprop, set_nodeprops!, 
 # set_edgeprops!, get_patchprop, set_patchprops!, 
-# neighbor_nodes, neighbor_patches, in_neighbor_nodes, out_neighbor_nodes, 
+# neighbor_nodes, neighbor_patches_moore, in_neighbor_nodes, out_neighbor_nodes, 
 # get_nodes, num_nodes, get_edges, num_edges, get_patches, num_patches, 
 # random_empty_node, random_empty_patch, 
 

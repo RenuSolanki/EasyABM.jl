@@ -147,6 +147,7 @@ function update_grid!(agent::Agent2D{S, P, T},  model::SpaceModel2D{T,S,P}, pos)
     a, b = mod1(x,size[1]), mod1(y,size[2])
     push!(patches[a,b].agents::Vector{Int}, i)
     setfield!(agent, :pos, Vect(a,b))
+    setfield!(agent, :last_grid_loc, (a,b))
 end
 
 
@@ -161,6 +162,7 @@ function update_grid!(agent::Agent2D{S, P, T},  model::SpaceModel2D{T,S,P}, pos)
         deleteat!(patches[x0,y0].agents::Vector{Int}, findfirst(m->m==i, patches[x0,y0].agents::Vector{Int}))
         push!(patches[x,y].agents::Vector{Int}, i)
         setfield!(agent, :pos, pos)
+        setfield!(agent, :last_grid_loc, (x,y))
     end
 end
 

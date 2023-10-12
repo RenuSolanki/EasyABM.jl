@@ -104,7 +104,7 @@ function act_asa_wolf!(agent, model)
             reproduce!(agent, model)
         end
     elseif energy > 0 
-        nbrs = collect(grid_neighbors(agent, model, 1))
+        nbrs = collect(neighbors_moore(agent, model, 1))
         n = length(nbrs)
         if n>0
             nbr = nbrs[rand(1:n)]

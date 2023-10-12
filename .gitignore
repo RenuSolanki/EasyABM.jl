@@ -1,3 +1,5 @@
+.*
+!/.gitignore
 *.jl.*.cov
 *.jl.cov
 *.jl.mem
@@ -5,3 +7,4 @@
 notebooks/
 docs/build/
 docs/src/.ipynb_checkpoints/
+docs/src/Untitled*.ipynb

@@ -92,7 +92,7 @@ end
 function step_rule!(model)
     parameters = model.parameters
     for agent in model.agents
-        nbrs = grid_neighbors(agent, model, 1) #immediate neighbors on grid
+        nbrs = neighbors_moore(agent, model, 1) #immediate neighbors on grid
         if agent.atype == infectious
              agent.not_well_since +=1
             if agent.not_well_since > parameters.sickness_duration

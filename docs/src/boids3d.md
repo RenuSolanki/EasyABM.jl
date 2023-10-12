@@ -56,7 +56,7 @@ const ep = 0.00001 # to avoid division by zero
 function step_rule!(model)
     dt = model.parameters.dt
     for boid in model.agents
-        nbrs = euclidean_neighbors(boid, model, model.parameters.vis_range)
+        nbrs = neighbors(boid, model, model.parameters.vis_range)
         coh_force = Vect(0.0,0.0,0.0) 
         sep_force = Vect(0.0,0.0,0.0) 
         aln_force = Vect(0.0,0.0,0.0)

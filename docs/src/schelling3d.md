@@ -28,7 +28,7 @@ function initialiser!(model)
         agent.pos = Vect(x, y, z)     
     end    
     for agent in model.agents
-        nbrs = grid_neighbors(agent, model, 1)
+        nbrs = neighbors_moore(agent, model, 1)
         num_same = 0
         for nbr in nbrs
             if nbr.color == agent.color
@@ -54,7 +54,7 @@ function step_rule!(model)
     min_alike = model.parameters.min_alike
     for agent in model.agents
         num_alike = 0
-        for nbr in grid_neighbors(agent, model,1)
+        for nbr in neighbors_moore(agent, model,1)
             if agent.color == nbr.color
                 num_alike += 1
             end

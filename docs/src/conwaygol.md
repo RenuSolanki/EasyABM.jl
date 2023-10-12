@@ -50,7 +50,7 @@ function calculate_vals(model)
     for j in 1:model.size[2]
         for i in 1:model.size[1]
             patch = model.patches[i,j]
-            nbrs = neighbor_patches((i,j), model, 1)
+            nbrs = neighbor_patches_moore((i,j), model, 1)
             num_alive = 0
             for nbr in nbrs
                 num_alive+= model.patches[nbr...].is_alive

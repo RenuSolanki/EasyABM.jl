@@ -48,7 +48,7 @@ function step_rule!(model)
     for _ in 1:500
         i = rand(1:model.size[1])
         j = rand(1:model.size[2])
-        nbr_patches = neighbor_patches((i,j), model, 1)
+        nbr_patches = neighbor_patches_moore((i,j), model, 1)
         col = model.patches[i,j].color
         winner_col = who_wins_against[col]
         count = 0 
