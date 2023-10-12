@@ -1,15 +1,15 @@
 abstract type MType end #mortality type
-abstract type Static <: MType end
-abstract type Mortal <: MType end
+struct Static <: MType end
+struct Mortal <: MType end
 
 
 abstract type SType end #space type
-abstract type Periodic <: SType end
-abstract type NPeriodic <: SType end
+struct Periodic <: SType end
+struct NPeriodic <: SType end
 
 abstract type GType end #graph type
-abstract type DirG <: GType end
-abstract type SimG <: GType end
+struct DirG <: GType end
+struct SimG <: GType end
 
 
 abstract type AbstractSpaceModel{T<:MType, S<:Union{Int, AbstractFloat}, P<:SType} end
