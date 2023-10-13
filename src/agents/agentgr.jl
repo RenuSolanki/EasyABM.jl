@@ -4,7 +4,7 @@ mutable struct GraphAgent{S<:MType, T<:MType} <: AbstractAgent{Symbol, Any} #S g
     d::Dict{Symbol, Any}
     data::Dict{Symbol, Any}
     model::Union{AbstractGraphModel{S, T}, Nothing}
-    GraphAgent() = new{Mortal, Mortal}(1, 1, 
+    GraphAgent() = new{MortalType, MortalType}(1, 1, 
     Dict{Symbol, Any}(:_extras => PropDict(Dict{Symbol,Any}(:_active=>true))), 
     Dict{Symbol, Any}(), nothing)
     function GraphAgent{S, T}(id::Int, node::Int, d::Dict{Symbol, Any}, model) where {S<:MType, T<:MType}
@@ -72,8 +72,8 @@ Following property names are reserved for some specific agent properties
     - `keeps_record_of` : Set of properties that the agent records during time evolution. 
 """
 function graph_agent(;node=1,
-    graph_mort_type::Type{S} = Static, 
-    agent_type::Type{T}=Static,
+    graph_mort_type::S = Static, 
+    agent_type::T=Static,
     kwargs...) where {S<:MType, T<:MType}
 
     dict_agent = Dict{Symbol, Any}(kwargs)
@@ -98,13 +98,13 @@ $(TYPEDSIGNATURES)
 Creates a list of n graph agents with properties specified as keyword arguments.
 """
 function graph_agents(n::Int; node=1, 
-    graph_mort_type::Type{S} = Static, 
-    agent_type::Type{T}=Static,
+    graph_mort_type::S = Static, 
+    agent_type::T=Static,
     kwargs...) where {S<:MType, T<:MType}
 
     list = Vector{GraphAgent{S, T}}()
     for i in 1:n
-        agent = graph_agent(;node=node, graph_mort_type = S, agent_type=T, kwargs...)
+        agent = graph_agent(;node=node, graph_mort_type = graph_mort_type, agent_type=agent_type, kwargs...)
         push!(list, agent)
     end
     return list

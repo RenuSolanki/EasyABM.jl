@@ -18,7 +18,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _get_node_tail(graph::AbstractPropGraph{Mortal}, vert, frame, nprops, tail_length)
+function _get_node_tail(graph::AbstractPropGraph{MortalType}, vert, frame, nprops, tail_length)
     birth_time = graph.nodesprops[vert]._extras._birth_time::Int
     index = frame-birth_time +1 
     tail_points = GeometryBasics.Vec2{Float64}[]
@@ -37,7 +37,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _get_node_tail(graph::AbstractPropGraph{Static}, vert, frame, nprops, tail_length)
+function _get_node_tail(graph::AbstractPropGraph{StaticType}, vert, frame, nprops, tail_length)
     index = frame
     tail_points = GeometryBasics.Vec2{Float64}[]
     if !(:pos in nprops)
@@ -55,7 +55,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_vert_pos(graph::AbstractPropGraph{Mortal}, vert, frame, nprops)
+@inline function _get_vert_pos(graph::AbstractPropGraph{MortalType}, vert, frame, nprops)
     birth_time = graph.nodesprops[vert]._extras._birth_time::Int
     index = frame-birth_time +1 
     if haskey(graph.nodesprops[vert], :pos)
@@ -72,7 +72,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_vert_pos(graph::AbstractPropGraph{Static}, vert, frame, nprops)
+@inline function _get_vert_pos(graph::AbstractPropGraph{StaticType}, vert, frame, nprops)
     index = frame
     if haskey(graph.nodesprops[vert], :pos)
         x,y = (:pos in nprops) ? unwrap_data(graph.nodesprops[vert])[:pos][index] : graph.nodesprops[vert].pos
@@ -88,7 +88,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_vert_col(graph::AbstractPropGraph{Mortal}, vert, frame, nprops)
+@inline function _get_vert_col(graph::AbstractPropGraph{MortalType}, vert, frame, nprops)
     birth_time = graph.nodesprops[vert]._extras._birth_time::Int
     index = frame-birth_time +1 
     if haskey(graph.nodesprops[vert], :color)
@@ -103,7 +103,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_vert_col(graph::AbstractPropGraph{Static}, vert, frame, nprops)
+@inline function _get_vert_col(graph::AbstractPropGraph{StaticType}, vert, frame, nprops)
     index = frame
     if haskey(graph.nodesprops[vert], :color)
         vert_col = (:color in nprops) ? unwrap_data(graph.nodesprops[vert])[:color][index]::Col : graph.nodesprops[vert].color::Col
@@ -131,7 +131,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_vert_size(graph::AbstractPropGraph{Mortal}, vert, frame, nprops, node_size)
+@inline function _get_vert_size(graph::AbstractPropGraph{MortalType}, vert, frame, nprops, node_size)
     birth_time = graph.nodesprops[vert]._extras._birth_time::Int
     index = frame-birth_time +1 
     
@@ -148,7 +148,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_vert_size(graph::AbstractPropGraph{Static}, vert, frame, nprops, node_size)
+@inline function _get_vert_size(graph::AbstractPropGraph{StaticType}, vert, frame, nprops, node_size)
     index = frame
 
     if haskey(graph.nodesprops[vert], :size)

@@ -42,7 +42,7 @@ In the step function we loop over all the patches and if a patch has sand >= 4, 
 ```julia
 
 function topple!(patch_loc, model, threshold)
-    nbr_patch_locs = neighbor_patches_moore(patch_loc, model, 1, dist_func=manhattan_distance)
+    nbr_patch_locs = neighbor_patches_neumann(patch_loc, model, 1)
     for p in nbr_patch_locs
         pth_patch = model.patches[p...]
         sand = pth_patch.sand + 1

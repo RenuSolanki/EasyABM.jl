@@ -18,7 +18,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T<:MType,S<:Float64,P<:Periodic}
+@inline function _setup_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T<:MType,S<:Float64,P<:PeriodicType}
     patches = model.patches
     x,y,z = agent.pos
     a = mod1(x, xdim)
@@ -35,7 +35,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T<:MType,S<:Float64,P<:NPeriodic}
+@inline function _setup_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T<:MType,S<:Float64,P<:NPeriodicType}
     patches = model.patches
     x,y,z = agent.pos
     if (x>0 && x<=xdim && y>0 && y<=ydim && z>0 && z<=zdim)
@@ -54,7 +54,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T<:MType,S<:Int,P<:Periodic}
+@inline function _setup_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T<:MType,S<:Int,P<:PeriodicType}
     patches = model.patches
     x,y,z = agent.pos
     a = mod1(x, xdim)
@@ -68,7 +68,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T<:MType,S<:Int,P<:NPeriodic}
+@inline function _setup_grid!(agent::Agent3D{S, P, T}, model::SpaceModel3D{T,S,P}, i, xdim, ydim, zdim) where {T<:MType,S<:Int,P<:NPeriodicType}
     patches = model.patches
     x,y,z = agent.pos
     if (x>0 && x<=xdim && y>0 && y<=ydim  && z>0 && z<=zdim)
@@ -143,7 +143,7 @@ $(TYPEDSIGNATURES)
 
 Adds the agent to the model.
 """
-function add_agent!(agent, model::SpaceModel3D{Mortal})
+function add_agent!(agent, model::SpaceModel3D{MortalType})
     if (agent._extras._active::Bool)&&(agent._extras._new::Bool)
         _manage_default_data!(agent, model)
         manage_default_graphics_data!(agent, model.graphics, model.size)
@@ -210,7 +210,7 @@ $(TYPEDSIGNATURES)
 
 This function is for use from within the module and is not exported.
 """
-@inline function do_after_model_step!(model::SpaceModel3D{Mortal})
+@inline function do_after_model_step!(model::SpaceModel3D{MortalType})
     
     _permanently_remove_inactive_agents!(model)
 
@@ -231,7 +231,7 @@ $(TYPEDSIGNATURES)
 
 This function is for use from within the module and is not exported.
 """
-@inline function do_after_model_step!(model::SpaceModel3D{Static})
+@inline function do_after_model_step!(model::SpaceModel3D{StaticType})
 
     update_agents_record!(model)
 
@@ -250,7 +250,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _draw_agents_interact_frame(vis, model::SpaceModel3D{Mortal}, frame, scl)
+@inline function _draw_agents_interact_frame(vis, model::SpaceModel3D{MortalType}, frame, scl)
     all_agents = vcat(model.agents, model.agents_killed)
     for agent in all_agents
         if (agent._extras._birth_time::Int<= frame)&&(frame<= agent._extras._death_time::Int)
@@ -261,7 +261,7 @@ $(TYPEDSIGNATURES)
 
 end
 
-@inline function _draw_agents_interact_frame(vis, model::SpaceModel3D{Static}, frame, scl)
+@inline function _draw_agents_interact_frame(vis, model::SpaceModel3D{StaticType}, frame, scl)
     for agent in model.agents
         draw_agent_interact_frame(vis, agent, model, frame, scl)
     end
@@ -290,7 +290,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agents_and_patches(vis, model::SpaceModel3D{Mortal}, frame, scl::Number=1.0, tail_length = 1, tail_condition = agent->false)
+@inline function draw_agents_and_patches(vis, model::SpaceModel3D{MortalType}, frame, scl::Number=1.0, tail_length = 1, tail_condition = agent->false)
     show_patches = model.parameters._extras._show_space
     if show_patches
         if :color in model.record.pprops
@@ -307,7 +307,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agents_and_patches(vis, model::SpaceModel3D{Static}, frame, scl::Number=1.0, tail_length = 1, tail_condition = agent->false)
+@inline function draw_agents_and_patches(vis, model::SpaceModel3D{StaticType}, frame, scl::Number=1.0, tail_length = 1, tail_condition = agent->false)
     show_patches = model.parameters._extras._show_space::Bool
     if show_patches
         if :color in model.record.pprops
@@ -329,7 +329,7 @@ end
 # """
 # $(TYPEDSIGNATURES)
 # """
-# @inline function draw_agents_and_patches(model::SpaceModel3D{Mortal}, frame, scl, ep, tail_length = 1, tail_condition = agent-> false)
+# @inline function draw_agents_and_patches(model::SpaceModel3D{MortalType}, frame, scl, ep, tail_length = 1, tail_condition = agent-> false)
 #     # eyepoint(Point3D(ep.xe,ep.ye,ep.ze))
 #     # perspective(ep.zoom)
 #     show_patches = model.parameters._extras._show_space::Bool
@@ -350,7 +350,7 @@ end
 # """
 # $(TYPEDSIGNATURES)
 # """
-# @inline function draw_agents_and_patches(model::SpaceModel3D{Static}, frame, scl, ep, tail_length = 1, tail_condition = agent-> false)
+# @inline function draw_agents_and_patches(model::SpaceModel3D{StaticType}, frame, scl, ep, tail_length = 1, tail_condition = agent-> false)
 #     # eyepoint(Point3D(ep.xe,ep.ye,ep.ze))
 #     # perspective(ep.zoom)
 #     show_patches = model.parameters._extras._show_space::Bool

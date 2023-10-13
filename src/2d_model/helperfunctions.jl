@@ -19,7 +19,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T<:MType,S<:Float64,P<:Periodic}
+@inline function _setup_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T<:MType,S<:Float64,P<:PeriodicType}
     patches = model.patches
     x,y = agent.pos
     a = mod1(x, xdim)
@@ -34,7 +34,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T<:MType,S<:Float64,P<:NPeriodic}
+@inline function _setup_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T<:MType,S<:Float64,P<:NPeriodicType}
     patches = model.patches
     x,y = agent.pos
     if (x>0 && x<=xdim && y>0 && y<=ydim )
@@ -52,7 +52,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T<:MType,S<:Int,P<:Periodic}
+@inline function _setup_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T<:MType,S<:Int,P<:PeriodicType}
     patches = model.patches
     x,y = agent.pos
     a = mod1(x, xdim)
@@ -64,7 +64,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _setup_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T<:MType,S<:Int,P<:NPeriodic}
+@inline function _setup_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, i, xdim, ydim) where {T<:MType,S<:Int,P<:NPeriodicType}
     patches = model.patches
     x,y = agent.pos
     if (x>0 && x<=xdim && y>0 && y<=ydim )
@@ -137,7 +137,7 @@ $(TYPEDSIGNATURES)
 
 Adds the agent to the model.
 """
-function add_agent!(agent, model::SpaceModel2D{Mortal})
+function add_agent!(agent, model::SpaceModel2D{MortalType})
     if (agent._extras._active::Bool)&&(agent._extras._new::Bool)
         _manage_default_data!(agent, model)
         manage_default_graphics_data!(agent, model.graphics, model.size) #annotate any value that compiler doesn't know type of so that it can choose which function to call
@@ -207,7 +207,7 @@ $(TYPEDSIGNATURES)
 
 This function is for use from within the module and is not exported. 
 """
-@inline function do_after_model_step!(model::SpaceModel2D{Mortal})
+@inline function do_after_model_step!(model::SpaceModel2D{MortalType})
 
     _permanently_remove_inactive_agents!(model)
 
@@ -228,7 +228,7 @@ $(TYPEDSIGNATURES)
 
 This function is for use from within the module and is not exported.
 """
-@inline function do_after_model_step!(model::SpaceModel2D{Static})
+@inline function do_after_model_step!(model::SpaceModel2D{StaticType})
 
     update_agents_record!(model)
 
@@ -247,7 +247,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agents_and_patches(model::SpaceModel2D{Mortal}, frame, scl, tail_length = 1, tail_condition = agent-> false)
+@inline function draw_agents_and_patches(model::SpaceModel2D{MortalType}, frame, scl, tail_length = 1, tail_condition = agent-> false)
     xdim = model.size[1]
     ydim = model.size[2]
     show_patches = model.parameters._extras._show_space::Bool
@@ -268,7 +268,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agents_and_patches(model::SpaceModel2D{Static}, frame, scl, tail_length = 1, tail_condition = agent-> false)
+@inline function draw_agents_and_patches(model::SpaceModel2D{StaticType}, frame, scl, tail_length = 1, tail_condition = agent-> false)
     xdim = model.size[1]
     ydim = model.size[2]
     show_patches = model.parameters._extras._show_space::Bool

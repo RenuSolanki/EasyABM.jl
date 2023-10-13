@@ -6,7 +6,7 @@ mutable struct Agent3D{S<:Union{Int, Float64}, P<:SType, T<:MType} <: AbstractAg
     last_grid_loc::Tuple{Int, Int, Int}
     model::Union{AbstractSpaceModel3D{T, S, P},Nothing}
 
-    Agent3D() = new{Int, Periodic, Static}(1, Vect(1,1,1),
+    Agent3D() = new{Int, PeriodicType, StaticType}(1, Vect(1,1,1),
     Dict{Symbol, Any}(:_extras => PropDict(Dict{Symbol,Any}(:_active=>true))), 
     Dict{Symbol, Any}(), (1,1,1), nothing)
 
@@ -38,7 +38,7 @@ Following property names are reserved for some specific agent properties
     - `keeps_record_of` : Set of properties that the agent records during time evolution. 
 """
 function con_3d_agent(;pos::Vect{3, S}=Vect(1.0,1.0,1.0),#GeometryBasics.Vec{3, S} = GeometryBasics.Vec(1.0,1.0, 1.0),#NTuple{3, S}=(1.0,1.0,1.0), 
-    space_type::Type{P}=Periodic, agent_type::Type{T}=Static,
+    space_type::P=Periodic, agent_type::T=Static,
     kwargs...) where {P<:SType, S<:Float64, T<:MType}
     dict_agent = Dict{Symbol, Any}(kwargs)
 
@@ -62,11 +62,11 @@ $(TYPEDSIGNATURES)
 Creates a list of n 3d agents with properties specified as keyword arguments.
 """
 function con_3d_agents(n::Int; pos::Vect{3, S}=Vect(1.0,1.0,1.0), #GeometryBasics.Vec{3, S} = GeometryBasics.Vec(1.0,1.0, 1.0), #NTuple{3, S}=(1.0,1.0,1.0),
-    space_type::Type{P} = Periodic, agent_type::Type{T}=Static,
+    space_type::P = Periodic, agent_type::T=Static,
     kwargs...) where {S<:Float64,P<:SType, T<:MType}
     list = Vector{Agent3D{S, P, T}}()
     for i in 1:n
-        agent = con_3d_agent(; pos = pos, space_type = P, agent_type=T, kwargs...)
+        agent = con_3d_agent(; pos = pos, space_type = space_type, agent_type= agent_type, kwargs...)
         push!(list, agent)
     end
     return list

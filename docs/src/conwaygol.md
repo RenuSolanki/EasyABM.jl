@@ -56,7 +56,7 @@ function calculate_vals(model)
                 num_alive+= model.patches[nbr...].is_alive
             end
             condition1 = patch.is_alive && ((num_alive == 2) || (num_alive == 3))
-            condition2 = patch.is_alive && (num_alive == 3)
+            condition2 = !(patch.is_alive) && (num_alive == 3)
             if condition1 || condition2
                 vals[i,j] = true
             end
@@ -97,6 +97,7 @@ After defining the `step_rule!` function we can also choose to create an interac
 
 ```julia
 create_interactive_app(model, initialiser= initialiser!,
+    props_to_record=Dict("patches"=>Set([:color, :is_alive])),
     step_rule= step_rule!,
     model_controls=[
         (:alive_percent, "slider", 0:0.01:1.0)

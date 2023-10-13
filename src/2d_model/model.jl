@@ -16,15 +16,15 @@ struct SpaceModel2D{T, S<:Union{Int, Float64}, P<:SType} <:AbstractSpaceModel2D{
         size = (1,1)
         patches = [ContainerDataDict(Dict{Symbol, Any}(:color => Col("white"))) for i in 1:1, j in 1:1]
         patch_locs = [(1,1)]
-        agents = Vector{Agent2D{S, P, Mortal}}()
-        agents_added =  Vector{Agent2D{S, P, Mortal}}()
-        agents_killed = Vector{Agent2D{S, P, Mortal}}()
+        agents = Vector{Agent2D{S, P, MortalType}}()
+        agents_added =  Vector{Agent2D{S, P, MortalType}}()
+        agents_killed = Vector{Agent2D{S, P, MortalType}}()
         max_id = Ref(1)
         graphics = true
         parameters = PropDataDict()
         record = (aprops=Set{Symbol}([]), pprops=Set{Symbol}([]), mprops = Set{Symbol}([]))
         tick = Ref(1)
-        new{Mortal,S,P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick) 
+        new{MortalType,S,P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick) 
     end
 
     function SpaceModel2D{T, S, P}(size, patches, patch_locs, agents, max_id, graphics, parameters, record, tick) where {T<:MType, S<:Float64, P<:SType} 
@@ -55,7 +55,7 @@ function Base.getproperty(d::T, n::Symbol) where {T<:SpaceModel2D}
 end
 
 function Base.show(io::IO, ::MIME"text/plain", v::SpaceModel2D{T, S, P}) where {T,S,P} # works with REPL
-    if T==Mortal
+    if T<:MortalType
         str = "In a $T model agents can take birth or die"
     else
         str = "In a $T model number of agents is fixed"
@@ -64,7 +64,7 @@ function Base.show(io::IO, ::MIME"text/plain", v::SpaceModel2D{T, S, P}) where {
 end
 
 function Base.show(io::IO, v::SpaceModel2D{T, S,P}) where {T,S,P} # works with print
-    if T==Mortal
+    if T<:MortalType
         str = "In a $T model agents can take birth or die"
     else
         str = "In a $T model number of agents is fixed"
@@ -72,7 +72,7 @@ function Base.show(io::IO, v::SpaceModel2D{T, S,P}) where {T,S,P} # works with p
     println(io, "EasyABM SpaceModel2D{$T, $S, $P}: $str.")
 end
 
-function Base.setproperty!(agent::Agent2D{S, P, Mortal}, key::Symbol, x) where {S<:Union{Int, Float64}, P<:SType}
+function Base.setproperty!(agent::Agent2D{S, P, MortalType}, key::Symbol, x) where {S<:Union{Int, Float64}, P<:SType}
 
     if !(agent._extras._active::Bool)
         return
@@ -83,11 +83,11 @@ function Base.setproperty!(agent::Agent2D{S, P, Mortal}, key::Symbol, x) where {
     if (key!=:pos)
         dict[key] = x
     else
-        update_grid!(agent, getfield(agent, :model)::SpaceModel2D{Mortal,S,P}, x)
+        update_grid!(agent, getfield(agent, :model)::SpaceModel2D{MortalType,S,P}, x)
     end
 end
 
-function Base.setproperty!(agent::Agent2D{S, P, Static}, key::Symbol, x) where {S<:Union{Int, Float64}, P<:SType}
+function Base.setproperty!(agent::Agent2D{S, P, StaticType}, key::Symbol, x) where {S<:Union{Int, Float64}, P<:SType}
 
     
     dict = unwrap(agent)
@@ -95,7 +95,7 @@ function Base.setproperty!(agent::Agent2D{S, P, Static}, key::Symbol, x) where {
     if (key!=:pos)
         dict[key] = x
     else
-        update_grid!(agent, getfield(agent, :model)::SpaceModel2D{Static,S,P}, x)
+        update_grid!(agent, getfield(agent, :model)::SpaceModel2D{StaticType,S,P}, x)
     end
 end
 
@@ -104,7 +104,7 @@ function update_grid!(agent::Agent2D, model::Nothing, pos)
     return
 end
 
-function update_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, pos) where {T<:MType, S<:Float64, P<:Periodic}
+function update_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, pos) where {T<:MType, S<:Float64, P<:PeriodicType}
     x,y = pos
     i = getfield(agent, :id)
     size = model.size
@@ -119,7 +119,7 @@ function update_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, pos) 
     setfield!(agent, :last_grid_loc, (a,b))
 end
 
-function update_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, pos) where {T<:MType, S<:Float64, P<:NPeriodic}
+function update_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, pos) where {T<:MType, S<:Float64, P<:NPeriodicType}
     x,y = pos
     i = getfield(agent, :id)
     size = model.size
@@ -136,7 +136,7 @@ function update_grid!(agent::Agent2D{S, P, T}, model::SpaceModel2D{T,S,P}, pos) 
 end
 
 
-function update_grid!(agent::Agent2D{S, P, T},  model::SpaceModel2D{T,S,P}, pos) where {T<:MType, S<:Int, P<:Periodic}
+function update_grid!(agent::Agent2D{S, P, T},  model::SpaceModel2D{T,S,P}, pos) where {T<:MType, S<:Int, P<:PeriodicType}
     x,y = pos
     x0,y0 = agent.pos
     i = getfield(agent, :id)
@@ -151,7 +151,7 @@ function update_grid!(agent::Agent2D{S, P, T},  model::SpaceModel2D{T,S,P}, pos)
 end
 
 
-function update_grid!(agent::Agent2D{S, P, T},  model::SpaceModel2D{T,S,P}, pos) where {T<:MType, S<:Int, P<:NPeriodic}
+function update_grid!(agent::Agent2D{S, P, T},  model::SpaceModel2D{T,S,P}, pos) where {T<:MType, S<:Int, P<:NPeriodicType}
     x,y = pos
     x0,y0 = agent.pos
     i = getfield(agent, :id)

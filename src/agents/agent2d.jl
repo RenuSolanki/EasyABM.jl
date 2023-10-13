@@ -6,7 +6,7 @@ mutable struct Agent2D{S<:Union{Int, Float64}, P<:SType, T<:MType} <: AbstractAg
     last_grid_loc::Tuple{Int, Int}
     model::Union{AbstractSpaceModel2D{T, S, P}, Nothing}
 
-    Agent2D() = new{Int, Periodic, Static}(1, Vect(1,1),
+    Agent2D() = new{Int, PeriodicType, StaticType}(1, Vect(1,1),
     Dict{Symbol, Any}(:_extras => PropDict(Dict{Symbol,Any}(:_active=>true))), 
     Dict{Symbol, Any}(), (1,1), nothing)
     function Agent2D{S, P, T}(id::Int, pos::Vect{2, S}, d::Dict{Symbol, Any}, model) where {S<:Union{Int, Float64}, P<:SType, T<:MType}
@@ -36,7 +36,7 @@ Following property names are reserved for some specific agent properties
     - `keeps_record_of` : Set of properties that the agent records during time evolution. 
 """
 function con_2d_agent(;pos::Vect{2, S}=Vect(1.0,1.0),#GeometryBasics.Vec{2, S} = GeometryBasics.Vec(1.0,1.0), #NTuple{2, S}=(1.0,1.0), 
-    space_type::Type{P}=Periodic, agent_type::Type{T}=Static, 
+    space_type::P=Periodic, agent_type::T=Static, 
     kwargs...) where {P<:SType, S<:Float64, T<:MType}
 
     dict_agent = Dict{Symbol, Any}(kwargs)
@@ -61,12 +61,12 @@ $(TYPEDSIGNATURES)
 Creates a list of n 2d agents with properties specified as keyword arguments.
 """
 function con_2d_agents(n::Int; pos::Vect{2, S}=Vect(1.0,1.0), #GeometryBasics.Vec{2, S} = GeometryBasics.Vec(1.0,1.0), #, 
-    space_type::Type{P} = Periodic, agent_type::Type{T}=Static, 
+    space_type::P = Periodic, agent_type::T=Static, 
     kwargs...) where {S<:Float64, P<:SType, T<:MType}
 
     list = Vector{Agent2D{S, P, T}}()
     for i in 1:n
-        agent = con_2d_agent(;pos=pos, space_type = P, agent_type=T, kwargs...)
+        agent = con_2d_agent(;pos=pos, space_type = space_type, agent_type= agent_type, kwargs...)
         push!(list, agent)
     end
     return list

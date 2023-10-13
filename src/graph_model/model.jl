@@ -14,15 +14,15 @@ struct GraphModel{S<:MType,T<:MType,G<:GType} <: AbstractGraphModel{S,T,G} #S gr
     GraphModel{S}() where {S} =  begin #needed for initially attaching with agents
         graph = SimplePropGraph{S}()
         dead_meta_graph = SimplePropGraph{S}()
-        agents = Vector{GraphAgent{S, Mortal}}()
-        agents_added =  Vector{GraphAgent{S, Mortal}}()
-        agents_killed = Vector{GraphAgent{S, Mortal}}()
+        agents = Vector{GraphAgent{S, MortalType}}()
+        agents_added =  Vector{GraphAgent{S, MortalType}}()
+        agents_killed = Vector{GraphAgent{S, MortalType}}()
         max_id = Ref(1)
         graphics = true
         parameters = PropDataDict()
         record = (aprops=Set{Symbol}([]), nprops=Set{Symbol}([]), eprops=Set{Symbol}([]), mprops = Set{Symbol}([]))
         tick = Ref(1)
-        new{S,Mortal,SimG}(graph, dead_meta_graph, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick) 
+        new{S,MortalType,SimGType}(graph, dead_meta_graph, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick) 
     end
     function GraphModel{S,T,G}(graph::AbstractPropGraph{S, G}, dead_meta_graph::AbstractPropGraph{S, G}, agents, max_id, graphics, parameters, record, tick) where {S<:MType, T<:MType, G<:GType} 
     
@@ -33,10 +33,10 @@ struct GraphModel{S<:MType,T<:MType,G<:GType} <: AbstractGraphModel{S,T,G} #S gr
     end
 end
 
-const GraphModelFixAgNum = Union{GraphModel{Static, Static}, GraphModel{Mortal, Static}}
-const GraphModelDynAgNum = Union{GraphModel{Static, Mortal}, GraphModel{Mortal, Mortal}}
-const GraphModelFixGrTop = Union{GraphModel{Static, Static}, GraphModel{Static, Mortal}}
-const GraphModelDynGrTop = Union{GraphModel{Mortal, Static}, GraphModel{Mortal, Mortal}}
+const GraphModelFixAgNum = Union{GraphModel{StaticType, StaticType}, GraphModel{MortalType, StaticType}}
+const GraphModelDynAgNum = Union{GraphModel{StaticType, MortalType}, GraphModel{MortalType, MortalType}}
+const GraphModelFixGrTop = Union{GraphModel{StaticType, StaticType}, GraphModel{StaticType, MortalType}}
+const GraphModelDynGrTop = Union{GraphModel{MortalType, StaticType}, GraphModel{MortalType, MortalType}}
 
 
 
@@ -49,34 +49,34 @@ function Base.getproperty(d::AbstractGraphModel, n::Symbol)
     end
 end
 
-function Base.show(io::IO, ::MIME"text/plain", v::GraphModel{T, S, G}) where {T,S, G} # works with REPL
-    if (T==Mortal)&&(S==Mortal)
+function Base.show(io::IO, ::MIME"text/plain", v::GraphModel{T, S, G}) where {T,S,G} # works with REPL
+    if (T<:MortalType)&&(S<:MortalType)
         str = "In a {$T, $S} model graph topology can change and agents can take birth or die"
     end
-    if (T==Static)&&(S==Mortal)
+    if (T<:StaticType)&&(S<:MortalType)
         str = "In a {$T, $S} model graph topology is fixed while agents can take birth or die"
     end
-    if (T==Static)&&(S==Static)
+    if (T<:StaticType)&&(S<:StaticType)
         str = "In a {$T, $S} model both graph topology and agents number is fixed"
     end
-    if (T==Mortal)&&(S==Static)
+    if (T<:MortalType)&&(S<:StaticType)
         str = "In a {$T, $S} model graph topology can change and agents number is fixed"
     end
     
     println(io, "EasyABM GraphModel{$T, $S, $G}: $str.")
 end
 
-function Base.show(io::IO, v::GraphModel{T,S, G}) where {T,S, G} # works with print
-    if (T==Mortal)&&(S==Mortal)
+function Base.show(io::IO, v::GraphModel{T,S, G}) where {T,S,G} # works with print
+    if (T<:MortalType)&&(S<:MortalType)
         str = "In a {$T, $S} model graph topology can change and agents can take birth or die"
     end
-    if (T==Static)&&(S==Mortal)
+    if (T<:StaticType)&&(S<:MortalType)
         str = "In a {$T, $S} model graph topology is fixed while agents can take birth or die"
     end
-    if (T==Static)&&(S==Static)
+    if (T<:StaticType)&&(S<:StaticType)
         str = "In a {$T, $S} model both graph topology and agents number is fixed"
     end
-    if (T==Mortal)&&(S==Static)
+    if (T==MortalType)&&(S==StaticType)
         str = "In a {$T, $S} model graph topology can change and agents number is fixed"
     end
     
@@ -84,7 +84,7 @@ function Base.show(io::IO, v::GraphModel{T,S, G}) where {T,S, G} # works with pr
 end
 
 
-function Base.setproperty!(agent::GraphAgent{S, Mortal}, key::Symbol, x) where S<:MType
+function Base.setproperty!(agent::GraphAgent{S, MortalType}, key::Symbol, x) where S<:MType
 
     if !(agent._extras._active::Bool)
         return
@@ -95,19 +95,19 @@ function Base.setproperty!(agent::GraphAgent{S, Mortal}, key::Symbol, x) where S
     if key != :node
         dict[key] = x
     else 
-        update_nodesprops!(agent, getfield(agent, :model)::GraphModel{S, Mortal}, x)
+        update_nodesprops!(agent, getfield(agent, :model)::GraphModel{S, MortalType}, x)
     end
 
 end
 
-function Base.setproperty!(agent::GraphAgent{S, Static}, key::Symbol, x) where S<:MType
+function Base.setproperty!(agent::GraphAgent{S, StaticType}, key::Symbol, x) where S<:MType
     
     dict = unwrap(agent)
     
     if key != :node
         dict[key] = x
     else 
-        update_nodesprops!(agent, getfield(agent, :model)::GraphModel{S, Static}, x)
+        update_nodesprops!(agent, getfield(agent, :model)::GraphModel{S, StaticType}, x)
     end
 
 end
@@ -116,7 +116,7 @@ function update_nodesprops!(agent::GraphAgent, model::Nothing)
     return
 end
 
-function update_nodesprops!(agent::GraphAgent{S}, model::GraphModel{S}, node_new) where {S<:Static}
+function update_nodesprops!(agent::GraphAgent{S}, model::GraphModel{S}, node_new) where {S<:StaticType}
     node_old = agent.node
     graph = model.graph
 
@@ -130,7 +130,7 @@ function update_nodesprops!(agent::GraphAgent{S}, model::GraphModel{S}, node_new
 end
 
 
-function update_nodesprops!(agent::GraphAgent{S}, model::GraphModel{S}, node_new) where {S<:Mortal}
+function update_nodesprops!(agent::GraphAgent{S}, model::GraphModel{S}, node_new) where {S<:MortalType}
     graph = model.graph
     if !graph.nodesprops[node_new]._extras._active::Bool
         return 

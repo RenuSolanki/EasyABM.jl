@@ -342,11 +342,11 @@ $(TYPEDSIGNATURES)
 
 Returns list of agents at a given node. 
 """
-function agents_at(node, model::GraphModel{Mortal, T}) where T<:MType #modifiable graph
+function agents_at(node, model::GraphModel{MortalType, T}) where T<:MType #modifiable graph
     lst = model.graph.nodesprops[node].agents
 
     if !(model.graph.nodesprops[node]._extras._active::Bool)
-        return (ag for ag in GraphAgent{Mortal, T}[])
+        return (ag for ag in GraphAgent{MortalType, T}[])
     end
     return (agent_with_id(l, model) for l in lst)
 end
@@ -357,7 +357,7 @@ $(TYPEDSIGNATURES)
 
 Returns list of agents at a given node. 
 """
-function agents_at(node, model::GraphModel{Static, T}) where T<:MType #unmodifiable graph
+function agents_at(node, model::GraphModel{StaticType, T}) where T<:MType #unmodifiable graph
     lst = model.graph.nodesprops[node].agents
  
     return (agent_with_id(l, model) for l in lst)
@@ -367,7 +367,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function get_agents(model::GraphModel{T, Mortal}, condition::Function) where {T<:MType}
+@inline function get_agents(model::GraphModel{T, MortalType}, condition::Function) where {T<:MType}
     all_agents = [model.agents, model.agents_added]
     all_agents_itr = (ag for i in 1:2 for ag in all_agents[i])
     return Iterators.filter(ag-> (ag._extras._active::Bool)&&(condition(ag)), all_agents_itr)
@@ -376,7 +376,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function get_agents(model::GraphModel{T, Mortal}) where {T<:MType}
+@inline function get_agents(model::GraphModel{T, MortalType}) where {T<:MType}
     all_agents = [model.agents, model.agents_added]
     all_agents_itr = (ag for i in 1:2 for ag in all_agents[i])
     return Iterators.filter(ag-> ag._extras._active::Bool, all_agents_itr)
@@ -385,14 +385,14 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function get_agents(model::GraphModel{T, Static}, condition::Function) where {T<:MType}
+@inline function get_agents(model::GraphModel{T, StaticType}, condition::Function) where {T<:MType}
     return Iterators.filter(ag-> condition(ag), model.agents)
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function get_agents(model::GraphModel{T, Static}) where {T<:MType}
+@inline function get_agents(model::GraphModel{T, StaticType}) where {T<:MType}
     return (ag for ag in model.agents)
 end
 
@@ -402,7 +402,7 @@ $(TYPEDSIGNATURES)
 
 Returns agent having given id.
 """
-function agent_with_id(i::Int, model::GraphModel{T, Mortal}) where T<:MType
+function agent_with_id(i::Int, model::GraphModel{T, MortalType}) where T<:MType
     m = model.parameters._extras._len_model_agents::Int
 
     if i<=m  
@@ -442,7 +442,7 @@ $(TYPEDSIGNATURES)
 
 Returns agent having given id.
 """
-function agent_with_id(i::Int, model::GraphModel{T, Static}) where T<:MType
+function agent_with_id(i::Int, model::GraphModel{T, StaticType}) where T<:MType
     if getfield(model.agents[i],:id) == i  # will work if agents list has not been shuffled
         return model.agents[i]
     end

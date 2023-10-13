@@ -1,11 +1,11 @@
-@inline function _agent_extra_props(agent::Agent3D{S, P, Mortal}) where {S<:Union{Int, Float64}, P<:SType}
+@inline function _agent_extra_props(agent::Agent3D{S, P, MortalType}) where {S<:Union{Int, Float64}, P<:SType}
     agent._extras._active = true
     agent._extras._birth_time = 1 
     agent._extras._death_time = typemax(Int)
     return
 end
 
-@inline function _agent_extra_props(agent::Agent3D{S, P, Static}) where {S<:Union{Int, Float64}, P<:SType}
+@inline function _agent_extra_props(agent::Agent3D{S, P, StaticType}) where {S<:Union{Int, Float64}, P<:SType}
     return
 end
 
@@ -28,9 +28,9 @@ its own properties.
 - `kwargs`` : Keyword argments used as model parameters. 
 """
 function create_3d_model(agents::Vector{Agent3D{S, A, B}}; 
-    graphics=true, agents_type::Type{T} = Static, 
+    graphics=true, agents_type::T = Static, 
     size::NTuple{3,Int}= (10,10,10), random_positions=false, 
-    space_type::Type{P} = Periodic,
+    space_type::P = Periodic,
     kwargs...) where {S<:Union{Int, Float64}, T<:MType, P<:SType, A<:SType, B<:MType}
 
     xdim = size[1]
@@ -96,10 +96,10 @@ $(TYPEDSIGNATURES)
 function create_3d_model(;
     graphics=true, 
     size::NTuple{3,Int}= (10,10,10), random_positions=false, 
-    space_type::Type{P} = Periodic,
+    space_type::P = Periodic,
     kwargs...) where {P<:SType}
 
-    agents = Agent3D{Int, P, Static}[]
+    agents = Agent3D{Int, P, StaticType}[]
     model = create_3d_model(agents; graphics=graphics, agents_type=Static, 
     size= size, random_positions=random_positions, space_type=space_type, kwargs...)
     return model

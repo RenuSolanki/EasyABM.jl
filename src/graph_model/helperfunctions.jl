@@ -37,7 +37,7 @@ function _create_dead_meta_graph(graph::SimplePropGraph{S}) where S<:MType
     end
 
     dead_meta_graph = SimplePropGraph(_nodes, _structure, 
-     Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}(),S)
+     Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}(),S())
      return dead_meta_graph
 end
 
@@ -53,7 +53,7 @@ function _create_dead_meta_graph(graph::DirPropGraph{S}) where S<:MType
         _out_structure[i] = Int[]
     end
     dead_meta_graph = DirPropGraph(_nodes, _in_structure, _out_structure, 
-     Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}(),S)
+     Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}(),S())
      return dead_meta_graph
 end
 
@@ -297,7 +297,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _checkout_dead_graph(i,j,graph::SimplePropGraph{Mortal})
+@inline function _checkout_dead_graph(i,j,graph::SimplePropGraph{MortalType})
     condition = (j in graph.structure[i])
     if condition 
         deleteat!(graph.structure[i], findfirst(x-> x==j, graph.structure[i]))
@@ -310,7 +310,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _checkout_dead_graph(i,j,graph::DirPropGraph{Mortal})
+@inline function _checkout_dead_graph(i,j,graph::DirPropGraph{MortalType})
     condition = (j in graph.out_structure[i])
     if condition 
         deleteat!(graph.out_structure[i], findfirst(x-> x==j, graph.out_structure[i]))
@@ -772,7 +772,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_active_out_structure(graph::AbstractPropGraph{Mortal}, vert, out_structure, frame)
+@inline function _get_active_out_structure(graph::AbstractPropGraph{MortalType}, vert, out_structure, frame)
     active_out_structure = Int[]
     indices = Int[]
     for nd in out_structure
@@ -795,7 +795,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_active_out_structure(graph::AbstractPropGraph{Static}, vert, out_structure, frame)
+@inline function _get_active_out_structure(graph::AbstractPropGraph{StaticType}, vert, out_structure, frame)
     return out_structure
 end
 
@@ -805,7 +805,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _draw_da_vert(graph::AbstractPropGraph{Mortal}, vert, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
+@inline function _draw_da_vert(graph::AbstractPropGraph{MortalType}, vert, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
     vert_pos = _get_vert_pos(graph, vert, frame, nprops)
     vert_col = _get_vert_col(graph, vert, frame, nprops)
     
@@ -825,7 +825,7 @@ $(TYPEDSIGNATURES)
     draw_vert(vert, vert_pos, vert_col, vert_size, neighs_pos, neighs_sizes, is_digraph(graph), edge_cols, mark_nodes, tail_length, tail_cond, tail_points)
 end
 
-@inline function _draw_da_vert(graph::AbstractPropGraph{Static}, vert, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
+@inline function _draw_da_vert(graph::AbstractPropGraph{StaticType}, vert, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
     vert_pos = _get_vert_pos(graph, vert, frame, nprops)
     vert_col = _get_vert_col(graph, vert, frame, nprops)
     
@@ -847,7 +847,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _draw_graph(graph::AbstractPropGraph{Mortal}, verts, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
+@inline function _draw_graph(graph::AbstractPropGraph{MortalType}, verts, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
     alive_verts = verts[[(graph.nodesprops[nd]._extras._birth_time::Int <=frame)&&(frame<=graph.nodesprops[nd]._extras._death_time::Int) for nd in verts]]
     @sync for vert in alive_verts
         @async _draw_da_vert(graph, vert, node_size, frame, nprops, eprops,  mark_nodes, tail) 
@@ -858,7 +858,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _draw_graph(graph::AbstractPropGraph{Static}, verts, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
+@inline function _draw_graph(graph::AbstractPropGraph{StaticType}, verts, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
     @sync for vert in verts
         @async _draw_da_vert(graph, vert, node_size, frame, nprops, eprops, mark_nodes, tail) 
     end

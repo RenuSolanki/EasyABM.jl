@@ -13,7 +13,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_agent_data(agent::AbstractAgent, model::Union{AbstractSpaceModel{Mortal}, AbstractGraphModel{T, Mortal}}, props = agent._keeps_record_of) where T<:MType
+function get_agent_data(agent::AbstractAgent, model::Union{AbstractSpaceModel{MortalType}, AbstractGraphModel{T, MortalType}}, props = agent._keeps_record_of) where T<:MType
     datadict=Dict{Symbol,Any}()
     uptick = agent._extras._death_time::Int == typemax(Int) ? model.tick+1 : agent._extras._death_time::Int+1
     downtick = agent._extras._birth_time::Int-1
@@ -27,7 +27,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_agent_data(agent::AbstractAgent, model::Union{AbstractSpaceModel{Static}, AbstractGraphModel{T, Static}}, props = agent._keeps_record_of) where T<:MType
+function get_agent_data(agent::AbstractAgent, model::Union{AbstractSpaceModel{StaticType}, AbstractGraphModel{T, StaticType}}, props = agent._keeps_record_of) where T<:MType
     datadict=Dict{Symbol,Any}()
     for key in props
         datadict[key] = unwrap_data(agent)[key]
@@ -192,7 +192,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_nums_agents(model::Union{AbstractSpaceModel{Mortal}, AbstractGraphModel{T, Mortal}}, 
+function get_nums_agents(model::Union{AbstractSpaceModel{MortalType}, AbstractGraphModel{T, MortalType}}, 
     conditions::Function...; labels::Vector{String} = string.(collect(1:length(conditions))), plot_result = false ) where T<: MType
 
     dict = Dict{Symbol, Vector{Int}}()
@@ -227,7 +227,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_agents_avg_props(model::Union{AbstractSpaceModel{Mortal}, AbstractGraphModel{T, Mortal}}, 
+function get_agents_avg_props(model::Union{AbstractSpaceModel{MortalType}, AbstractGraphModel{T, MortalType}}, 
     props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
 
     all_agents = vcat(model.agents, model.agents_killed)
@@ -272,7 +272,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_nums_agents(model::Union{AbstractSpaceModel{Static}, AbstractGraphModel{T, Static}}, 
+function get_nums_agents(model::Union{AbstractSpaceModel{StaticType}, AbstractGraphModel{T, StaticType}}, 
     conditions::Function...; labels::Vector{String} = string.(collect(1:length(conditions))), plot_result = false ) where T<: MType
 
     dict = Dict{Symbol, Vector{Int}}()
@@ -302,7 +302,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function get_agents_avg_props(model::Union{AbstractSpaceModel{Static}, AbstractGraphModel{T, Static}}, 
+function get_agents_avg_props(model::Union{AbstractSpaceModel{StaticType}, AbstractGraphModel{T, StaticType}}, 
     props::Function...; labels::Vector{String} = string.(collect(1:length(props))), plot_result = false ) where T<: MType
 
     all_agents = model.agents

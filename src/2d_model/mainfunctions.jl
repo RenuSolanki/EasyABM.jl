@@ -1,13 +1,20 @@
-@inline function _agent_extra_props(agent::Agent2D{S, P, Mortal}) where {S<:Union{Int, Float64}, P<:SType}
+@inline function _agent_extra_props(agent::Agent2D{S, P, MortalType}) where {S<:Union{Int, Float64}, P<:SType}
     agent._extras._active = true
     agent._extras._birth_time = 1 
     agent._extras._death_time = typemax(Int)
     return
 end
 
-@inline function _agent_extra_props(agent::Agent2D{S, P, Static}) where {S<:Union{Int, Float64}, P<:SType}
+@inline function _agent_extra_props(agent::Agent2D{S, P, StaticType}) where {S<:Union{Int, Float64}, P<:SType}
     return
 end
+
+
+# function create_2d_model(agents::Vector{Agent2D{S, A, B}}; 
+#     graphics=true, agents_type::Type{T} = StaticType, 
+#     size::NTuple{2,Int}= (10,10), random_positions=false, 
+#     space_type::Type{P} = PeriodicType,
+#     kwargs...) where {T<:MType, S<:Union{Int, Float64}, P<:SType, A<:SType, B<:MType}
 
 
 
@@ -29,9 +36,9 @@ its own properties.
 """
 
 function create_2d_model(agents::Vector{Agent2D{S, A, B}}; 
-    graphics=true, agents_type::Type{T} = Static, 
+    graphics=true, agents_type::T = Static, 
     size::NTuple{2,Int}= (10,10), random_positions=false, 
-    space_type::Type{P} = Periodic,
+    space_type::P = Periodic,
     kwargs...) where {T<:MType, S<:Union{Int, Float64}, P<:SType, A<:SType, B<:MType}
 
     xdim, ydim = size 
@@ -70,7 +77,7 @@ function create_2d_model(agents::Vector{Agent2D{S, A, B}};
 
         manage_default_graphics_data!(agent, graphics, size)
 
-        # if T<:Mortal
+        # if T<:MortalType
         #     agent._extras._active = true
         #     agent._extras._birth_time = 1 
         #     agent._extras._death_time = typemax(Int)
@@ -99,10 +106,10 @@ $(TYPEDSIGNATURES)
 function create_2d_model(; 
     graphics=true,
     size::NTuple{2,Int}= (10,10), random_positions=false, 
-    space_type::Type{P} = Periodic,
+    space_type::P = Periodic,
     kwargs...) where {P<:SType}
 
-    agents = Agent2D{Int, P, Static}[] # Can also use Float64 instead of Int. Wont matter as there are no agents. 
+    agents = Agent2D{Int, P, StaticType}[] # Can also use Float64 instead of Int. Wont matter as there are no agents. 
     model = create_2d_model(agents; graphics=graphics, agents_type=Static, 
     size=size, random_positions=random_positions, space_type = space_type, kwargs...)   
     return model

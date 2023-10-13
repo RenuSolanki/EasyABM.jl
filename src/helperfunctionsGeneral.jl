@@ -128,12 +128,12 @@ end
 end
 
 
-@inline function _get_all_agents(model::Union{AbstractSpaceModel{Mortal}, AbstractGraphModel{T, Mortal} }) where T<:MType
+@inline function _get_all_agents(model::Union{AbstractSpaceModel{MortalType}, AbstractGraphModel{T, MortalType} }) where T<:MType
     return vcat(model.agents, model.agents_killed) # this function is not expected to be called from within a step function. 
 
 end
 
-@inline function _get_all_agents(model::Union{AbstractSpaceModel{Static}, AbstractGraphModel{T, Static} }) where T<:MType
+@inline function _get_all_agents(model::Union{AbstractSpaceModel{StaticType}, AbstractGraphModel{T, StaticType} }) where T<:MType
     return model.agents
 end
 
@@ -142,7 +142,7 @@ $(TYPEDSIGNATURES)
 
 This function is for use from within the module and is not exported.
 """
-@inline function _permanently_remove_inactive_agents!(model::Union{AbstractSpaceModel{Mortal}, AbstractGraphModel{T, Mortal} }) where T<:MType
+@inline function _permanently_remove_inactive_agents!(model::Union{AbstractSpaceModel{MortalType}, AbstractGraphModel{T, MortalType} }) where T<:MType
     newly_added = model.agents_added
     len_dead = length(model.agents_killed)
     if len_dead>0
@@ -178,7 +178,7 @@ $(TYPEDSIGNATURES)
 
 This function is for use from within the module and is not exported.
 """
-@inline function commit_add_agents!(model::Union{AbstractSpaceModel{Mortal}, AbstractGraphModel{T, Mortal} }) where T<:MType
+@inline function commit_add_agents!(model::Union{AbstractSpaceModel{MortalType}, AbstractGraphModel{T, MortalType} }) where T<:MType
     agents_to_add = model.agents_added
     for ag in agents_to_add
         push!(model.agents, ag)
@@ -229,7 +229,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _manage_default_data!(agent::AbstractAgent, model::AbstractSpaceModel{Mortal})
+@inline function _manage_default_data!(agent::AbstractAgent, model::AbstractSpaceModel{MortalType})
     push!(model.agents_added, agent)
     id = getfield(model,:max_id)[]+1
     setfield!(agent, :id, id)
@@ -246,7 +246,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _manage_default_data!(agent::AbstractAgent, model::AbstractGraphModel{T, Mortal}) where T<:MType
+@inline function _manage_default_data!(agent::AbstractAgent, model::AbstractGraphModel{T, MortalType}) where T<:MType
     push!(model.agents_added, agent)
     id = getfield(model,:max_id)[]+1
     setfield!(agent, :id, id)
@@ -295,7 +295,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _init_agents!(model::AbstractSpaceModel{Mortal})
+function _init_agents!(model::AbstractSpaceModel{MortalType})
     _permanently_remove_inactive_agents!(model)
     commit_add_agents!(model)
     empty!(model.agents_killed)
@@ -311,7 +311,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _init_agents!(model::AbstractSpaceModel{Static})
+function _init_agents!(model::AbstractSpaceModel{StaticType})
     for agent in model.agents
         _init_agent_record!(agent)
     end
@@ -335,7 +335,7 @@ Sets the agent as inactive thus effectively removing from the model. However, th
 are permanently removed from the list `model.agents` only twice in one step i) After the `agent_step_function` 
 has run for all agents and ii) After the `step_rule`.
 """
-function kill_agent!(agent::AbstractAgent, model::AbstractSpaceModel{Mortal})
+function kill_agent!(agent::AbstractAgent, model::AbstractSpaceModel{MortalType})
     if agent._extras._active::Bool
         gloc = get_grid_loc(agent)
         id = getfield(agent, :id)
@@ -345,20 +345,20 @@ function kill_agent!(agent::AbstractAgent, model::AbstractSpaceModel{Mortal})
     end
 end
 
-_static_agents_error() = throw(error("Number of static agents is fixed. Set agents_type = Mortal in model definition."))
+_static_agents_error() = throw(error("Number of static agents is fixed. Set agents_type = MortalType in model definition."))
 _static_graph_error() = throw(error("A static graph can not be modified. Use a dynamic graph in model definition."))
 
 """
 $(TYPEDSIGNATURES)
 """
-function kill_agent!(agent::AbstractAgent, model::AbstractSpaceModel{Static})
+function kill_agent!(agent::AbstractAgent, model::AbstractSpaceModel{StaticType})
     _static_agents_error()
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-function add_agent!(agent, model::AbstractSpaceModel{Static})
+function add_agent!(agent, model::AbstractSpaceModel{StaticType})
     _static_agents_error()
 end
 
@@ -368,7 +368,7 @@ $(TYPEDSIGNATURES)
 Sets the agent as inactive thus effectively removing from the model. However, the removed agents 
 are permanently removed from the list `model.agents` only after each step.
 """
-function kill_agent!(agent::AbstractAgent, model::AbstractGraphModel{T,Mortal}) where T<:MType
+function kill_agent!(agent::AbstractAgent, model::AbstractGraphModel{T,MortalType}) where T<:MType
     if agent._extras._active::Bool
         x=agent.node
         id = getfield(agent, :id)
@@ -382,7 +382,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function kill_agent!(agent::AbstractAgent, model::AbstractGraphModel{T,Static}) where T<:MType
+function kill_agent!(agent::AbstractAgent, model::AbstractGraphModel{T,StaticType}) where T<:MType
     _static_agents_error()
 end
 
@@ -390,7 +390,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function add_agent!(agent, model::AbstractGraphModel{T,Static}) where T<:MType
+function add_agent!(agent, model::AbstractGraphModel{T,StaticType}) where T<:MType
     _static_agents_error()
 end
 

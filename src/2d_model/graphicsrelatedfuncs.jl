@@ -12,7 +12,7 @@ const _grid_lines_color = RGBA(0.5,0.5,0.5,0.5)
     return colors
 end
 
-@inline function _get_tail(agent, model::SpaceModel2D{Mortal, S}, t, tail_length, agent_tail = GeometryBasics.Vec2{S}[]) where S<:Float64 # we don't have tails for grid agents
+@inline function _get_tail(agent, model::SpaceModel2D{MortalType, S}, t, tail_length, agent_tail = GeometryBasics.Vec2{S}[]) where S<:Float64 # we don't have tails for grid agents
     
     if !(:pos in agent._keeps_record_of)
         push!(agent_tail, GeometryBasics.Vec(agent.pos...))
@@ -36,7 +36,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_tail(agent, model::SpaceModel2D{Static, S}, t::Int, tail_length) where S<:Float64
+@inline function _get_tail(agent, model::SpaceModel2D{StaticType, S}, t::Int, tail_length) where S<:Float64
     agent_tail = GeometryBasics.Vec2{S}[]
     if !(:pos in agent._keeps_record_of)
         push!(agent_tail, GeometryBasics.Vec(agent.pos...))

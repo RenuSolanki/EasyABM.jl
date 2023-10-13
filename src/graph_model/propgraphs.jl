@@ -5,18 +5,18 @@
 ####################################
 
 
-struct SimplePropGraph{T, G<:SimG} <: AbstractPropGraph{T, G}
+struct SimplePropGraph{T, G<:SimGType} <: AbstractPropGraph{T, G}
     _nodes::Vector{Int}
     structure:: Dict{Int, Vector{Int}}
     nodesprops::Dict{Int, ContainerDataDict{Symbol, Any} }
     edgesprops::Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}
 
-    SimplePropGraph{T}() where {T<:MType} = new{T, SimG}(Vector{Int}(), Dict{Int, Vector{Int}}(), 
+    SimplePropGraph{T}() where {T<:MType} = new{T, SimGType}(Vector{Int}(), Dict{Int, Vector{Int}}(), 
     Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
 
-    SimplePropGraph(structure::Nothing = nothing, w::Type{T}=Static) where T<:MType = new{T, SimG}(Vector{Int}(), Dict{Int, Vector{Int}}(), 
+    SimplePropGraph(structure::Nothing = nothing, w::T=Static) where T<:MType = new{T, SimGType}(Vector{Int}(), Dict{Int, Vector{Int}}(), 
     Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
-    function SimplePropGraph(structure::Dict{Int, Vector{Int}}, w::Type{T}) where T<:MType
+    function SimplePropGraph(structure::Dict{Int, Vector{Int}}, w::T) where T<:MType
         nodes = sort!(collect(keys(structure)))
         for i in nodes
             if i in structure[i]
@@ -24,19 +24,19 @@ struct SimplePropGraph{T, G<:SimG} <: AbstractPropGraph{T, G}
                 return nothing
             end
         end
-        new{T, SimG}(nodes, structure, Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
+        new{T, SimGType}(nodes, structure, Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
     end
 
-    function SimplePropGraph(n::Int, w::Type{T}) where T<:MType
+    function SimplePropGraph(n::Int, w::T) where T<:MType
         structure = Dict{Int, Vector{Int}}()
         for i in 1:n
             structure[i] = Int[]
         end
-        new{T, SimG}(collect(1:n), structure, Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
+        new{T, SimGType}(collect(1:n), structure, Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}())
     end
 
-    function SimplePropGraph(_nodes, structure, nodesprops, edgesprops, w::Type{T}) where T<:MType
-        return new{T, SimG}(_nodes, structure, nodesprops, edgesprops)
+    function SimplePropGraph(_nodes, structure, nodesprops, edgesprops, w::T) where T<:MType
+        return new{T, SimGType}(_nodes, structure, nodesprops, edgesprops)
     end
 end
 
@@ -341,7 +341,7 @@ is_digraph(g::SimplePropGraph) = false
 """
 $(TYPEDSIGNATURES)
 """
-is_static(g::SimplePropGraph{T}) where T<:MType = T <: Static
+is_static(g::SimplePropGraph{T}) where T<:MType = T <: StaticType
 
 
 """
@@ -384,7 +384,7 @@ dynamic_simple_graph(structure::Dict{Int, Vector{Int}}) = SimplePropGraph(struct
 """
 $(TYPEDSIGNATURES)
 """
-function convert_type(graph::SimplePropGraph, w::Type{T}) where T<:MType
+function convert_type(graph::SimplePropGraph, w::T) where T<:MType
     return SimplePropGraph(getfield(graph, :_nodes), graph.structure, graph.nodesprops, graph.edgesprops, w)
 end
 
@@ -569,16 +569,16 @@ end
 ####################################
 ####################################
 
-struct DirPropGraph{T, G<:DirG}<: AbstractPropGraph{T, G}
+struct DirPropGraph{T, G<:DirGType}<: AbstractPropGraph{T, G}
     _nodes::Vector{Int}
     in_structure::Dict{Int, Vector{Int}}
     out_structure::Dict{Int, Vector{Int}}
     nodesprops::Dict{Int, ContainerDataDict{Symbol, Any}}
     edgesprops::Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}
-    DirPropGraph(in_structure::Nothing = nothing, w::Type{T}=Static) where T<:MType = new{T, DirG}(Vector{Int}(), Dict{Int, Vector{Int}}(), Dict{Int, Vector{Int}}(), 
+    DirPropGraph(in_structure::Nothing = nothing, w::T=Static) where T<:MType = new{T, DirGType}(Vector{Int}(), Dict{Int, Vector{Int}}(), Dict{Int, Vector{Int}}(), 
     Dict{Int,ContainerDataDict{Symbol, Any}}(), Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}())
 
-    function DirPropGraph(in_structure::Dict{Int, Vector{Int}},w::Type{T}) where T<:MType
+    function DirPropGraph(in_structure::Dict{Int, Vector{Int}},w::T) where T<:MType
         nodes = vcat(collect(keys(in_structure)), collect(Iterators.flatten(values(in_structure))))
         sort!(nodes)
         unique!(nodes)
@@ -601,21 +601,21 @@ struct DirPropGraph{T, G<:DirG}<: AbstractPropGraph{T, G}
                 end
             end
         end
-        new{T,DirG}(nodes, in_structure, out_structure, Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}())
+        new{T,DirGType}(nodes, in_structure, out_structure, Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}())
     end
 
-    function DirPropGraph(n::Int,w::Type{T}) where T <: MType
+    function DirPropGraph(n::Int,w::T) where T <: MType
         dc1 = Dict{Int, Vector{Int}}()
         dc2 = Dict{Int, Vector{Int}}()
         for i in 1:n
             dc1[i] = Int[]
             dc2[i] = Int[]
         end
-        new{T, DirG}(collect(1:n), dc1, dc2, Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int,Int}, PropDataDict{Symbol, Any}}())
+        new{T, DirGType}(collect(1:n), dc1, dc2, Dict{Int, ContainerDataDict{Symbol, Any}}(), Dict{Tuple{Int,Int}, PropDataDict{Symbol, Any}}())
     end
 
-    function DirPropGraph(_nodes, in_structure, out_structure, nodesprops, edgesprops, w::Type{T}) where T<:MType
-        return new{T, DirG}(_nodes, in_structure, out_structure, nodesprops, edgesprops)
+    function DirPropGraph(_nodes, in_structure, out_structure, nodesprops, edgesprops, w::T) where T<:MType
+        return new{T, DirGType}(_nodes, in_structure, out_structure, nodesprops, edgesprops)
     end
 end
 
@@ -910,7 +910,7 @@ is_digraph(g::DirPropGraph) = true
 """
 $(TYPEDSIGNATURES)
 """
-is_static(g::DirPropGraph{T}) where T<:MType = T <: Static
+is_static(g::DirPropGraph{T}) where T<:MType = T <: StaticType
 
 
 """
@@ -953,7 +953,7 @@ dynamic_dir_graph(in_structure::Dict{Int, Vector{Int}}) = DirPropGraph(in_struct
 """
 $(TYPEDSIGNATURES)
 """
-function convert_type(graph::DirPropGraph, w::Type{T}) where T<:MType
+function convert_type(graph::DirPropGraph, w::T) where T<:MType
     return DirPropGraph(getfield(graph, :_nodes), graph.in_structure, graph.out_structure, graph.nodesprops, graph.edgesprops, w)
 end
 
@@ -1171,8 +1171,8 @@ end
 ####################################
 ####################################
 
-const PropGraphDynTop = Union{SimplePropGraph{Mortal}, DirPropGraph{Mortal}}
-const PropGraphFixTop = Union{SimplePropGraph{Static}, DirPropGraph{Static}}
+const PropGraphDynTop = Union{SimplePropGraph{MortalType}, DirPropGraph{MortalType}}
+const PropGraphFixTop = Union{SimplePropGraph{StaticType}, DirPropGraph{StaticType}}
 
 
 ####################################

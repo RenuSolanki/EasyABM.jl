@@ -1,33 +1,33 @@
-@inline function _agent_extra_props(agent::GraphAgent{S, Mortal}) where {S<:MType}   # S is graph mortality
+@inline function _agent_extra_props(agent::GraphAgent{S, MortalType}) where {S<:MType}   # S is graph mortality
     agent._extras._active = true
     agent._extras._birth_time = 1 
     agent._extras._death_time = typemax(Int)
     return
 end
 
-@inline function _agent_extra_props(agent::GraphAgent{S, Static}) where {S<:MType}
+@inline function _agent_extra_props(agent::GraphAgent{S, StaticType}) where {S<:MType}
     return
 end
 
-@inline function _node_extra_props(graph::AbstractPropGraph{Mortal, G}, vt::Int) where {G<:GType}
+@inline function _node_extra_props(graph::AbstractPropGraph{MortalType, G}, vt::Int) where {G<:GType}
     graph.nodesprops[vt]._extras._active = true
     graph.nodesprops[vt]._extras._birth_time = 1
     graph.nodesprops[vt]._extras._death_time = typemax(Int)
     return
 end
 
-@inline function _node_extra_props(graph::AbstractPropGraph{Static, G}, vt::Int) where {G<:GType}
+@inline function _node_extra_props(graph::AbstractPropGraph{StaticType, G}, vt::Int) where {G<:GType}
     return
 end
 
 
-@inline function _edge_extra_props(graph::AbstractPropGraph{Mortal, G}, ed::Tuple{Int, Int}) where {G<:GType}
+@inline function _edge_extra_props(graph::AbstractPropGraph{MortalType, G}, ed::Tuple{Int, Int}) where {G<:GType}
     graph.edgesprops[ed]._extras._active = true
     graph.edgesprops[ed]._extras._bd_times = [(1, typemax(Int))]
     return
 end
 
-@inline function _edge_extra_props(graph::AbstractPropGraph{Static, G}, ed::Tuple{Int, Int}) where {G<:GType}
+@inline function _edge_extra_props(graph::AbstractPropGraph{StaticType, G}, ed::Tuple{Int, Int}) where {G<:GType}
     return
 end
 
@@ -43,7 +43,7 @@ Creates a model with
 - `kwargs` : Keyword argments used as model parameters. 
 """
 function create_graph_model(agents::Vector{GraphAgent{A, B}}, 
-    graph::AbstractPropGraph{S, G}; agents_type::Type{T} = Static,
+    graph::AbstractPropGraph{S, G}; agents_type::T = Static,
     graphics=true, random_positions=false, kwargs...) where {S<:MType, T<:MType, G<:GType, A<:MType, B<:MType}
     
     n = length(agents)
@@ -177,7 +177,7 @@ function create_graph_model(
     graph::AbstractPropGraph{S, G};
     graphics=true, random_positions=false, kwargs...) where {S<:MType, G<:GType}
 
-    agents = GraphAgent{S, Static}[]
+    agents = GraphAgent{S, StaticType}[]
     model = create_graph_model(agents, graph; agents_type=Static, 
     graphics=graphics, random_positions=random_positions, kwargs...)
     return model

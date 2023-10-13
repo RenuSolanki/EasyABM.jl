@@ -34,7 +34,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_propvals(model::Union{AbstractSpaceModel{Mortal}, AbstractGraphModel{T, Mortal} }, t, prop::Symbol, scl=1.0) where T<:MType
+@inline function _get_propvals(model::Union{AbstractSpaceModel{MortalType}, AbstractGraphModel{T, MortalType} }, t, prop::Symbol, scl=1.0) where T<:MType
     propvals = Vector{type_dict[prop]}()
     all_agents = vcat(model.agents, model.agents_killed)
     for agent in all_agents
@@ -56,7 +56,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_propvals(model::Union{AbstractSpaceModel{Static}, AbstractGraphModel{T, Static} }, t, prop::Symbol, scl=1.0) where T<:MType
+@inline function _get_propvals(model::Union{AbstractSpaceModel{StaticType}, AbstractGraphModel{T, StaticType} }, t, prop::Symbol, scl=1.0) where T<:MType
     propvals = Vector{type_dict[prop]}()
     for agent in model.agents
         agent_data = unwrap_data(agent)

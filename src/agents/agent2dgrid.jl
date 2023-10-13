@@ -16,7 +16,7 @@ Following property names are reserved for some specific agent properties
     - `keeps_record_of` : Set of properties that the agent records during time evolution. 
 """
 function grid_2d_agent(;pos::Vect{2, Int}=Vect(1,1), #GeometryBasics.Vec{2, Int} = GeometryBasics.Vec(1,1), #NTuple{2, Int}=(1,1), 
-    space_type::Type{P} = Periodic, agent_type::Type{T}=Static,
+    space_type::P = Periodic, agent_type::T=Static,
     kwargs...) where {P<:SType, T<:MType}
 
     dict_agent = Dict{Symbol, Any}(kwargs)
@@ -41,11 +41,11 @@ $(TYPEDSIGNATURES)
 Creates a list of n 2d agents with properties specified as keyword arguments.
 """
 function grid_2d_agents(n::Int; pos::Vect{2, Int}=Vect(1,1), #GeometryBasics.Vec{2, Int} = GeometryBasics.Vec(1,1),#NTuple{2, Int}=(1,1),  
- space_type::Type{P} = Periodic, agent_type::Type{T}=Static,
+ space_type::P = Periodic, agent_type::T=Static,
  kwargs...) where {P<:SType, T<:MType}
     list = Vector{Agent2D{Int, P, T}}()
     for i in 1:n
-        agent = grid_2d_agent(;pos=pos, space_type = P, agent_type=T, kwargs...)
+        agent = grid_2d_agent(;pos=pos, space_type = space_type, agent_type= agent_type, kwargs...)
         push!(list, agent)
     end
     return list
