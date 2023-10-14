@@ -10,7 +10,7 @@ using EasyABM
 balls = con_2d_agents(1000, pos = Vect(0.0,0.0), size = 0.05,mass=1.0,  
 keeps_record_of = Set([:pos]))
 box = con_2d_agent(pos=Vect(5.0,5.0), shape = :square_line, size = 10.0)
-model = create_2d_model([box, balls...], agents_type=Static, space_type = NPeriodic)
+model = create_2d_model([box, balls...], agents_type=Static, space_type = NPeriodic, dw =0.1)
 ```
 
 ## Step 2: Initialise the model
@@ -91,11 +91,12 @@ end
 
 function step_rule!(model)
     xdim, ydim = model.size
-    search_radius = model.agents[2].size # size of Brownian particle
+    dw = model.parameters.dw
+    search_radius = model.agents[2].size # radius of the Brownian particle
     for i in 2:length(model.agents)
         agent=model.agents[i]
-        reflect_from_boundaries(agent,xdim, ydim, search_radius)
-        nbrs = neighbors(agent, model, 2*agent.size) # agent.size is the radius
+        reflect_from_boundaries(agent,xdim, ydim, dw)
+        nbrs = neighbors(agent, model, search_radius)
         transfer_momentum(agent, nbrs)
         agent.pos += agent.vel*0.1
     end
