@@ -162,9 +162,10 @@ end
 $(TYPEDSIGNATURES)
 """
 function _interactive_app(model::Union{AbstractSpaceModel, AbstractGraphModel}, fr, plots_only::Bool, _save_sim::Function, draw_frame::Function, 
-    agent_df::DataFrames.DataFrame, patch_df::DataFrames.DataFrame, node_df::DataFrames.DataFrame, model_df::DataFrames.DataFrame)
+    agent_df::DataFrames.DataFrame, patch_df::DataFrames.DataFrame, node_df::DataFrames.DataFrame, model_df::DataFrames.DataFrame, render_trivial::Function=(x)->nothing)
         timeS = slider(1:fr, label = "time")
         scaleS = slider(0.1:0.1:2, label = "scale")
+        emptyS = slider(1:1, label = "hack")
         run = button("run")
         stop = button("stop")
         sv = button("save")
@@ -241,9 +242,14 @@ function _interactive_app(model::Union{AbstractSpaceModel, AbstractGraphModel}, 
             sv = spc
         end
 
-
-        wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop, "sv"=>sv])
-        return @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, hbox(spc, :run, spc, :stop, spc, :sv)), spc, animlux, spc, vbox(plots...) ) )  
+        if (typeof(model)<:SpaceModel3D)
+            render3d = Interact.@map render_trivial(&emptyS)
+            wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop])
+            return @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, hbox(spc, :run, spc, :stop)), render3d, spc, vbox(plots...) ) )  
+        else
+            wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop, "sv"=>sv])
+            return @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, hbox(spc, :run, spc, :stop, spc, :sv)), spc, animlux, spc, vbox(plots...) ) ) 
+        end 
         # w=Window()
         # body!(w, lay) 
 end
@@ -442,13 +448,14 @@ function _live_interactive_app(model::Union{AbstractSpaceModel, AbstractGraphMod
 
 
 
-    if !(typeof(model)<:SpaceModel3D)
-        wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop, "rst"=>rst, "sv"=>sv])
-        return @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, vbox(ag_controls...), vbox(md_controls...), hbox(spc, :run, spc, :stop, spc, :rst, spc, :sv)), spc, animlux, spc, vbox(pls...) ) )  
-    else
+    if (typeof(model)<:SpaceModel3D)
         render3d = Interact.@map render_trivial(&emptyS)
         wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop, "rst"=>rst])
         return @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, vbox(ag_controls...), vbox(md_controls...), hbox(spc, :run, spc, :stop, spc, :rst)), render3d, spc, vbox(pls...) ) )  
+    else
+        wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop, "rst"=>rst, "sv"=>sv])
+        return @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, vbox(ag_controls...), vbox(md_controls...), hbox(spc, :run, spc, :stop, spc, :rst, spc, :sv)), spc, animlux, spc, vbox(pls...) ) )  
+    
     end
     
     # For a blink window do following 

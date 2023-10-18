@@ -226,41 +226,140 @@ $(TYPEDSIGNATURES)
 
 Creates a 3d animation from the data collected during the model run.
 """
-function animate_sim(model::SpaceModel3D, frames::Int=model.tick; show_patches=false, tail=(1, agent->false))
-    if model.graphics
-        ticks = getfield(model, :tick)[]
-        model.parameters._extras._show_space = show_patches
-        fr = min(frames, ticks)
-        vis = Visualizer()
-        anim = Animation()
-        
-        _adjust_origin_and_draw_bounding_box(vis, true)
+function animate_sim(model::SpaceModel3D, frames::Int=model.tick; 
+    agent_plots::Dict{String, <:Function} = Dict{String, Function}(), 
+    patch_plots::Dict{String, <:Function} = Dict{String, Function}(),
+    model_plots::Vector{Symbol} = Symbol[],
+    plots_only = false,
+    show_patches=false, tail=(1, agent->false))
 
+    ticks = getfield(model, :tick)[]
+    model.parameters._extras._show_space = show_patches
+    fr = min(frames, ticks)
+
+    no_graphics = plots_only || !(model.graphics)
+
+    function _does_nothing(t,scl::Number=1)
+        nothing
+    end
+
+    _save_sim = _does_nothing
+    
+    vis = Visualizer()
+
+    if !(no_graphics)
+        _adjust_origin_and_draw_bounding_box(vis, true)
         if show_patches
             draw_patches_static(vis,model)
         end
-
         all_agents = _get_all_agents(model)
-  
         draw_agents_static(vis, model, all_agents, tail...)
-
-        for i in 1:fr
-            atframe(anim, i) do
-                draw_agents_and_patches(vis, model, i, 1.0, tail...)
-            end
-        end
-        
-        #setprop!(vis["/Animations/default"],"timeScale", 0.1)
-        setanimation!(vis, anim)
-        # if (@__FILE__)[1:2]=="In"
-        render(vis)
-        #else
-            #open(vis)
-        #end
-
     end
 
+
+
+    lblsa = String[]
+    condsa = Function[]
+    for (lbl, cond) in agent_plots
+        push!(lblsa, lbl)
+        push!(condsa, cond)
+    end
+
+    lblsp = String[]
+    condsp = Function[]
+    for (lbl, cond) in patch_plots
+        push!(lblsp, lbl)
+        push!(condsp, cond)
+    end
+
+    agent_df = get_agents_avg_props(model, condsa..., labels= lblsa)
+    patch_df = get_patches_avg_props(model, condsp..., labels= lblsp)
+    model_df = get_model_data(model, model_plots).record
+    node_df = DataFrame()
+
+    function _draw_frame(t, scl)
+        draw_agents_and_patches(vis, model, t, scl, tail...)
+    end
+
+    function _render_trivial(s)
+        return render(vis)
+    end
+
+    if no_graphics
+        _draw_frame = _does_nothing
+        _render_trivial = _does_nothing
+    end
+
+    _interactive_app(model, fr, no_graphics, _save_sim, _draw_frame,
+    agent_df, patch_df, node_df, model_df, _render_trivial)
+
+    # if model.graphics
+    #     ticks = getfield(model, :tick)[]
+    #     model.parameters._extras._show_space = show_patches
+    #     fr = min(frames, ticks)
+    #     vis = Visualizer()
+    #     anim = Animation()
+        
+    #     _adjust_origin_and_draw_bounding_box(vis, true)
+
+    #     if show_patches
+    #         draw_patches_static(vis,model)
+    #     end
+
+    #     all_agents = _get_all_agents(model)
+  
+    #     draw_agents_static(vis, model, all_agents, tail...)
+
+    #     for i in 1:fr
+    #         atframe(anim, i) do
+    #             draw_agents_and_patches(vis, model, i, 1.0, tail...)
+    #         end
+    #     end
+        
+    #     #setprop!(vis["/Animations/default"],"timeScale", 0.1)
+    #     setanimation!(vis, anim)
+    #     # if (@__FILE__)[1:2]=="In"
+    #     render(vis)
+    #     #else
+    #         #open(vis)
+    #     #end
+
+    # end
+
 end
+
+# if model.graphics # this is one way to do animation using meshcat
+#     ticks = getfield(model, :tick)[]
+#     model.parameters._extras._show_space = show_patches
+#     fr = min(frames, ticks)
+#     vis = Visualizer()
+#     anim = Animation()
+    
+#     _adjust_origin_and_draw_bounding_box(vis, true)
+
+#     if show_patches
+#         draw_patches_static(vis,model)
+#     end
+
+#     all_agents = _get_all_agents(model)
+
+#     draw_agents_static(vis, model, all_agents, tail...)
+
+#     for i in 1:fr
+#         atframe(anim, i) do
+#             draw_agents_and_patches(vis, model, i, 1.0, tail...)
+#         end
+#     end
+    
+#     #setprop!(vis["/Animations/default"],"timeScale", 0.1)
+#     setanimation!(vis, anim)
+#     # if (@__FILE__)[1:2]=="In"
+#     render(vis)
+#     #else
+#         #open(vis)
+#     #end
+
+# end
 
 
 
@@ -309,6 +408,8 @@ function create_interactive_app(model::SpaceModel3D; initialiser::Function = nul
 
     model.parameters._extras._show_space = show_patches
 
+    no_graphics = plots_only || !(model.graphics)
+
     init_model!(model, initialiser=initialiser, props_to_record = props_to_record)
 
 
@@ -326,7 +427,7 @@ function create_interactive_app(model::SpaceModel3D; initialiser::Function = nul
     
     vis = Visualizer()
 
-    if (!plots_only) && model.graphics
+    if !(no_graphics)
         _adjust_origin_and_draw_bounding_box(vis, true)
     end
 
@@ -349,7 +450,7 @@ function create_interactive_app(model::SpaceModel3D; initialiser::Function = nul
         init_model!(model, initialiser=initialiser, props_to_record=props_to_record)
         ufun(model)
         _run_interactive_model(frames)
-        if (!plots_only) && (model.graphics)
+        if !(no_graphics)
             delete!(vis["agents"])
             delete!(vis["tails"])
             delete!(vis["patches"])
@@ -375,13 +476,13 @@ function create_interactive_app(model::SpaceModel3D; initialiser::Function = nul
         return render(vis)
     end
 
-    if plots_only || (!model.graphics)
+    if no_graphics
         _draw_interactive_frame = _does_nothing
         _save_sim = _does_nothing
         _render_trivial = _does_nothing
     end
 
-    _live_interactive_app(model, frames, plots_only, _save_sim, _init_interactive_model, 
+    _live_interactive_app(model, frames, no_graphics, _save_sim, _init_interactive_model, 
     _run_interactive_model, _draw_interactive_frame, agent_controls, model_controls, 
     agent_df, _render_trivial, patch_df, node_df, model_df)
 

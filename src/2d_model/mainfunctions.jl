@@ -44,11 +44,11 @@ function create_2d_model(agents::Vector{Agent2D{S, A, B}};
     xdim, ydim = size 
 
     if xdim>=ydim
-        gparams.ydim = 400
-        gparams.xdim = Int(ceil(400*xdim/ydim))
+        gparams.height = 400
+        gparams.width = Int(ceil(400*xdim/ydim))
     else
-        gparams.xdim = 400
-        gparams.ydim = Int(ceil(400*ydim/xdim))
+        gparams.width = 400
+        gparams.height = Int(ceil(400*ydim/xdim))
     end
 
     n = length(agents)
@@ -278,6 +278,7 @@ function animate_sim(model::SpaceModel2D, frames::Int=model.tick;
     ticks = getfield(model, :tick)[]
     model.parameters._extras._show_space = show_patches
     fr = min(frames, ticks)
+    no_graphics = plots_only || !(model.graphics)
 
     function draw_frame_luxor(t, scl)
         drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
@@ -301,7 +302,7 @@ function animate_sim(model::SpaceModel2D, frames::Int=model.tick;
 
     draw_frame = draw_frame_luxor
 
-    if plots_only || (!model.graphics)
+    if no_graphics
         draw_frame = _does_nothing
         _save_sim = _does_nothing
     end
@@ -323,7 +324,8 @@ function animate_sim(model::SpaceModel2D, frames::Int=model.tick;
     patch_df = get_patches_avg_props(model, conditions..., labels= labels)
     model_df = get_model_data(model, model_plots).record
 
-    _interactive_app(model, fr, plots_only, _save_sim, draw_frame, agent_df, patch_df, DataFrames.DataFrame(),model_df )
+
+    _interactive_app(model, fr, no_graphics, _save_sim, draw_frame, agent_df, patch_df, DataFrames.DataFrame(),model_df )
 
 end
 
@@ -369,6 +371,8 @@ function create_interactive_app(model::SpaceModel2D; initialiser::Function = nul
     frames=200, show_patches=false, tail =(1, agent-> false)) 
 
     model.parameters._extras._show_space = show_patches
+
+    no_graphics = plots_only || !(model.graphics)
 
     init_model!(model, initialiser=initialiser, props_to_record = props_to_record)
 
@@ -427,12 +431,12 @@ function create_interactive_app(model::SpaceModel2D; initialiser::Function = nul
 
     _draw_interactive_frame = _draw_interactive_frame_luxor
 
-    if plots_only || (!model.graphics)
+    if no_graphics
         _draw_interactive_frame = _does_nothing
         _save_sim = _does_nothing
     end
 
-    _live_interactive_app(model, frames, plots_only, _save_sim, _init_interactive_model, _run_interactive_model, 
+    _live_interactive_app(model, frames, no_graphics, _save_sim, _init_interactive_model, _run_interactive_model, 
     _draw_interactive_frame, agent_controls, model_controls, agent_df, ()->nothing, patch_df, node_df, model_df)
 
 end
