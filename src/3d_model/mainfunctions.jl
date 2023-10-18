@@ -323,9 +323,10 @@ function create_interactive_app(model::SpaceModel3D; initialiser::Function = nul
     function _does_nothing(t,scl::Number=1)
         nothing
     end
+    
+    vis = Visualizer()
 
-    if !plots_only
-        vis = Visualizer()
+    if (!plots_only) && model.graphics
         _adjust_origin_and_draw_bounding_box(vis, true)
     end
 
@@ -348,7 +349,7 @@ function create_interactive_app(model::SpaceModel3D; initialiser::Function = nul
         init_model!(model, initialiser=initialiser, props_to_record=props_to_record)
         ufun(model)
         _run_interactive_model(frames)
-        if !plots_only
+        if (!plots_only) && (model.graphics)
             delete!(vis["agents"])
             delete!(vis["tails"])
             delete!(vis["patches"])
@@ -374,7 +375,7 @@ function create_interactive_app(model::SpaceModel3D; initialiser::Function = nul
         return render(vis)
     end
 
-    if plots_only
+    if plots_only || (!model.graphics)
         _draw_interactive_frame = _does_nothing
         _save_sim = _does_nothing
         _render_trivial = _does_nothing

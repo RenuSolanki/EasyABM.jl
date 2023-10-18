@@ -272,16 +272,7 @@ $(TYPEDSIGNATURES)
 """
 @inline function _if_alive_draw_agent(vis, agent, model, frame, scl, tail_length::Int, tail_condition::Function)
     if (agent._extras._birth_time<= frame)&&(frame<= agent._extras._death_time)
-        setvisible!(vis["agents"]["$(getfield(agent, :id))"], true)
-        if tail_condition(agent)
-            setvisible!(vis["tails"]["$(getfield(agent, :id))"], true)
-        end
         draw_agent(vis, agent, model, frame - agent._extras._birth_time::Int +1, scl, tail_length, tail_condition)
-    else
-        setvisible!(vis["agents"]["$(getfield(agent, :id))"], false)
-        if tail_condition(agent)
-            setvisible!(vis["tails"]["$(getfield(agent, :id))"], false)
-        end
     end
 end
 

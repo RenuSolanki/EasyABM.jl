@@ -249,59 +249,6 @@ function save_sim_luxor(model::SpaceModel2D, frames::Int=model.tick, scl::Number
 end
 
 
-# """
-# $(TYPEDSIGNATURES)
-# """
-# function save_sim_makie(model::SpaceModel2D, frames::Int=model.tick, scl::Number=1.0; path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"), 
-#     show_space=true, tail = (1, agent->false))
-#     if model.graphics
-#         ticks = getfield(model, :tick)[]
-#         model.parameters._extras._show_space = show_space
-#         fr = min(frames, ticks)
-
-
-#         time = Observable(1)
-
-#         #[[Point2f(5*rand(),5*rand()) for i in 1:20] for j in 1:n]
-#         points = @lift(_get_propvals(model,$time, :pos))
-#         markers = @lift(_to_makie_shapes.(_get_propvals(model,$time, :shape)))
-#         colors = @lift(_get_propvals(model, $time, :color))
-#         rotations = @lift(_get_propvals(model, $time, :orientation))
-#         sizes = @lift(_get_propvals(model, $time, :size, scl))
-#         title = @lift((t->"t = $t")($time))
-#         grid_colors = Symbol[]
-#         if show_space
-#             grid_colors = @lift(_get_grid_colors(model, $time))
-#         end
-
-#         fig = Figure(resolution = (model.parameters._extras.gparams_height, model.parameters._extras.gparams_width))
-#         ax = Axis(fig[1, 1], title=title)
-
-#         _create_makie_frame(ax, model, points, markers, colors, rotations, sizes, grid_colors, show_space)
-
-#         tail_condition = tail[2]
-#         tail_length = tail[1]
-#         all_agents=_get_all_agents(model)
-#         for agent in all_agents
-#             if tail_condition(agent)
-#                 agent_tail = @lift(_get_tail(agent, model, $time, tail_length))
-#                 lines!(ax, agent_tail)
-#             end
-#         end
-
-#         framerate = gparams.fps
-#         timestamps = 1:fr
-
-#         sim = record(fig, path, timestamps;
-#                 framerate = framerate) do t
-#             time[] = t
-#         end
-
-#         return sim
-#     end
-
-# end
-
 """
 $(TYPEDSIGNATURES)
 
@@ -313,85 +260,6 @@ function save_sim(model::SpaceModel2D, frames::Int=model.tick, scl::Number=1.0; 
 end
 
 
-
-# """
-# $(TYPEDSIGNATURES)
-
-# Creates an animation from the data collected during model run.
-# """
-# function animate_sim_makie(model::SpaceModel2D, frames::Int=model.tick; 
-#     agent_plots::Dict{String, <:Function} = Dict{String, Function}(), 
-#     patch_plots::Dict{String, <:Function} = Dict{String, Function}(),
-#     model_plots::Vector{Symbol} = Symbol[],
-#     plots_only = false,
-#     path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"), show_patches=false, tail = (1, agent->false))
-
-#     ticks = getfield(model, :tick)[]
-#     model.parameters._extras._show_space = show_patches
-#     fr = min(frames, ticks)
-
-#     fig = Figure(resolution = (model.parameters._extras.gparams_height, model.parameters._extras.gparams_width))
-#     ax = Axis(fig[1, 1])
-#     ax.title = " "
-#     function draw_frame_makie(t, scl)
-#         empty!(ax)
-#         points = _get_propvals(model, t, :pos)
-#         markers = _to_makie_shapes.(_get_propvals(model,t, :shape))
-#         colors = _get_propvals(model, t, :color)
-#         rotations = _get_propvals(model, t, :orientation)
-#         sizes = _get_propvals(model, t, :size, scl)
-#         grid_colors = Symbol[]
-#         if show_patches
-#             grid_colors = _get_grid_colors(model, t)
-#         end
-#         _create_makie_frame(ax, model, points, markers, colors, rotations, sizes, grid_colors, show_patches)
-#         tail_condition = tail[2]
-#         tail_length = tail[1]
-#         all_agents=_get_all_agents(model)
-#         for agent in all_agents
-#             if tail_condition(agent)
-#                 agent_tail = _get_tail(agent, model, t, tail_length)
-#                 lines!(ax, agent_tail)
-#             end
-#         end
-#         return fig
-#     end
-
-#     function _save_sim(scl)
-#         save_sim(model, fr, scl, path= path, show_space=show_patches, backend = :makie, tail = tail)
-#     end
-
-#     function _does_nothing(t,scl::Number=1)
-#         nothing
-#     end
-
-#     draw_frame = draw_frame_makie
-
-#     if plots_only
-#         draw_frame = _does_nothing
-#         _save_sim = _does_nothing
-#     end
-
-#     labels = String[]
-#     conditions = Function[]
-#     for (lbl, cond) in agent_plots
-#         push!(labels, lbl)
-#         push!(conditions, cond)
-#     end
-#     agent_df = get_agents_avg_props(model, conditions..., labels= labels)
-
-#     labels = String[]
-#     conditions = Function[]
-#     for (lbl, cond) in patch_plots
-#         push!(labels, lbl)
-#         push!(conditions, cond)
-#     end
-#     patch_df = get_patches_avg_props(model, conditions..., labels= labels)
-#     model_df = get_model_data(model, model_plots).record
-
-#     _interactive_app(model, fr, plots_only, _save_sim, draw_frame, agent_df, patch_df, DataFrames.DataFrame(),model_df )
-
-# end
 
 
 
@@ -413,14 +281,12 @@ function animate_sim(model::SpaceModel2D, frames::Int=model.tick;
 
     function draw_frame_luxor(t, scl)
         drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
-        if model.graphics
-            Luxor.origin()
-            Luxor.background("white")
-            if show_patches && !(:color in model.record.pprops)
-                draw_patches_static(model)
-            end
-            draw_agents_and_patches(model, t, scl, tail...)
+        Luxor.origin()
+        Luxor.background("white")
+        if show_patches && !(:color in model.record.pprops)
+            draw_patches_static(model)
         end
+        draw_agents_and_patches(model, t, scl, tail...)
         finish()
         drawing
     end
@@ -435,7 +301,7 @@ function animate_sim(model::SpaceModel2D, frames::Int=model.tick;
 
     draw_frame = draw_frame_luxor
 
-    if plots_only
+    if plots_only || (!model.graphics)
         draw_frame = _does_nothing
         _save_sim = _does_nothing
     end
@@ -549,21 +415,19 @@ function create_interactive_app(model::SpaceModel2D; initialiser::Function = nul
 
     function _draw_interactive_frame_luxor(t, scl)
         drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
-        if model.graphics
-            Luxor.origin()
-            Luxor.background("white")
-            if show_patches && !(:color in model.record.pprops)
-                draw_patches_static(model)
-            end
-            draw_agents_and_patches(model, t, scl, tail...)
+        Luxor.origin()
+        Luxor.background("white")
+        if show_patches && !(:color in model.record.pprops)
+            draw_patches_static(model)
         end
+        draw_agents_and_patches(model, t, scl, tail...)
         finish()
         drawing
     end
 
     _draw_interactive_frame = _draw_interactive_frame_luxor
 
-    if plots_only
+    if plots_only || (!model.graphics)
         _draw_interactive_frame = _does_nothing
         _save_sim = _does_nothing
     end
