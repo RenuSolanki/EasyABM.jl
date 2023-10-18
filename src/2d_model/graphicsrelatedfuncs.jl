@@ -12,32 +12,12 @@ const _grid_lines_color = RGBA(0.5,0.5,0.5,0.5)
     return colors
 end
 
-@inline function _get_tail(agent, model::SpaceModel2D{MortalType, S}, t, tail_length, agent_tail = GeometryBasics.Vec2{S}[]) where S<:Float64 # we don't have tails for grid agents
-    
-    if !(:pos in agent._keeps_record_of)
-        push!(agent_tail, GeometryBasics.Vec(agent.pos...))
-        return agent_tail
-    end
-    agent_data = unwrap_data(agent)
-    offset = model.parameters._extras._offset::Tuple{Float64, Float64}
-    birth_time = agent._extras._birth_time::Int
-    death_time = agent._extras._death_time::Int
-    if (birth_time<= t)&&(t<= death_time)
-        index = t - birth_time +1
-        for i in max(1, index-tail_length):index
-            v = agent_data[:pos][i]::Vect{2, S} .+ offset
-            push!(agent_tail, GeometryBasics.Vec(v...))
-        end   
-    end
-    return agent_tail
-end
-
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_tail(agent, model::SpaceModel2D{StaticType, S}, t::Int, tail_length) where S<:Float64
-    agent_tail = GeometryBasics.Vec2{S}[]
+@inline function _get_tail(agent, model::SpaceModel2D, t::Int, tail_length) # t is index; the calling function has taken into account birth_time/death_time
+    agent_tail = GeometryBasics.Vec2{Float64}[]
     if !(:pos in agent._keeps_record_of)
         push!(agent_tail, GeometryBasics.Vec(agent.pos...))
         return agent_tail
@@ -46,7 +26,7 @@ $(TYPEDSIGNATURES)
     index = t 
     offset = model.parameters._extras._offset::Tuple{Float64, Float64}
     for i in max(1, index-tail_length):index
-        v = agent_data[:pos][i]::Vect{2, S} .+ offset
+        v = agent_data[:pos][i] .+ offset
         push!(agent_tail, GeometryBasics.Vec(v...))
     end   
     return agent_tail
@@ -195,7 +175,7 @@ $(TYPEDSIGNATURES)
                     continue
                 else
                     setcolor(shape_color.val)  
-                    setopacity(tail_opacity(ln-j, tail_length))
+                    #setopacity(tail_opacity(ln-j, tail_length))
                     Luxor.line(p1, p2, :stroke)
                 end
             end
