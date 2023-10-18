@@ -1,11 +1,11 @@
-@inline function _agent_extra_props(agent::Agent2D{S, P, MortalType}) where {S<:Union{Int, Float64}, P<:SType}
+@inline function _agent_extra_props!(agent::Agent2D{S, P, MortalType}) where {S<:Union{Int, Float64}, P<:SType}
     agent._extras._active = true
     agent._extras._birth_time = 1 
     agent._extras._death_time = typemax(Int)
     return
 end
 
-@inline function _agent_extra_props(agent::Agent2D{S, P, StaticType}) where {S<:Union{Int, Float64}, P<:SType}
+@inline function _agent_extra_props!(agent::Agent2D{S, P, StaticType}) where {S<:Union{Int, Float64}, P<:SType}
     return
 end
 
@@ -42,6 +42,15 @@ function create_2d_model(agents::Vector{Agent2D{S, A, B}};
     kwargs...) where {T<:MType, S<:Union{Int, Float64}, P<:SType, A<:SType, B<:MType}
 
     xdim, ydim = size 
+
+    if xdim>=ydim
+        gparams.ydim = 400
+        gparams.xdim = Int(ceil(400*xdim/ydim))
+    else
+        gparams.xdim = 400
+        gparams.ydim = Int(ceil(400*ydim/xdim))
+    end
+
     n = length(agents)
 
     patches = _set_patches(size)
@@ -83,7 +92,7 @@ function create_2d_model(agents::Vector{Agent2D{S, A, B}};
         #     agent._extras._death_time = typemax(Int)
         # end
 
-        _agent_extra_props(agent)
+        _agent_extra_props!(agent)
   
         _setup_grid!(agent, model, i, xdim, ydim)
 
@@ -148,10 +157,8 @@ agents properties is specified, it will replace the `keeps_record_of` list of ea
 with keys "patches" and "model" respectively.
 """
 function init_model!(model::SpaceModel2D; initialiser::Function = null_init!, 
-    props_to_record::Dict{String, Set{Symbol}} = Dict{String, Set{Symbol}}("agents"=>Set{Symbol}([]), "patches"=>Set{Symbol}([]), "model"=>Set{Symbol}([])),
-    keep_deads_data = true)
+    props_to_record::Dict{String, Set{Symbol}} = Dict{String, Set{Symbol}}("agents"=>Set{Symbol}([]), "patches"=>Set{Symbol}([]), "model"=>Set{Symbol}([])))
 
-    model.parameters._extras._keep_deads_data= keep_deads_data
     aprops = get(props_to_record, "agents", Set{Symbol}([]))
     pprops = get(props_to_record, "patches", Set{Symbol}([]))
     mprops = get(props_to_record, "model", Set{Symbol}([]))

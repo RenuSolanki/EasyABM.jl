@@ -77,7 +77,7 @@ end
 
 function draw_tail(vis, agent, tail_length)
     @threads for i in 1:tail_length
-        bluel = LineBasicMaterial(color=RGBA(0,0,1,tail_opacity(i, tail_length))) # set to blue by default
+        bluel = LineBasicMaterial(color=RGBA(0,0,1,1))#tail_opacity(i, tail_length) # set to blue by default
         setobject!(vis["tails"]["$(getfield(agent, :id))"]["$i"],MeshCat.LineSegments([MeshCat.Point(0.0, 0, 0),MeshCat.Point(0, 0, 1.0)], bluel)) 
         setvisible!(vis["tails"]["$(getfield(agent, :id))"]["$i"], false)
     end

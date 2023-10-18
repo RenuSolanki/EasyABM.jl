@@ -5,7 +5,7 @@
 ####################################
 
 
-struct SimplePropGraph{T, G<:SimGType} <: AbstractPropGraph{T, G}
+mutable struct SimplePropGraph{T, G<:SimGType} <: AbstractPropGraph{T, G}
     _nodes::Vector{Int}
     structure:: Dict{Int, Vector{Int}}
     nodesprops::Dict{Int, ContainerDataDict{Symbol, Any} }
@@ -42,9 +42,9 @@ end
 
 function Base.empty!(graph::SimplePropGraph)
     empty!(graph._nodes)
-    empty!(graph.structure)
-    empty!(graph.nodesprops)
-    empty!(graph.edgesprops)
+    graph.structure = Dict{Int, Vector{Int}}() # using empty! on dicts doesn't release memory
+    graph.nodesprops = Dict{Int, ContainerDataDict{Symbol, Any}}()
+    graph.edgesprops = Dict{Tuple{Int, Int}, PropDataDict{Symbol, Any}}()
 end
 
 """
@@ -569,7 +569,7 @@ end
 ####################################
 ####################################
 
-struct DirPropGraph{T, G<:DirGType}<: AbstractPropGraph{T, G}
+mutable struct DirPropGraph{T, G<:DirGType}<: AbstractPropGraph{T, G}
     _nodes::Vector{Int}
     in_structure::Dict{Int, Vector{Int}}
     out_structure::Dict{Int, Vector{Int}}
@@ -621,10 +621,10 @@ end
 
 function Base.empty!(graph::DirPropGraph)
     empty!(graph._nodes)
-    empty!(graph.in_structure)
-    empty!(graph.out_structure)
-    empty!(graph.nodesprops)
-    empty!(graph.edgesprops)
+    graph.in_structure = Dict{Int, Vector{Int}}() #using empty! on dicts doesn't release memory
+    graph.out_structure = Dict{Int, Vector{Int}}()
+    graph.nodesprops = Dict{Int,ContainerDataDict{Symbol, Any}}()
+    graph.edgesprops = Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}()
 end
 
 

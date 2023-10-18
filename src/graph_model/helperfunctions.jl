@@ -165,10 +165,8 @@ $(TYPEDSIGNATURES)
 @inline function _create_node_structure!(node, graph::SimplePropGraph, model)
     push!(getfield(graph, :_nodes), node)
     graph.structure[node] = Int[]
-    if model.parameters._extras._keep_deads_data::Bool
-        dead_graph = model.dead_meta_graph
-        dead_graph.structure[node]=Int[]
-    end
+    dead_graph = model.dead_meta_graph
+    dead_graph.structure[node]=Int[]
 end
 
 """
@@ -178,11 +176,9 @@ $(TYPEDSIGNATURES)
     push!(getfield(graph, :_nodes), node)
     graph.in_structure[node] = Int[]
     graph.out_structure[node] = Int[]
-    if model.parameters._extras._keep_deads_data::Bool
-        dead_graph = model.dead_meta_graph
-        dead_graph.in_structure[node]=Int[]
-        dead_graph.out_structure[node]=Int[]
-    end
+    dead_graph = model.dead_meta_graph
+    dead_graph.in_structure[node]=Int[]
+    dead_graph.out_structure[node]=Int[]
 end
 
 """
@@ -201,7 +197,7 @@ function add_node!(model::GraphModelDynGrTop; kwargs...)
     model.parameters._extras._num_verts::Int +=1
     model.parameters._extras._num_all_verts::Int+=1
     model.parameters._extras._max_node_id::Int = node
-    if model.graphics && !haskey(model.graph.nodesprops[node], :pos) && !haskey(model.graph.nodesprops[node]._extras::PropDict, :_pos)
+    if model.graphics && !haskey(model.graph.nodesprops[node], :pos)
         model.graph.nodesprops[node]._extras._pos = (rand()*gsize, rand()*gsize)
     end
     if length(model.record.nprops)>0
@@ -469,22 +465,6 @@ can not be killed and the number of agents at the given node is nonzero.
 """
 function kill_node!(node, model::GraphModelDynGrTop)
     if model.graph.nodesprops[node]._extras._active::Bool
-        if !(model.parameters._extras._keep_deads_data::Bool)
-            condition = _clear_node!(node, model)     
-            if !condition
-                return
-            end  
-            n = _rem_vertex_f!(model.graph, node)
-            model.parameters._extras._num_all_verts::Int -=1
-            model.parameters._extras._num_verts::Int -=1
-            model.parameters._extras._num_edges::Int -=n
-            if model.parameters._extras._num_all_verts::Int >0
-                model.parameters._extras._max_node_id = getfield(model.graph, :_nodes)[model.parameters._extras._num_all_verts::Int]
-            else
-                model.parameters._extras._max_node_id = 0 
-            end
-            return
-        end
         condition = _clear_node!(node, model)     
         if !condition
             return
@@ -536,13 +516,7 @@ $(TYPEDSIGNATURES)
     i, j = i>j ? (j,i) : (i,j)
     condition = (i in graph.structure[j])
     dead_graph = model.dead_meta_graph
-    keep_deads_data = model.parameters._extras._keep_deads_data::Bool
     if condition 
-        if !keep_deads_data
-            _rem_edge_f!(graph, i,j)
-            model.parameters._extras._num_edges::Int -= 1
-            return
-        end
         graph.edgesprops[(i,j)]._extras._active = false
         bt, dt = graph.edgesprops[(i,j)]._extras._bd_times[end]::Tuple{Int, Int}
         graph.edgesprops[(i,j)]._extras._bd_times[end] = (bt, model.tick)
@@ -558,12 +532,7 @@ $(TYPEDSIGNATURES)
 @inline function _kill_edge_condition(i,j,graph::DirPropGraph, model::GraphModelDynGrTop)
     condition = (j in graph.out_structure[i])
     dead_graph = model.dead_meta_graph
-    keep_deads_data = model.parameters._extras._keep_deads_data::Bool
     if condition
-        if !keep_deads_data
-            _rem_edge_f!(graph, i,j)
-            return
-        end
         graph.edgesprops[(i,j)]._extras._active = false
         bt, dt = graph.edgesprops[(i,j)]._extras._bd_times[end]::Tuple{Int, Int}
         graph.edgesprops[(i,j)]._extras._bd_times[end] = (bt, model.tick)
@@ -631,25 +600,31 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _permanently_remove_dead_graph_data!(model::GraphModelDynGrTop)
-    if !(model.parameters._extras._keep_deads_data::Bool)
-        empty!(model.dead_meta_graph)
-    else
-        for node in keys(model.dead_meta_graph.nodesprops)
-            delete!(model.graph.nodesprops, node)
+function _permanently_remove_dead_graph_data!(model::GraphModelDynGrTop)  # used at initialisation
+    new_nodesprops = Dict{Int,ContainerDataDict{Symbol, Any}}() # deleting props of inactive nodes won't release memory
+    new_edgesprops = Dict{NTuple{2, Int64}, PropDataDict{Symbol, Any}}()
+    for (node, props) in model.graph.nodesprops
+        if props._extras._active 
+            new_nodesprops[node] = props
         end
-        for edge in keys(model.dead_meta_graph.edgesprops)
-            delete!(model.graph.edgesprops, edge)
-        end
-        empty!(model.dead_meta_graph)
-        _refill_dead_meta_graph!(model.dead_meta_graph, model.graph)
-
-        nodes = getfield(model.graph, :_nodes)
-        len_nodes = length(nodes)
-        model.parameters._extras._num_verts = len_nodes
-        model.parameters._extras._num_all_verts = len_nodes
-        model.parameters._extras._max_node_id = len_nodes > 0 ? max(nodes...) : 0
     end
+    for (edge, props) in model.graph.edgesprops
+        if props._extras._active
+            new_edgesprops[edge] = props
+        end
+    end
+
+    model.graph.nodesprops = new_nodesprops
+    model.graph.edgesprops = new_edgesprops
+
+    empty!(model.dead_meta_graph)
+    _refill_dead_meta_graph!(model.dead_meta_graph, model.graph)
+
+    nodes = getfield(model.graph, :_nodes)
+    len_nodes = length(nodes)
+    model.parameters._extras._num_verts = len_nodes
+    model.parameters._extras._num_all_verts = len_nodes
+    model.parameters._extras._max_node_id = len_nodes > 0 ? max(nodes...) : 0
 end
 
 
@@ -728,7 +703,7 @@ $(TYPEDSIGNATURES)
 """
 function do_after_model_step!(model::GraphModelDynAgNum)
     
-    _permanently_remove_inactive_agents!(model)  # permanent removal simply means storing in a different place unless `keep_deads_data` is false.
+    _permanently_remove_inactive_agents!(model)  # permanent removal simply means storing in a different place.
 
 
     commit_add_agents!(model) 
@@ -800,6 +775,24 @@ $(TYPEDSIGNATURES)
 end
 
 
+function recompute_graph_layout(model::GraphModel)
+    graph = is_static(model.graph) ? model.graph : combined_graph(model.graph, model.dead_meta_graph)
+    verts = getfield(graph, :_nodes) # sorted if static; else sorted in combination process
+    if !is_digraph(graph)
+        structure = graph.structure
+    else
+        structure = Dict{Int, Vector{Int}}()
+        for node in verts
+            structure[node] = unique!(sort!(vcat(graph.in_structure[node], graph.out_structure[node])))
+        end
+    end
+    locs_x, locs_y = spring_layout(structure)
+
+    for (i,vt) in enumerate(verts)
+        model.graph.nodesprops[vt]._extras._pos = (locs_x[i], locs_y[i]) # nodesprops contains properties of all nodes dead or alive
+    end
+
+end
 
 
 """
@@ -867,7 +860,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agents_and_graph(model::GraphModelDynAgNum, graph, verts, node_size, frame, scl, mark_nodes=false, tail = (1, node-> false))
+@inline function draw_agents_and_graph(model::GraphModelDynAgNum, graph, verts, node_size, frame, scl, mark_nodes=false, tail = (1, node-> false), agent_path=(1, ag->false))
     if model.parameters._extras._show_space::Bool
         _draw_graph(graph, verts, node_size, frame, model.record.nprops, model.record.eprops, mark_nodes, tail)
     end
@@ -876,7 +869,7 @@ $(TYPEDSIGNATURES)
 
     @sync for agent in all_agents
         if (agent._extras._birth_time::Int <= frame)&&(frame<= agent._extras._death_time::Int)
-            @async draw_agent(agent, model, graph, node_size, scl, frame - agent._extras._birth_time::Int + 1, frame)
+            @async draw_agent(agent, model, graph, node_size, scl, frame - agent._extras._birth_time::Int + 1, frame, agent_path)
         end
     end
 end
@@ -884,14 +877,14 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agents_and_graph(model::GraphModelFixAgNum, graph, verts, node_size, frame, scl, mark_nodes=false, tail = (1, node-> false))
+@inline function draw_agents_and_graph(model::GraphModelFixAgNum, graph, verts, node_size, frame, scl, mark_nodes=false, tail = (1, node-> false), agent_path=(1, ag->false))
 
     if model.parameters._extras._show_space::Bool
         _draw_graph(graph, verts, node_size, frame, model.record.nprops, model.record.eprops, mark_nodes, tail)
     end
 
     @sync for agent in model.agents
-       @async draw_agent(agent, model, graph, node_size, scl, frame, frame)
+       @async draw_agent(agent, model, graph, node_size, scl, frame, frame, agent_path)
     end
 end
 

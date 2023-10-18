@@ -32,7 +32,7 @@ export  Static, Mortal, PropDict, Vect,
         adjacency_matrix, add_node!, add_nodes!, kill_node!, 
         create_edge!, kill_edge!, kill_all_edges!, flush_graph!,
         is_digraph, is_static,
-        vertices,
+        vertices, recompute_graph_layout,
 
 
         #helpers 2d/3D
@@ -55,7 +55,7 @@ export  Static, Mortal, PropDict, Vect,
 
         #misc utilities
         dotprod, veclength, distance, calculate_direction, Col, @cl_str, moore_distance,
-        manhattan_distance
+        manhattan_distance, set_window_size
 
         #inbuilt models
     

@@ -407,7 +407,7 @@ $(TYPEDSIGNATURES)
                 p1 = Luxor.Point(tail_points[j]...)*(w,h)
                 p2 = Luxor.Point(tail_points[j+1]...)*(w,h)
                 setcolor(cl)
-                setopacity(tail_opacity(ln-j, tail_length))
+                #setopacity(tail_opacity(ln-j, tail_length))
                 Luxor.line(p1, p2, :stroke)
             end
         end
@@ -415,12 +415,60 @@ $(TYPEDSIGNATURES)
     end
 end
 
+function _get_agent_tail(nodes::Vector{Int}, graph::AbstractPropGraph{MortalType}, frame::Int, nprops)
+    agent_tail = GeometryBasics.Vec2{Float64}[]
+    for vert in nodes
+        if (frame<=graph.nodesprops[vert]._extras._death_time::Int) # the conditon (graph.nodesprops[vert]._extras._birth_time::Int <=frame) is satisfied because agent has visited it in past
+            birth_time = graph.nodesprops[vert]._extras._birth_time::Int
+            index = frame-birth_time +1 
+            if haskey(graph.nodesprops[vert], :pos)
+                x, y = (:pos in nprops) ? unwrap_data(graph.nodesprops[vert])[:pos][index] : graph.nodesprops[vert].pos
+                vert_pos = GeometryBasics.Vec(Float64(x),y)
+                push!(agent_tail, vert_pos)
+            else 
+                x,y = graph.nodesprops[vert]._extras._pos
+                vert_pos = GeometryBasics.Vec(Float64(x),y)
+                push!(agent_tail, vert_pos)
+            end
+        else # the vert has already died and we get its last position in record
+            if haskey(graph.nodesprops[vert], :pos)
+                x, y = (:pos in nprops) ? unwrap_data(graph.nodesprops[vert])[:pos][end] : graph.nodesprops[vert].pos 
+                vert_pos = GeometryBasics.Vec(Float64(x),y)
+                push!(agent_tail, vert_pos)
+            else 
+                x,y = graph.nodesprops[vert]._extras._pos
+                vert_pos = GeometryBasics.Vec(Float64(x),y)
+                push!(agent_tail, vert_pos)
+            end
+        end
+    end
+    return agent_tail
+
+end
+
+function _get_agent_tail(nodes::Vector{Int}, graph::AbstractPropGraph{StaticType}, frame::Int, nprops)
+    agent_tail = GeometryBasics.Vec2{Float64}[]
+    index = frame
+    for vert in nodes
+        if haskey(graph.nodesprops[vert], :pos)
+            x,y = (:pos in nprops) ? unwrap_data(graph.nodesprops[vert])[:pos][index] : graph.nodesprops[vert].pos
+            vert_pos = GeometryBasics.Vec(Float64(x),y)
+            push!(agent_tail, vert_pos)
+        else
+            x,y = graph.nodesprops[vert]._extras._pos
+            vert_pos = GeometryBasics.Vec(Float64(x),y)
+            push!(agent_tail, vert_pos)
+        end
+    end
+    return agent_tail
+
+end
 
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agent(agent::GraphAgent, model::GraphModel, graph, node_size, scl, index::Int, frame::Int) # the check 0<index< length(data) has been made before calling the function.
+@inline function draw_agent(agent::GraphAgent, model::GraphModel, graph, node_size, scl, index::Int, frame::Int, agent_path=(1, ag->false)) # the check 0<index< length(data) has been made before calling the function.
     record = agent._keeps_record_of::Set{Symbol}
     agent_data = unwrap_data(agent)   
     
@@ -435,7 +483,7 @@ $(TYPEDSIGNATURES)
     node = (:node in record) ? agent_data[:node][index]::Int : agent.node
 
     
-    pos = _get_vert_pos(graph, node, frame, model.record.nprops) #model.graph.nodesprops[node]._extras._pos
+    pos = _get_vert_pos(graph, node, frame, model.record.nprops) 
 
     orientation = (:orientation in record) ? agent_data[:orientation][index]::Float64 : agent.orientation::Float64
     shape = (:shape in record) ? agent_data[:shape][index]::Symbol : agent.shape::Symbol
@@ -476,21 +524,28 @@ $(TYPEDSIGNATURES)
     shapefunctions2d[shape](size)  
     grestore()  
 
-
-    #uncomment this to mark each agent with its id
-    # gsave()
-    # translate(-(width/2), (height/2))
-    # Luxor.transform([1 0 0 -1 0 0]) 
-    # translate(x+a,y+b)
-    # if shape_color != :white
-    #     sethue("white")
-    # else
-    #     sethue("black")
-    # end
-    # fontface("Arial-Black")
-    # fontsize(10)
-    # text("$(agent._extras._id)", halign = :center, valign = :middle)
-    # grestore()
+    agent_path_length, agent_path_condition = agent_path
+    if agent_path_condition(agent) && (:node in record) # tail_condition must be dependent on some non-changing agent property. General conditons are not implemented due to performance constraints
+        t = max(1, index-agent_path_length)
+        nodes = agent_data[:node][t:index]
+        nprops = model.record.nprops
+        agent_tail=_get_agent_tail(nodes, graph, frame, nprops)
+        gsave()
+        translate(-(width/2), (height/2))
+        Luxor.transform([1 0 0 -1 0 0]) 
+        ln = length(agent_tail)
+        if ln > 1
+            for j in 1:(ln-1)
+                p1 = Luxor.Point(agent_tail[j]...)*(w,h)
+                p2 = Luxor.Point(agent_tail[j+1]...)*(w,h)
+                a, b = p1-p2
+                setcolor(shape_color.val)  
+                #setopacity(tail_opacity(ln-j, tail_length))
+                Luxor.line(p1, p2, :stroke)
+            end
+        end
+        grestore()
+    end
 
 end
 

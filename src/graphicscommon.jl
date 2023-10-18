@@ -243,7 +243,9 @@ function _interactive_app(model::Union{AbstractSpaceModel, AbstractGraphModel}, 
 
 
         wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop, "sv"=>sv])
-        @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, hbox(spc, :run, spc, :stop, spc, :sv)), spc, animlux, spc, vbox(plots...) ) )  
+        return @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, hbox(spc, :run, spc, :stop, spc, :sv)), spc, animlux, spc, vbox(plots...) ) )  
+        # w=Window()
+        # body!(w, lay) 
 end
 
 ###########

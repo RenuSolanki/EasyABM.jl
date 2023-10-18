@@ -563,5 +563,19 @@ function agent_with_id(i::Int, model::SpaceModel2D{StaticType})
     return nothing
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Sets window size.
+"""
+function set_window_size(width::Int, height::Int)
+    gparams.width=width
+    gparams.height=height
+    return
+end
+
+
+
+
 
 

@@ -160,17 +160,10 @@ This function is for use from within the module and is not exported.
                 break
             end
         end
-        if !(model.parameters._extras._keep_deads_data::Bool)
-            empty!(model.agents_killed)
-            if length(newly_added)>0
-                getfield(model,:max_id)[] = max([getfield(ag, :id) for ag in newly_added]...)
-            else
-                len = model.parameters._extras._len_model_agents::Int
-                getfield(model,:max_id)[] = len > 0 ? getfield(model.agents[len], :id) : 0 # will not work if user shuffles the agents list
-            end
-        end
     end
 end
+
+
 
 
 """
@@ -297,8 +290,8 @@ $(TYPEDSIGNATURES)
 """
 function _init_agents!(model::AbstractSpaceModel{MortalType})
     _permanently_remove_inactive_agents!(model)
-    commit_add_agents!(model)
     empty!(model.agents_killed)
+    commit_add_agents!(model)
     len = model.parameters._extras._len_model_agents::Int
     getfield(model,:max_id)[] = len > 0 ? getfield(model.agents[len], :id) : 0
     for agent in model.agents
@@ -332,8 +325,7 @@ end
 $(TYPEDSIGNATURES)
 
 Sets the agent as inactive thus effectively removing from the model. However, the removed agents 
-are permanently removed from the list `model.agents` only twice in one step i) After the `agent_step_function` 
-has run for all agents and ii) After the `step_rule`.
+are permanently removed from the list `model.agents` only once after the `step_rule`.
 """
 function kill_agent!(agent::AbstractAgent, model::AbstractSpaceModel{MortalType})
     if agent._extras._active::Bool

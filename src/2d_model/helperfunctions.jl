@@ -97,7 +97,6 @@ $(TYPEDSIGNATURES)
     parameters._extras._num_agents = n # number of active agents
     parameters._extras._len_model_agents = n #number of agents in model.agents
     parameters._extras._num_patches = xdim*ydim
-    parameters._extras._keep_deads_data = true
     return parameters
 end
 

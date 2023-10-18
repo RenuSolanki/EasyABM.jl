@@ -1,11 +1,11 @@
-@inline function _agent_extra_props(agent::Agent3D{S, P, MortalType}) where {S<:Union{Int, Float64}, P<:SType}
+@inline function _agent_extra_props!(agent::Agent3D{S, P, MortalType}) where {S<:Union{Int, Float64}, P<:SType}
     agent._extras._active = true
     agent._extras._birth_time = 1 
     agent._extras._death_time = typemax(Int)
     return
 end
 
-@inline function _agent_extra_props(agent::Agent3D{S, P, StaticType}) where {S<:Union{Int, Float64}, P<:SType}
+@inline function _agent_extra_props!(agent::Agent3D{S, P, StaticType}) where {S<:Union{Int, Float64}, P<:SType}
     return
 end
 
@@ -36,6 +36,11 @@ function create_3d_model(agents::Vector{Agent3D{S, A, B}};
     xdim = size[1]
     ydim = size[2]
     zdim = size[3]
+
+    gparams3d.xlen = xdim
+    gparams3d.ylen = ydim
+    gparams3d.zlen = zdim
+
     n = length(agents)
 
     patches = _set_patches3d(size)
@@ -75,7 +80,7 @@ function create_3d_model(agents::Vector{Agent3D{S, A, B}};
         manage_default_graphics_data!(agent, graphics, size)
 
         
-        _agent_extra_props(agent)
+        _agent_extra_props!(agent)
         
         
         _setup_grid!(agent, model, i, xdim, ydim, zdim)
@@ -138,10 +143,8 @@ names as symbols. If a nonempty list of agents properties is specified, it will 
 patches and model are similarly specified with keys "patches" and "model" respectively.
 """
 function init_model!(model::SpaceModel3D; initialiser::Function = null_init!, 
-    props_to_record::Dict{String, Set{Symbol}} = Dict{String, Set{Symbol}}("agents"=>Set{Symbol}([]), "patches"=>Set{Symbol}([]), "model"=>Set{Symbol}([])),
-    keep_deads_data = true)
+    props_to_record::Dict{String, Set{Symbol}} = Dict{String, Set{Symbol}}("agents"=>Set{Symbol}([]), "patches"=>Set{Symbol}([]), "model"=>Set{Symbol}([])))
 
-    model.parameters._extras._keep_deads_data= keep_deads_data
 
     aprops = get(props_to_record, "agents", Set{Symbol}([]))
     pprops = get(props_to_record, "patches", Set{Symbol}([]))
