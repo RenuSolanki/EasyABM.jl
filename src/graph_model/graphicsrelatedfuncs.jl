@@ -485,6 +485,8 @@ $(TYPEDSIGNATURES)
 
 
     node = (:node in record) ? agent_data[:node][index]::Int : agent.node
+    vert_size = _get_vert_size(graph, node, frame, model.record.nprops,node_size)
+    vert_size=vert_size*w
 
     
     pos = _get_vert_pos(graph, node, frame, model.record.nprops) 
@@ -500,7 +502,7 @@ $(TYPEDSIGNATURES)
 
     size = (:size in record) ? agent_data[:size][index]::Union{Int, Float64} : agent.size::Union{Int, Float64}
 
-    size = size*scl*node_size/100 # size of a graph agent given by user is % of the node size
+    size = size*scl*vert_size/100 # size of a graph agent given by user is % of the node size
     
     posx,posy = pos
 

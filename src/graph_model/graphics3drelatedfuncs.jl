@@ -60,6 +60,14 @@ $(TYPEDSIGNATURES)
 end
 
 
+function randomise_within_vert(posx, posy, posz, w, l, h, vert_size)
+    x =  w*posx + 1.8*vert_size*w*(rand()-0.5) #meshcat x goes from 0 to xlen, y from 0 to ylen, z from 0 to zlen
+    y =  l*posy + 1.8*vert_size*l*(rand()-0.5) 
+    z =  h*posz + 1.8*vert_size*h*(rand()-0.5) 
+    return x,y,z
+end
+
+
 
 
 
@@ -210,11 +218,13 @@ function draw_graph_agents_static(vis, model, graph, all_agents, node_size)
     l = ylen/gsize
     h = zlen/gsize
     nrecord = model.record.nprops
+    node_size = node_size*w
 
     for agent in all_agents
         record = agent._keeps_record_of::Set{Symbol}
         agent_data = unwrap_data(agent) 
         node_pos = (:node in record) ? agent_data[:node][index]::Int : agent.node
+        vert_size = _get_vert_size(graph, node_pos, 1, nrecord,node_size)
         vert = graph.nodesprops[node_pos]
         pos = (:pos in nrecord) ? unwrap_data(vert)[:pos][index] : (haskey(vert, :pos) ? vert.pos : vert._extras._pos)
         orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
@@ -231,16 +241,16 @@ function draw_graph_agents_static(vis, model, graph, all_agents, node_size)
     
         posx,posy,posz = pos # posx in range 0 to xdim, posy in range 0 to ydim, posz in range 0 to zdim. Default values of xdim, ydim, zdim are 10,10,10
         
-        x =  w*posx + 0.4*node_size*rand() #meshcat x goes from 0 to xlen, y from 0 to ylen, z from 0 to zlen
-        y =  l*posy + 0.4*node_size*rand() 
-        z =  h*posz + 0.4*node_size*rand() 
+        x,y,z= randomise_within_vert(posx,posy,posz,w,l,h,vert_size)
+
+        vert_size = vert_size*w
 
         clrs = (:color in record) ? unique(agent_data[:color]::Vector{Col}) : [agent.color::Col]
         shps = (:shape in record) ? unique(agent_data[:shape]::Vector{Symbol}) : [agent.shape::Symbol]
         agent._extras._colors = clrs
         clrs_rgb = [cl.val for cl in clrs]
         materials = [MeshPhongMaterial(color=cl) for cl in clrs_rgb]
-        size = size*w # 
+        size = size*vert_size/100 # 
 
         if !(pshp in keys(shapefunctions3d))
             pshp = :cone
@@ -278,11 +288,12 @@ function draw_graph_agents_static(vis, model, graph, all_agents, node_size)
 end
 
 
-function draw_agent3dgraph(vis, agent, model, graph, scl, index, frame, w, l, h)
+function draw_agent3dgraph(vis, agent, model, graph, scl, index, frame, node_size, w, l, h)
     record = agent._keeps_record_of::Set{Symbol}
     nrecord = model.record.nprops
     agent_data = unwrap_data(agent)
     node_pos = (:node in record) ? agent_data[:node][index]::Int : agent.node
+    vert_size = _get_vert_size(graph, node_pos, frame, nrecord,node_size)
     pos = _get_vert_pos3d(graph,node_pos,frame,nrecord)
     #nextpos = (:pos in record)&&(index<model.tick) ? agent_data[:pos][index+1]::Vect{3, S} .+ offset : agent.pos .+ offset
     orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
@@ -300,9 +311,7 @@ function draw_agent3dgraph(vis, agent, model, graph, scl, index, frame, w, l, h)
     posx,posy,posz = pos
 
     
-    x =  w*posx 
-    y =  l*posy 
-    z =  h*posz
+    x,y,z= randomise_within_vert(posx,posy,posz,w,l,h,vert_size)
 
     if !(pshp in keys(shapefunctions3d))
         pshp = :cone
@@ -374,11 +383,12 @@ function draw_vert3d(vis, graph, vert, pos, col, sc, outs, neighs_pos, neighs_si
 
 end
 ##############
-@inline function draw_agent_interact_frame(vis, agent::GraphAgent, model::GraphModel, index::Int, w, l, h)
+@inline function draw_agent_interact_frame(vis, agent::GraphAgent, model::GraphModel, graph, node_size, index::Int, frame, w, l, h)
     record = agent._keeps_record_of::Set{Symbol}
     agent_data = unwrap_data(agent)
-    offset = model.parameters._extras._offset::NTuple{3, Float64}
-    pos = (:pos in record) ? agent_data[:pos][index]::Vect{3, S}  .+ offset : agent.pos .+ offset
+    node_pos = (:node in record) ? agent_data[:node][index]::Int : agent.node
+    vert_size = _get_vert_size(graph, node_pos, frame, model.record.nprops,node_size)
+    pos = _get_vert_pos3d(graph,node_pos,frame,model.record.nprops)
     orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
     pclr = (:color in record) ? agent_data[:color][index]::Col : agent.color::Col
     pshp = (:shape in record) ? agent_data[:shape][index]::Symbol : agent.shape::Symbol
@@ -388,18 +398,17 @@ end
     if ao^2+bo^2+co^2 < 0.00001
         ao = 0.001
     end
-
-
+    
     posx,posy,posz = pos
     
-    x =  w*posx 
-    y =  l*posy 
-    z =  h*posz
+    x,y,z= randomise_within_vert(posx,posy,posz,w,l,h,vert_size)
+
+    vert_size = vert_size*w
 
 
     material = MeshPhongMaterial(color=pclr.val) 
         
-    size = size*w
+    size = size*vert_size/100
 
     if !(pshp in keys(shapefunctions3d))
         pshp = :cone
@@ -416,7 +425,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _draw_agents_interact_frame(vis, model::GraphModelDynAgNum, frame)
+@inline function _draw_agents_interact_frame(vis, model::GraphModelDynAgNum,graph, node_size, frame)
     all_agents = vcat(model.agents, model.agents_killed)
     xlen = gparams3d.xlen+0.0
     ylen = gparams3d.ylen+0.0
@@ -427,13 +436,13 @@ $(TYPEDSIGNATURES)
     for agent in all_agents
         if (agent._extras._birth_time::Int<= frame)&&(frame<= agent._extras._death_time::Int)
             index = frame- agent._extras._birth_time::Int+1
-            draw_agent_interact_frame(vis, agent, model, index, w, l, h)
+            draw_agent_interact_frame(vis, agent, model, graph, node_size, index, frame, w, l, h)
         end
     end
 
 end
 
-@inline function _draw_agents_interact_frame(vis, model::GraphModelFixAgNum, frame)
+@inline function _draw_agents_interact_frame(vis, model::GraphModelFixAgNum, graph, node_size, frame)
     xlen = gparams3d.xlen+0.0
     ylen = gparams3d.ylen+0.0
     zlen = gparams3d.zlen+0.0
@@ -441,7 +450,7 @@ end
     l = ylen/gsize
     h = zlen/gsize
     for agent in model.agents
-        draw_agent_interact_frame(vis, agent, model, frame, w, l, h)
+        draw_agent_interact_frame(vis, agent, model, graph, node_size, frame, frame, w, l, h)
     end
 end
 
@@ -604,7 +613,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function draw_agents_and_graph3d(vis, model::GraphModelDynAgNum, graph, verts, frame, scl)
+function draw_agents_and_graph3d(vis, model::GraphModelDynAgNum, graph, verts, frame, scl, node_size)
     xlen = gparams3d.xlen+0.0
     ylen = gparams3d.ylen+0.0
     zlen = gparams3d.zlen+0.0
@@ -620,7 +629,7 @@ function draw_agents_and_graph3d(vis, model::GraphModelDynAgNum, graph, verts, f
 
     for agent in all_agents
         if (agent._extras._birth_time::Int <= frame)&&(frame<= agent._extras._death_time::Int)
-            draw_agent3dgraph(vis, agent, model, graph, scl, frame - agent._extras._birth_time::Int + 1, frame, w, l, h)
+            draw_agent3dgraph(vis, agent, model, graph, scl, frame - agent._extras._birth_time::Int + 1, frame, node_size, w, l, h)
         end
     end
 end
@@ -628,7 +637,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agents_and_graph3d(vis, model::GraphModelFixAgNum, graph, verts, frame, scl)
+@inline function draw_agents_and_graph3d(vis, model::GraphModelFixAgNum, graph, verts, frame, scl, node_size)
     xlen = gparams3d.xlen+0.0
     ylen = gparams3d.ylen+0.0
     zlen = gparams3d.zlen+0.0
@@ -642,7 +651,7 @@ $(TYPEDSIGNATURES)
 
 
     for agent in model.agents
-       draw_agent3dgraph(vis, agent, model, graph, scl, frame, frame, w, l, h)
+       draw_agent3dgraph(vis, agent, model, graph, scl, frame, frame, node_size, w, l, h)
     end
 end
 
@@ -706,7 +715,7 @@ function animate_sim3d(model::GraphModel, frames::Int=model.tick;
     model_df = get_model_data(model, model_plots).record
 
     function _draw_frame(t, scl)
-        draw_agents_and_graph3d(vis, model, graph, verts, t, scl)
+        draw_agents_and_graph3d(vis, model, graph, verts, t, scl, node_size)
     end
 
     function _render_trivial(s)
@@ -745,7 +754,7 @@ function draw_frame3d(model::GraphModel; frame=model.tick, show_graph=true, vis:
         _draw_graph_interact_frame(vis, graph ,verts, node_size, frame, model.record.nprops, model.record.eprops)
     end
 
-    _draw_agents_interact_frame(vis, model, frame)
+    _draw_agents_interact_frame(vis, model, graph, node_size, frame)
 
     render(vis)
 end
@@ -849,7 +858,7 @@ function create_interactive_app3d(model::GraphModel; initialiser::Function = nul
 
     function _draw_interactive_frame(t, scl)
         verts = getfield(graph[], :_nodes)
-        draw_agents_and_graph3d(vis, model, graph[], verts, t, scl)
+        draw_agents_and_graph3d(vis, model, graph[], verts, t, scl, node_size[])
     end
 
     function _render_trivial(s)
