@@ -250,19 +250,40 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _draw_agents_interact_frame(vis, model::SpaceModel3D{MortalType}, frame, scl)
+
+    xlen = gparams3d.xlen+0.0
+    ylen = gparams3d.ylen+0.0
+    zlen = gparams3d.zlen+0.0
+    xdim = model.size[1]
+    ydim = model.size[2]
+    zdim = model.size[3]
+    w = xlen/xdim
+    l = ylen/ydim
+    h = zlen/zdim 
+
     all_agents = vcat(model.agents, model.agents_killed)
     for agent in all_agents
         if (agent._extras._birth_time::Int<= frame)&&(frame<= agent._extras._death_time::Int)
-            index = frame- agent._extras._birth_time::Int+1
-            draw_agent_interact_frame(vis, agent, model, index, scl)
+            draw_agent_interact_frame(vis, agent, model, frame- agent._extras._birth_time::Int+1, scl, w, l, h)
         end
     end
 
 end
 
 @inline function _draw_agents_interact_frame(vis, model::SpaceModel3D{StaticType}, frame, scl)
+
+    xlen = gparams3d.xlen+0.0
+    ylen = gparams3d.ylen+0.0
+    zlen = gparams3d.zlen+0.0
+    xdim = model.size[1]
+    ydim = model.size[2]
+    zdim = model.size[3]
+    w = xlen/xdim
+    l = ylen/ydim
+    h = zlen/zdim 
+    
     for agent in model.agents
-        draw_agent_interact_frame(vis, agent, model, frame, scl)
+        draw_agent_interact_frame(vis, agent, model, frame, scl, w, l, h)
     end
 end
 
@@ -270,9 +291,9 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _if_alive_draw_agent(vis, agent, model, frame, scl, tail_length::Int, tail_condition::Function)
+@inline function _if_alive_draw_agent(vis, agent, model, frame, scl, tail_length::Int, tail_condition::Function, w, l, h)
     if (agent._extras._birth_time<= frame)&&(frame<= agent._extras._death_time)
-        draw_agent(vis, agent, model, frame - agent._extras._birth_time::Int +1, scl, tail_length, tail_condition)
+        draw_agent(vis, agent, model, frame - agent._extras._birth_time::Int +1, scl, tail_length, tail_condition, w, l, h)
     end
 end
 
@@ -282,6 +303,15 @@ $(TYPEDSIGNATURES)
 """
 @inline function draw_agents_and_patches(vis, model::SpaceModel3D{MortalType}, frame, scl::Number=1.0, tail_length = 1, tail_condition = agent->false)
     show_patches = model.parameters._extras._show_space
+    xlen = gparams3d.xlen+0.0
+    ylen = gparams3d.ylen+0.0
+    zlen = gparams3d.zlen+0.0
+    xdim = model.size[1]
+    ydim = model.size[2]
+    zdim = model.size[3]
+    w = xlen/xdim
+    l = ylen/ydim
+    h = zlen/zdim
     if show_patches
         if :color in model.record.pprops
             draw_patches(vis, model, frame)
@@ -289,7 +319,7 @@ $(TYPEDSIGNATURES)
     end
     all_agents = vcat(model.agents, model.agents_killed)
     for agent in all_agents
-        _if_alive_draw_agent(vis, agent, model, frame, scl, tail_length, tail_condition)
+         _if_alive_draw_agent(vis, agent, model, frame, scl, tail_length, tail_condition, w, l, h)
     end
 end
 
@@ -299,6 +329,15 @@ $(TYPEDSIGNATURES)
 """
 @inline function draw_agents_and_patches(vis, model::SpaceModel3D{StaticType}, frame, scl::Number=1.0, tail_length = 1, tail_condition = agent->false)
     show_patches = model.parameters._extras._show_space::Bool
+    xlen = gparams3d.xlen+0.0
+    ylen = gparams3d.ylen+0.0
+    zlen = gparams3d.zlen+0.0
+    xdim = model.size[1]
+    ydim = model.size[2]
+    zdim = model.size[3]
+    w = xlen/xdim
+    l = ylen/ydim
+    h = zlen/zdim
     if show_patches
         if :color in model.record.pprops
             draw_patches(vis, model, frame)
@@ -306,7 +345,7 @@ $(TYPEDSIGNATURES)
     end
 
     for agent in model.agents
-        draw_agent(vis, agent, model, frame, scl, tail_length, tail_condition)
+        draw_agent(vis, agent, model, frame, scl, tail_length, tail_condition, w, l, h)
     end
 end
 

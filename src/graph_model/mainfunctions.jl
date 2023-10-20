@@ -44,7 +44,7 @@ Creates a model with
 """
 function create_graph_model(agents::Vector{GraphAgent{A, B}}, 
     graph::AbstractPropGraph{S, G}; agents_type::T = Static,
-    graphics=true, random_positions=false, kwargs...) where {S<:MType, T<:MType, G<:GType, A<:MType, B<:MType}
+    graphics=true, random_positions=false, vis_space="2d", kwargs...) where {S<:MType, T<:MType, G<:GType, A<:MType, B<:MType}
 
 
     set_window_size(400,400)
@@ -95,9 +95,15 @@ function create_graph_model(agents::Vector{GraphAgent{A, B}},
     parameters._extras._num_agents = n # number of active agents
     parameters._extras._len_model_agents = n #number of agents in model.agents
     parameters._extras._show_space = true
+    parameters._extras._vis_space = vis_space
 
-    if graphics
+    if graphics && (vis_space=="2d")
         locs_x, locs_y = spring_layout(structure)
+    elseif graphics && (vis_space=="3d")
+        locs_x, locs_y, locs_z = spring_layout3d(structure)
+    else
+        println("Graphics vis_space = $vis_space is not supported. Please choose 2d or 3d.")
+        return
     end
 
 
@@ -107,7 +113,7 @@ function create_graph_model(agents::Vector{GraphAgent{A, B}},
         end
 
         if graphics && !haskey(graph.nodesprops[vt], :pos) && !haskey(graph.nodesprops[vt]._extras, :_pos)
-            graph.nodesprops[vt]._extras._pos = (locs_x[i], locs_y[i])
+            graph.nodesprops[vt]._extras._pos =  vis_space=="2d" ? (locs_x[i], locs_y[i]) : (locs_x[i], locs_y[i], locs_z[i]) 
         end
 
         _node_extra_props!(graph, vt)
@@ -156,7 +162,7 @@ function create_graph_model(agents::Vector{GraphAgent{A, B}},
             setfield!(agent, :node, ag_node)      # if random_positions is true, we need to assign a node property
         end
 
-        manage_default_graphics_data!(agent, graphics)
+        manage_default_graphics_data!(agent, graphics, vis_space)
 
         
         push!(graph.nodesprops[agent.node].agents, i)   
@@ -177,11 +183,11 @@ $(TYPEDSIGNATURES)
 """
 function create_graph_model(
     graph::AbstractPropGraph{S, G};
-    graphics=true, random_positions=false, kwargs...) where {S<:MType, G<:GType}
+    graphics=true, random_positions=false, vis_space="2d", kwargs...) where {S<:MType, G<:GType}
 
     agents = GraphAgent{S, StaticType}[]
     model = create_graph_model(agents, graph; agents_type=Static, 
-    graphics=graphics, random_positions=random_positions, kwargs...)
+    graphics=graphics, random_positions=random_positions, vis_space=vis_space, kwargs...)
     return model
 end
 
@@ -425,7 +431,7 @@ $(TYPEDSIGNATURES)
 
 Creates an animation from the data collected during model run.
 """
-function animate_sim(model::GraphModel, frames::Int=model.tick; 
+function animate_sim2d(model::GraphModel, frames::Int=model.tick; 
     agent_plots::Dict{String, <:Function} = Dict{String, Function}(), 
     node_plots::Dict{String, <:Function} = Dict{String, Function}(), 
     model_plots::Vector{Symbol} = Symbol[],
@@ -441,13 +447,13 @@ function animate_sim(model::GraphModel, frames::Int=model.tick;
     verts = getfield(graph, :_nodes)
     node_size = _get_node_size(model.parameters._extras._num_verts::Int)
 
+    no_graphics = plots_only || !(model.graphics)
+
     function draw_frame_luxor(t, scl)
         drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
-        if model.graphics
-            Luxor.origin()
-            Luxor.background("white")
-            draw_agents_and_graph(model,graph, verts, node_size, t, scl, mark_nodes, tail, agent_path)
-        end
+        Luxor.origin()
+        Luxor.background("white")
+        draw_agents_and_graph(model,graph, verts, node_size, t, scl, mark_nodes, tail, agent_path) 
         finish()
         drawing
     end
@@ -462,7 +468,7 @@ function animate_sim(model::GraphModel, frames::Int=model.tick;
 
     draw_frame = draw_frame_luxor
 
-    if plots_only
+    if no_graphics
         draw_frame = _does_nothing
         _save_sim = _does_nothing
     end
@@ -485,7 +491,42 @@ function animate_sim(model::GraphModel, frames::Int=model.tick;
     node_df = get_agents_avg_props(model, conditions..., labels= labels)
     model_df = get_model_data(model, model_plots).record
 
-    _interactive_app(model, fr, plots_only,_save_sim, draw_frame, agent_df, DataFrames.DataFrame(), node_df, model_df)
+    _interactive_app(model, fr, no_graphics,_save_sim, draw_frame, agent_df, DataFrames.DataFrame(), node_df, model_df)
+end
+
+
+"""
+$(TYPEDSIGNATURES)
+
+Creates an animation from the data collected during model run.
+"""
+function animate_sim(model::GraphModel, frames::Int=model.tick; 
+    agent_plots::Dict{String, <:Function} = Dict{String, Function}(), 
+    node_plots::Dict{String, <:Function} = Dict{String, Function}(), 
+    model_plots::Vector{Symbol} = Symbol[],
+    plots_only = false, 
+    path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), 
+    show_graph = true, mark_nodes=false, tail = (1, node-> false),
+    agent_path=(1, ag->false))
+
+
+    if model.parameters._extras._vis_space == "2d"
+        animate_sim2d(model, frames,
+        agent_plots=agent_plots, 
+        node_plots=node_plots, 
+        model_plots=model_plots,
+        plots_only = plots_only, 
+        path= path, 
+        show_graph = show_graph, mark_nodes=mark_nodes, tail = tail,
+        agent_path=agent_path)
+    else
+        animate_sim3d(model, frames,
+        agent_plots=agent_plots, 
+        node_plots=node_plots, 
+        model_plots=model_plots,
+        plots_only = plots_only, 
+        show_graph = show_graph)
+    end
 end
 
 
@@ -495,7 +536,7 @@ $(TYPEDSIGNATURES)
 
 Draws a specific frame.
 """
-function draw_frame(model::GraphModel; frame=model.tick, show_graph=true, mark_nodes=false)
+function draw_frame2d(model::GraphModel; frame=model.tick, show_graph=true, mark_nodes=false)
     frame = min(frame, model.tick)
     model.parameters._extras._show_space = show_graph
     graph = is_static(model.graph) ? model.graph : combined_graph(model.graph, model.dead_meta_graph)
@@ -511,13 +552,28 @@ function draw_frame(model::GraphModel; frame=model.tick, show_graph=true, mark_n
     drawing
 end
 
+"""
+$(TYPEDSIGNATURES)
+
+Draws a specific frame.
+"""
+function draw_frame(model::GraphModel; frame=model.tick, show_graph=true, mark_nodes=false)
+    if model.parameters._extras._vis_space == "2d"
+        draw_frame2d(model, frame=frame,
+        show_graph=show_graph, mark_nodes=mark_nodes)
+    else
+        draw_frame3d(model, frame=frame,
+        show_graph=show_graph)
+    end
+end
+
 
 """
 $(TYPEDSIGNATURES)
 
 Creates an interactive app for the model.
 """
-function create_interactive_app(model::GraphModel; initialiser::Function = null_init!, 
+function create_interactive_app2d(model::GraphModel; initialiser::Function = null_init!, 
     props_to_record::Dict{String, Set{Symbol}} = Dict{String, Set{Symbol}}("agents"=>Set{Symbol}([]), "nodes"=>Set{Symbol}([]), "edges"=>Set{Symbol}([]), "model"=>Set{Symbol}([])),
     step_rule::Function=model_null_step!,
     agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
@@ -536,6 +592,8 @@ function create_interactive_app(model::GraphModel; initialiser::Function = null_
     # end
 
     model.parameters._extras._show_space = show_graph
+
+    no_graphics = plots_only || !(model.graphics)
 
     init_model!(model, initialiser=initialiser, props_to_record = props_to_record)
 
@@ -589,26 +647,69 @@ function create_interactive_app(model::GraphModel; initialiser::Function = null_
         verts = getfield(model.graph, :_nodes)
         node_size = _get_node_size(model.parameters._extras._num_verts::Int)
         drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
-        if model.graphics
-            Luxor.origin()
-            Luxor.background("white")
-            draw_agents_and_graph(model,graph[], verts, node_size, t, scl, mark_nodes, tail, agent_path)
-        end
+        Luxor.origin()
+        Luxor.background("white")
+        draw_agents_and_graph(model,graph[], verts, node_size, t, scl, mark_nodes, tail, agent_path)
         finish()
         drawing
     end
 
     _draw_interactive_frame = _draw_interactive_frame_luxor
 
-    if plots_only
+    if no_graphics
         _draw_interactive_frame = _does_nothing
         _save_sim = _does_nothing
     end
 
-    _live_interactive_app(model, frames, plots_only, _save_sim, _init_interactive_model, 
+    _live_interactive_app(model, frames, no_graphics, _save_sim, _init_interactive_model, 
     _run_interactive_model, _draw_interactive_frame, agent_controls, model_controls, 
     agent_df, ()->nothing, patch_df, node_df, model_df)
 
+end
+
+"""
+$(TYPEDSIGNATURES)
+
+Creates an interactive app for the model.
+"""
+function create_interactive_app(model::GraphModel; initialiser::Function = null_init!, 
+    props_to_record::Dict{String, Set{Symbol}} = Dict{String, Set{Symbol}}("agents"=>Set{Symbol}([]), "nodes"=>Set{Symbol}([]), "edges"=>Set{Symbol}([]), "model"=>Set{Symbol}([])),
+    step_rule::Function=model_null_step!,
+    agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
+    model_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), #initialiser will override the changes made
+    agent_plots::Dict{String, <:Function} = Dict{String, Function}(),
+    node_plots::Dict{String, <:Function} = Dict{String, Function}(),
+    model_plots::Vector{Symbol} = Symbol[],
+    plots_only = false,
+    path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"),
+    frames=200, show_graph=true, mark_nodes=false, tail = (1, node-> false),
+    agent_path=(1, ag->false)) 
+
+    if model.parameters._extras._vis_space=="2d"
+        create_interactive_app2d(model; initialiser=initialiser, 
+        props_to_record=props_to_record,
+        step_rule=step_rule,
+        agent_controls=agent_controls, 
+        model_controls=model_controls,
+        agent_plots=agent_plots,
+        node_plots=node_plots,
+        model_plots=model_plots,
+        plots_only = plots_only,
+        path= path,
+        frames=frames, show_graph=show_graph, mark_nodes=mark_nodes, tail = tail,
+        agent_path=agent_path) 
+    else
+        create_interactive_app3d(model; initialiser=initialiser, 
+        props_to_record=props_to_record,
+        step_rule=step_rule,
+        agent_controls=agent_controls, 
+        model_controls=model_controls,
+        agent_plots=agent_plots,
+        node_plots=node_plots,
+        model_plots=model_plots,
+        plots_only = plots_only,
+        frames=frames, show_graph=show_graph)
+    end
 end
 
 

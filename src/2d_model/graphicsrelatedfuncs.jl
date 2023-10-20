@@ -65,8 +65,8 @@ $(TYPEDSIGNATURES)
     box(Luxor.Point(0, 0), width, height, 0.0001, :fill)
  
  
-    @sync for j in 1:model.size[2], i in 1:model.size[1]
-       @async _draw_a_patch(i, j, w, h, model.patches[i,j].color, width, height)
+    for j in 1:model.size[2], i in 1:model.size[1]
+       _draw_a_patch(i, j, w, h, model.patches[i,j].color, width, height)
     end
 
 end
@@ -86,15 +86,15 @@ $(TYPEDSIGNATURES)
     setcolor(_grid_lines_color)
     box(Luxor.Point(0, 0), width, height, 0.0001, :fill)
                 
-    @sync for j in 1:model.size[2], i in 1:model.size[1]
-        @async _draw_a_patch(i, j, w, h, unwrap_data(model.patches[i,j])[:color][frame]::Col, width, height)
+    for j in 1:model.size[2], i in 1:model.size[1]
+        _draw_a_patch(i, j, w, h, unwrap_data(model.patches[i,j])[:color][frame]::Col, width, height)
     end
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agent(agent, model::SpaceModel2D, xdim::Int, ydim::Int, scl, index::Int, tail_length, tail_condition)
+@inline function draw_agent(agent, model::SpaceModel2D, scl, index::Int, tail_length, tail_condition, w, h)
     record = agent._keeps_record_of::Set{Symbol}
     periodic = is_periodic(model)
     agent_data = unwrap_data(agent)
@@ -102,8 +102,6 @@ $(TYPEDSIGNATURES)
 
     width = gparams.width
     height = gparams.height
-    w = width/xdim
-    h = height/ydim
 
     pos = (:pos in record) ? agent_data[:pos][index]::Vect{2, <:Real} .+ offset : agent.pos .+ offset
     orientation = (:orientation in record) ? agent_data[:orientation][index]::Float64 : agent.orientation::Float64

@@ -4,6 +4,10 @@ const _node_size = 0.25 # absolute from 0 to gsize
 const _scale_graph = 0.95
 const _boundary_frame = 0.025
 
+const _default_edge_color = cl"blue"
+
+const _default_vert_color = cl"white"
+
 const gsize = 10
 
 """
@@ -94,7 +98,7 @@ $(TYPEDSIGNATURES)
     if haskey(graph.nodesprops[vert], :color)
         vert_col = (:color in nprops) ? unwrap_data(graph.nodesprops[vert])[:color][index]::Col : graph.nodesprops[vert].color::Col
     else 
-        vert_col = Col("white")
+        vert_col = _default_vert_color
     end
     return vert_col
 end
@@ -108,7 +112,7 @@ $(TYPEDSIGNATURES)
     if haskey(graph.nodesprops[vert], :color)
         vert_col = (:color in nprops) ? unwrap_data(graph.nodesprops[vert])[:color][index]::Col : graph.nodesprops[vert].color::Col
     else 
-        vert_col = Col("white")
+        vert_col = _default_vert_color
     end
     return vert_col
 end
@@ -122,7 +126,7 @@ $(TYPEDSIGNATURES)
     if haskey(graph.edgesprops[(vert,nd)], :color)
         edge_col = (:color in eprops) ? unwrap_data(graph.edgesprops[(vert,nd)])[:color][index]::Col : graph.edgesprops[(vert,nd)].color::Col
     else 
-        edge_col = Col("black")
+        edge_col = _default_edge_color
     end
     return edge_col
 end
@@ -259,7 +263,7 @@ $(TYPEDSIGNATURES)
         if (agent._extras._birth_time::Int<= frame)&&(frame<= agent._extras._death_time::Int)
             index = frame - agent._extras._birth_time::Int +1
             node = (:node in agent._keeps_record_of::Set{Symbol}) ? agent_data[:node][index]::Int : agent.node
-            pos = _get_vert_pos(graph, node, frame, model.record.nprops)+GeometryBasics.Vec(0.05-0.1*rand(), 0.05-0.1*rand())
+            pos = _get_vert_pos(graph, node, frame, model.record.nprops) #+GeometryBasics.Vec(0.05-0.1*rand(), 0.05-0.1*rand())
             push!(posits, pos)
         end
     end
@@ -276,7 +280,7 @@ $(TYPEDSIGNATURES)
         agent_data = unwrap_data(agent)
         index = frame 
         node = (:node in agent._keeps_record_of::Set{Symbol}) ? agent_data[:node][index]::Int : agent.node
-        pos = _get_vert_pos(graph, node, frame, model.record.nprops)+GeometryBasics.Vec(0.05-0.1*rand(), 0.05-0.1*rand())
+        pos = _get_vert_pos(graph, node, frame, model.record.nprops) #+GeometryBasics.Vec(0.05-0.1*rand(), 0.05-0.1*rand())
         push!(posits, pos)
     end
     return posits

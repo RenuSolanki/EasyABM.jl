@@ -31,7 +31,7 @@ export  Static, Mortal, PropDict, Vect,
         double_triangular_grid_graph, graph_from_dict, draw_graph,
         adjacency_matrix, add_node!, add_nodes!, kill_node!, 
         create_edge!, kill_edge!, kill_all_edges!, flush_graph!,
-        is_digraph, is_static,
+        is_digraph, is_directed, is_static,
         vertices, recompute_graph_layout,
 
 
@@ -122,6 +122,7 @@ include("3d_model/mainfunctions.jl")
 include("graph_model/propgraphs.jl")
 include("graph_model/model.jl")
 include("graph_model/graphicsrelatedfuncs.jl")
+include("graph_model/graphics3drelatedfuncs.jl")
 include("graph_model/utilities.jl")
 include("graph_model/helperfunctions.jl")
 include("graph_model/graphplotlayouts.jl")

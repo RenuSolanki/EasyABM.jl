@@ -249,6 +249,10 @@ $(TYPEDSIGNATURES)
 @inline function draw_agents_and_patches(model::SpaceModel2D{MortalType}, frame, scl, tail_length = 1, tail_condition = agent-> false)
     xdim = model.size[1]
     ydim = model.size[2]
+    width = gparams.width
+    height = gparams.height
+    w = width/xdim
+    h = height/ydim
     show_patches = model.parameters._extras._show_space::Bool
     if show_patches
         if :color in model.record.pprops
@@ -256,9 +260,9 @@ $(TYPEDSIGNATURES)
         end
     end
     all_agents = vcat(model.agents, model.agents_killed)
-    @sync for agent in all_agents
+    for agent in all_agents
         if (agent._extras._birth_time::Int <= frame)&&(frame<= agent._extras._death_time::Int)
-            @async draw_agent(agent, model, xdim, ydim, scl, frame - agent._extras._birth_time::Int +1, tail_length, tail_condition)
+            draw_agent(agent, model, scl, frame - agent._extras._birth_time::Int +1, tail_length, tail_condition, w, h)
         end
     end
 end
@@ -270,6 +274,10 @@ $(TYPEDSIGNATURES)
 @inline function draw_agents_and_patches(model::SpaceModel2D{StaticType}, frame, scl, tail_length = 1, tail_condition = agent-> false)
     xdim = model.size[1]
     ydim = model.size[2]
+    width = gparams.width
+    height = gparams.height
+    w = width/xdim
+    h = height/ydim
     show_patches = model.parameters._extras._show_space::Bool
     if show_patches
         if :color in model.record.pprops
@@ -277,7 +285,7 @@ $(TYPEDSIGNATURES)
         end
     end
 
-   @sync for agent in model.agents
-        @async draw_agent(agent, model, xdim, ydim, scl, frame, tail_length, tail_condition)
+   for agent in model.agents
+        draw_agent(agent, model, scl, frame, tail_length, tail_condition, w, h)
     end
 end

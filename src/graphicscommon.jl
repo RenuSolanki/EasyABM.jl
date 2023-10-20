@@ -180,10 +180,10 @@ function _interactive_app(model::Union{AbstractSpaceModel, AbstractGraphModel}, 
         end
         gfun() = begin
             #run.val = 1
-            timeS[]+=1
             if (timeS[]<fr)&&(check[]==0)
                 sleep(0.03)
-                run[]+=1
+                timeS[]+=1
+                run[]=run[]
             elseif check[] ==1
                 check[] = 0
             end
@@ -231,8 +231,12 @@ function _interactive_app(model::Union{AbstractSpaceModel, AbstractGraphModel}, 
             push!(plots, pl)
         end
 
+        function _draw_a_frame(t, scl)
+            draw_frame(t, scl)
+        end
+
     
-        animlux = Interact.@map draw_frame(&timeS, &scaleS)
+        animlux = Interact.@map _draw_a_frame(&timeS, &scaleS)
         
         
         spc = Widgets.latex("\\;"^2) #smallspace
@@ -240,9 +244,10 @@ function _interactive_app(model::Union{AbstractSpaceModel, AbstractGraphModel}, 
 
         if plots_only
             sv = spc
+            scaleS=spc
         end
 
-        if (typeof(model)<:SpaceModel3D)
+        if (typeof(model)<:SpaceModel3D) || ((typeof(model)<:GraphModel) && (model.parameters._extras._vis_space=="3d"))
             render3d = Interact.@map render_trivial(&emptyS)
             wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop])
             return @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, hbox(spc, :run, spc, :stop)), render3d, spc, vbox(plots...) ) )  
@@ -448,7 +453,7 @@ function _live_interactive_app(model::Union{AbstractSpaceModel, AbstractGraphMod
 
 
 
-    if (typeof(model)<:SpaceModel3D)
+    if (typeof(model)<:SpaceModel3D) || ((typeof(model)<:GraphModel) && (model.parameters._extras._vis_space=="3d"))
         render3d = Interact.@map render_trivial(&emptyS)
         wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop, "rst"=>rst])
         return @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, vbox(ag_controls...), vbox(md_controls...), hbox(spc, :run, spc, :stop, spc, :rst)), render3d, spc, vbox(pls...) ) )  

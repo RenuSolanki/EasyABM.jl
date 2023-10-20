@@ -5,7 +5,7 @@ This function is for use from within the module and is not exported.
 It takes an agent as first argument, and if `graphics` is true, some
 graphics related properties are added to the agent if not already defined. 
 """
-function manage_default_graphics_data!(agent::GraphAgent, graphics)
+function manage_default_graphics_data!(agent::GraphAgent, graphics, vis_space="2d")
     if graphics
         if !haskey(agent, :shape)
             agent.shape = :circle
@@ -20,7 +20,11 @@ function manage_default_graphics_data!(agent::GraphAgent, graphics)
         end
 
         if !haskey(agent, :orientation)
-            agent.orientation = 0.0
+            if vis_space=="2d"
+                agent.orientation = 0.0
+            else
+                agent.orientation = Vect(0.0,0.0,1.0)
+            end
         end
 
     end
@@ -70,7 +74,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _refill_dead_meta_graph(dead_graph::DirPropGraph, graph::DirPropGraph)
+function _refill_dead_meta_graph!(dead_graph::DirPropGraph, graph::DirPropGraph)
     _in_structure = dead_graph.in_structure
     _out_structure = dead_graph.out_structure
     for i in getfield(graph, :_nodes)
@@ -141,7 +145,7 @@ function add_agent!(agent, model::GraphModelDynAgNum)
         end
 
         _manage_default_data!(agent, model)
-        manage_default_graphics_data!(agent, model.graphics)
+        manage_default_graphics_data!(agent, model.graphics, model.parameters._extras._vis_space::String)
 
         node = agent.node 
 
@@ -198,7 +202,7 @@ function add_node!(model::GraphModelDynGrTop; kwargs...)
     model.parameters._extras._num_all_verts::Int+=1
     model.parameters._extras._max_node_id::Int = node
     if model.graphics && !haskey(model.graph.nodesprops[node], :pos)
-        model.graph.nodesprops[node]._extras._pos = (rand()*gsize, rand()*gsize)
+        model.graph.nodesprops[node]._extras._pos = (model.parameters._extras._vis_space == "2d") ? (rand()*gsize, rand()*gsize) : (rand()*gsize, rand()*gsize, rand()*gsize)
     end
     if length(model.record.nprops)>0
         node_dict = unwrap(model.graph.nodesprops[node])
@@ -786,10 +790,16 @@ function recompute_graph_layout(model::GraphModel)
             structure[node] = unique!(sort!(vcat(graph.in_structure[node], graph.out_structure[node])))
         end
     end
-    locs_x, locs_y = spring_layout(structure)
-
-    for (i,vt) in enumerate(verts)
-        model.graph.nodesprops[vt]._extras._pos = (locs_x[i], locs_y[i]) # nodesprops contains properties of all nodes dead or alive
+    if model.parameters._extras._vis_space::String=="2d"
+        locs_x, locs_y = spring_layout(structure)
+        for (i,vt) in enumerate(verts)
+            model.graph.nodesprops[vt]._extras._pos = (locs_x[i], locs_y[i]) # nodesprops contains properties of all nodes dead or alive
+        end
+    else
+        locs_x, locs_y, locs_z = spring_layout3d(structure)
+        for (i,vt) in enumerate(verts)
+            model.graph.nodesprops[vt]._extras._pos = (locs_x[i], locs_y[i], locs_z[i]) # nodesprops contains properties of all nodes dead or alive
+        end
     end
 
 end
@@ -842,8 +852,8 @@ $(TYPEDSIGNATURES)
 """
 @inline function _draw_graph(graph::AbstractPropGraph{MortalType}, verts, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
     alive_verts = verts[[(graph.nodesprops[nd]._extras._birth_time::Int <=frame)&&(frame<=graph.nodesprops[nd]._extras._death_time::Int) for nd in verts]]
-    @sync for vert in alive_verts
-        @async _draw_da_vert(graph, vert, node_size, frame, nprops, eprops,  mark_nodes, tail) 
+    for vert in alive_verts
+        _draw_da_vert(graph, vert, node_size, frame, nprops, eprops,  mark_nodes, tail) 
     end
 end
 
@@ -852,8 +862,8 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function _draw_graph(graph::AbstractPropGraph{StaticType}, verts, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
-    @sync for vert in verts
-        @async _draw_da_vert(graph, vert, node_size, frame, nprops, eprops, mark_nodes, tail) 
+    for vert in verts
+        _draw_da_vert(graph, vert, node_size, frame, nprops, eprops, mark_nodes, tail) 
     end
 end
 
@@ -867,9 +877,9 @@ $(TYPEDSIGNATURES)
 
     all_agents = vcat(model.agents, model.agents_killed)
 
-    @sync for agent in all_agents
+    for agent in all_agents
         if (agent._extras._birth_time::Int <= frame)&&(frame<= agent._extras._death_time::Int)
-            @async draw_agent(agent, model, graph, node_size, scl, frame - agent._extras._birth_time::Int + 1, frame, agent_path)
+            draw_agent(agent, model, graph, node_size, scl, frame - agent._extras._birth_time::Int + 1, frame, agent_path)
         end
     end
 end
@@ -883,8 +893,8 @@ $(TYPEDSIGNATURES)
         _draw_graph(graph, verts, node_size, frame, model.record.nprops, model.record.eprops, mark_nodes, tail)
     end
 
-    @sync for agent in model.agents
-       @async draw_agent(agent, model, graph, node_size, scl, frame, frame, agent_path)
+    for agent in model.agents
+       draw_agent(agent, model, graph, node_size, scl, frame, frame, agent_path)
     end
 end
 

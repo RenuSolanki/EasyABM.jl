@@ -292,40 +292,6 @@ function animate_sim(model::SpaceModel3D, frames::Int=model.tick;
 
     _interactive_app(model, fr, no_graphics, _save_sim, _draw_frame,
     agent_df, patch_df, node_df, model_df, _render_trivial)
-
-    # if model.graphics
-    #     ticks = getfield(model, :tick)[]
-    #     model.parameters._extras._show_space = show_patches
-    #     fr = min(frames, ticks)
-    #     vis = Visualizer()
-    #     anim = Animation()
-        
-    #     _adjust_origin_and_draw_bounding_box(vis, true)
-
-    #     if show_patches
-    #         draw_patches_static(vis,model)
-    #     end
-
-    #     all_agents = _get_all_agents(model)
-  
-    #     draw_agents_static(vis, model, all_agents, tail...)
-
-    #     for i in 1:fr
-    #         atframe(anim, i) do
-    #             draw_agents_and_patches(vis, model, i, 1.0, tail...)
-    #         end
-    #     end
-        
-    #     #setprop!(vis["/Animations/default"],"timeScale", 0.1)
-    #     setanimation!(vis, anim)
-    #     # if (@__FILE__)[1:2]=="In"
-    #     render(vis)
-    #     #else
-    #         #open(vis)
-    #     #end
-
-    # end
-
 end
 
 # if model.graphics # this is one way to do animation using meshcat

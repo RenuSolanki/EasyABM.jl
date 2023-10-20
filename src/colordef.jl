@@ -44,21 +44,29 @@ struct Col
 end
 
 function Base.show(io::IO, ::MIME"text/plain", v::Col) # works with REPL
-    println(io, "$(v.val)")
+    println(io, "Col($(v.val.r),$(v.val.g),$(v.val.b),$(v.val.alpha))")
 end
 
 function Base.show(io::IO, v::Col) # works with print
-    println(io, "$(v.val)")
+    println(io, "Col($(v.val.r),$(v.val.g),$(v.val.b),$(v.val.alpha))")
 end
 
 function Base.show(io::IO, ::MIME"text/plain", v::Vector{<:Col}) # works with REPL
     l = length(v)
-    println(io, "vector of colors of length $l")
+    println(io, "vector containing $l colors:")
+    println(io, "")
+    for cl in v
+        println(io, cl)
+    end
 end
 
 function Base.show(io::IO, v::Vector{<:Col}) # works with print
     l=length(v)
-    println(io, "vector of colors of length $l")
+    println(io, "vector containing $l colors:")
+    println(io, "")
+    for cl in v
+        println(io, cl)
+    end
 end
 
 Base.string(col::Col)=string((col.val.r,col.val.g,col.val.b,col.val.alpha))

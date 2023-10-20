@@ -41,13 +41,15 @@ end
     # greenl = LineBasicMaterial(color=RGBA(0,1,0,1))
     # bluel = LineBasicMaterial(color=RGBA(0,0,1,1))
     blackl = LineBasicMaterial(color=RGBA(0,0,0,1))
+
+    #Draw_patches. Set them in respective positions. Hide them.
  
-    @threads for k in 0:model.size[3]
+    for k in 0:model.size[3]
         z=h*k
-        @threads for j in 0:model.size[2]
+        for j in 0:model.size[2]
             y =  l*j
             #setobject!(vis["line_segments"]["yz($j,$k)"], MeshCat.LineSegments([MeshCat.Point(0.0, y, z),MeshCat.Point(xlen, y, z)], blackl))
-            @threads for i in 0:model.size[1]
+            for i in 0:model.size[1]
                 x =  w*i
                 #setobject!(vis["line_segments"]["zx($k,$i)"], MeshCat.LineSegments([MeshCat.Point(x, 0.0, z),MeshCat.Point(x, ylen, z)], blackl))
                 #setobject!(vis["line_segments"]["xy($i,$j)"], MeshCat.LineSegments([MeshCat.Point(x, y, 0.0),MeshCat.Point(x, y, zlen)], blackl))
@@ -63,9 +65,7 @@ end
                     for (s, cl) in enumerate(clrs)
                         clnm = string(cl)
                         setobject!(vis["patches"]["($i,$j,$k)"][clnm],box,materials[s])
-                        if (:color in model.record.pprops)
-                            setvisible!(vis["patches"]["($i,$j,$k)"][clnm], false)
-                        end
+                        setvisible!(vis["patches"]["($i,$j,$k)"][clnm], false)
                     end  
 
                 end      
@@ -76,7 +76,7 @@ end
 end
 
 function draw_tail(vis, agent, tail_length)
-    @threads for i in 1:tail_length
+    for i in 1:tail_length
         bluel = LineBasicMaterial(color=RGBA(0,0,1,1))#tail_opacity(i, tail_length) # set to blue by default
         setobject!(vis["tails"]["$(getfield(agent, :id))"]["$i"],MeshCat.LineSegments([MeshCat.Point(0.0, 0, 0),MeshCat.Point(0, 0, 1.0)], bluel)) 
         setvisible!(vis["tails"]["$(getfield(agent, :id))"]["$i"], false)
@@ -92,6 +92,9 @@ end
     index=1
 
     #periodic = is_periodic(model)
+
+    #Space dimensions. Agents positions can be from 0 to xdim, 0 to ydim, 0 to zdim. 
+    #xlen, ylen, zlen are dimensions from MeshCat point of view. 
     xlen = gparams3d.xlen+0.0
     ylen = gparams3d.ylen+0.0
     zlen = gparams3d.zlen+0.0
@@ -105,7 +108,8 @@ end
 
 
 
-    @threads for agent in all_agents
+    for agent in all_agents
+        # For each possible color and shape of an agent we assign an object to it, which will later be made visible/invisible at each frame as per requirement. 
         record = agent._keeps_record_of::Set{Symbol}
         agent_data = unwrap_data(agent)
         pos = (:pos in record) ? agent_data[:pos][index]::Vect{3, S} .+ offset : agent.pos .+ offset
@@ -116,6 +120,9 @@ end
     
     
         ao,bo,co = orientation
+        if ao^2+bo^2+co^2 < 0.00001
+            ao = 0.001
+        end
     
     
         posx,posy,posz = pos # posx in range 0 to xdim, posy in range 0 to ydim, posz in range 0 to zdim. Default values of xdim, ydim, zdim are 10,10,10
@@ -176,9 +183,9 @@ end
 
 
 @inline function draw_patches(vis, model::SpaceModel3D, frame)
-    @threads for k in 1:model.size[3]            
-        @threads for j in 1:model.size[2]
-            @threads for i in 1:model.size[1]
+    for k in 1:model.size[3]            
+        for j in 1:model.size[2]
+            for i in 1:model.size[1]
                 clrs = model.patches[i,j,k]._extras._colors::Vector{Col}
                 pclr = unwrap_data(model.patches[i,j,k])[:color][frame]::Col
                 for cl in clrs
@@ -191,7 +198,7 @@ end
 end
 
 
-@inline function draw_agent(vis, agent::Agent3D, model::SpaceModel3D{T, S}, index::Int, scl::Number=1.0, tail_length = 1, tail_condition= agent-> false) where {T, S<:Union{Int, Float64}}
+@inline function draw_agent(vis, agent::Agent3D, model::SpaceModel3D{T, S}, index::Int, scl::Number=1.0, tail_length = 1, tail_condition= agent-> false, w=1.0, l=1.0, h=1.0) where {T, S<:Union{Int, Float64}}
         record = agent._keeps_record_of::Set{Symbol}
         periodic = is_periodic(model)
         agent_data = unwrap_data(agent)
@@ -199,12 +206,7 @@ end
         xlen = gparams3d.xlen+0.0
         ylen = gparams3d.ylen+0.0
         zlen = gparams3d.zlen+0.0
-        xdim = model.size[1]
-        ydim = model.size[2]
-        zdim = model.size[3]
-        w = xlen/xdim
-        l = ylen/ydim
-        h = zlen/zdim 
+
         offset = model.parameters._extras._offset::NTuple{3, Float64}
 
         pos = (:pos in record) ? agent_data[:pos][index]::Vect{3, S} .+ offset : agent.pos .+ offset
@@ -214,9 +216,12 @@ end
         pshp = (:shape in record) ? agent_data[:shape][index]::Symbol : agent.shape::Symbol
         clrs = agent._extras._colors::Vector{Col}
         shps = agent._extras._shapes::Vector{Symbol}
-        sc = (:size in record) ? agent_data[:size][index]::Union{Int, <:Float64}/(agent_data[:size][1]::Union{Int, <:Float64})  : 1.0 # scale
+        sc = (:size in record) ? agent_data[:size][index]::Union{Int, <:Float64}/(agent_data[:size][1]::Union{Int, <:Float64}+0.00001)  : 1.0 # scale
         sc = sc*scl
         ao,bo,co = orientation
+        if ao^2+bo^2+co^2 < 0.00001
+            ao = 0.001
+        end
         periodic_viz_hack = 0.3 
 
         posx,posy,posz = pos
@@ -258,6 +263,10 @@ end
                 x,y,z = w*x,l*y,h*z
                 a,b,c = w*a,l*b,h*c
                 sca = sqrt((x-a)^2+(y-b)^2+(z-c)^2)
+                if sca< 0.00001
+                    a = x + 0.001
+                    sca = 0.001
+                end
                 if (!periodic) || (sca < periodic_viz_hack*min(xlen, ylen, zlen))
                     trans = Translation(x, y, z) ∘ LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1.0), MeshCat.Vec(a-x,b-y,c-z)))
                     settransform!(vis["tails"]["$(getfield(agent, :id))"]["$i"], trans)
@@ -307,19 +316,9 @@ end
     end
 end
 
-@inline function draw_agent_interact_frame(vis, agent::Agent3D, model::SpaceModel3D{T, S}, index::Int, scl) where {T, S<:Union{Int, Float64}}
+@inline function draw_agent_interact_frame(vis, agent::Agent3D, model::SpaceModel3D{T, S}, index::Int, scl, w, l, h) where {T, S<:Union{Int, Float64}}
     record = agent._keeps_record_of::Set{Symbol}
     agent_data = unwrap_data(agent)
-
-    xlen = gparams3d.xlen+0.0
-    ylen = gparams3d.ylen+0.0
-    zlen = gparams3d.zlen+0.0
-    xdim = model.size[1]
-    ydim = model.size[2]
-    zdim = model.size[3]
-    w = xlen/xdim
-    l = ylen/ydim
-    h = zlen/zdim 
     offset = model.parameters._extras._offset::NTuple{3, Float64}
     pos = (:pos in record) ? agent_data[:pos][index]::Vect{3, S}  .+ offset : agent.pos .+ offset
     orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
@@ -328,6 +327,9 @@ end
     size = (:size in record) ? agent_data[:size][index]::Union{Int, <:Float64} : agent.size::Union{Int, <:Float64}
 
     ao,bo,co = orientation
+    if ao^2+bo^2+co^2 < 0.00001
+        ao = 0.001
+    end
 
 
     posx,posy,posz = pos

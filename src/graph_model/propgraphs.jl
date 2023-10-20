@@ -338,6 +338,8 @@ $(TYPEDSIGNATURES)
 """
 is_digraph(g::SimplePropGraph) = false
 
+is_directed(g::SimplePropGraph) = false
+
 """
 $(TYPEDSIGNATURES)
 """
@@ -906,6 +908,8 @@ end
 $(TYPEDSIGNATURES)
 """
 is_digraph(g::DirPropGraph) = true
+
+is_directed(g::DirPropGraph) = true
 
 """
 $(TYPEDSIGNATURES)
