@@ -3,14 +3,14 @@
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _get_vert_pos3d(graph::AbstractPropGraph{MortalType}, vert, frame, nprops)
+@inline function _get_vert_pos3d(graph::AbstractPropGraph{MortalType}, vert, frame, nprops) # the calling function needs to make sure that the vert is alive at given frame
     birth_time = graph.nodesprops[vert]._extras._birth_time::Int
     index = frame-birth_time +1 
-    if haskey(graph.nodesprops[vert], :pos)
-        x, y, z = (:pos in nprops) ? unwrap_data(graph.nodesprops[vert])[:pos][index] : graph.nodesprops[vert].pos
+    if haskey(graph.nodesprops[vert], :pos3)
+        x, y, z = (:pos3 in nprops) ? unwrap_data(graph.nodesprops[vert])[:pos3][index] : graph.nodesprops[vert].pos3
         vert_pos = GeometryBasics.Vec(Float64(x),y,z)
     else 
-        x,y, z = graph.nodesprops[vert]._extras._pos
+        x,y, z = graph.nodesprops[vert]._extras._pos3
         vert_pos = GeometryBasics.Vec(Float64(x),y,z)
     end
     return vert_pos
@@ -22,11 +22,11 @@ $(TYPEDSIGNATURES)
 """
 @inline function _get_vert_pos3d(graph::AbstractPropGraph{StaticType}, vert, frame, nprops)
     index = frame
-    if haskey(graph.nodesprops[vert], :pos)
-        x,y,z = (:pos in nprops) ? unwrap_data(graph.nodesprops[vert])[:pos][index] : graph.nodesprops[vert].pos
+    if haskey(graph.nodesprops[vert], :pos3)
+        x,y,z = (:pos3 in nprops) ? unwrap_data(graph.nodesprops[vert])[:pos3][index] : graph.nodesprops[vert].pos3
         vert_pos = GeometryBasics.Vec(Float64(x),y,z)
     else
-        x,y,z = graph.nodesprops[vert]._extras._pos
+        x,y,z = graph.nodesprops[vert]._extras._pos3
         vert_pos = GeometryBasics.Vec(Float64(x),y,z)
     end
     return vert_pos
@@ -84,7 +84,7 @@ $(TYPEDSIGNATURES)
         if (agent._extras._birth_time::Int<= frame)&&(frame<= agent._extras._death_time::Int)
             index = frame - agent._extras._birth_time::Int +1
             node = (:node in agent._keeps_record_of::Set{Symbol}) ? agent_data[:node][index]::Int : agent.node
-            pos = _get_vert_pos3d(graph, node, frame, model.record.nprops) #+GeometryBasics.Vec(0.05-0.1*rand(), 0.05-0.1*rand())
+            pos = _get_vert_pos3d(graph, node, frame, model.record.nprops) # agent is alive and is at given node so that node must be alive; hence _get_vert_pos3d can be called. 
             push!(posits, pos)
         end
     end
@@ -101,7 +101,7 @@ $(TYPEDSIGNATURES)
         agent_data = unwrap_data(agent)
         index = frame 
         node = (:node in agent._keeps_record_of::Set{Symbol}) ? agent_data[:node][index]::Int : agent.node
-        pos = _get_vert_pos3d(graph, node, frame, model.record.nprops) #+GeometryBasics.Vec(0.05-0.1*rand(), 0.05-0.1*rand())
+        pos = _get_vert_pos3d(graph, node, frame, model.record.nprops) 
         push!(posits, pos)
     end
     return posits
@@ -226,7 +226,7 @@ function draw_graph_agents_static(vis, model, graph, all_agents, node_size)
         node_pos = (:node in record) ? agent_data[:node][index]::Int : agent.node
         vert_size = _get_vert_size(graph, node_pos, 1, nrecord,node_size)
         vert = graph.nodesprops[node_pos]
-        pos = (:pos in nrecord) ? unwrap_data(vert)[:pos][index] : (haskey(vert, :pos) ? vert.pos : vert._extras._pos)
+        pos = (:pos3 in nrecord) ? unwrap_data(vert)[:pos3][index] : (haskey(vert, :pos3) ? vert.pos3 : vert._extras._pos3)
         orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
         pclr = (:color in record) ? agent_data[:color][index]::Col : agent.color::Col
         size = (:size in record) ? agent_data[:size][index]::Union{Int, <:Float64} : agent.size::Union{Int, <:Float64}
@@ -294,7 +294,7 @@ function draw_agent3dgraph(vis, agent, model, graph, scl, index, frame, node_siz
     agent_data = unwrap_data(agent)
     node_pos = (:node in record) ? agent_data[:node][index]::Int : agent.node
     vert_size = _get_vert_size(graph, node_pos, frame, nrecord,node_size)
-    pos = _get_vert_pos3d(graph,node_pos,frame,nrecord)
+    pos = _get_vert_pos3d(graph,node_pos,frame,nrecord) # agebt is alive and is at given node; therefore node must be alive; hence _get_vert_pos3d can be called
     #nextpos = (:pos in record)&&(index<model.tick) ? agent_data[:pos][index+1]::Vect{3, S} .+ offset : agent.pos .+ offset
     orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
     pclr = (:color in record) ? agent_data[:color][index]::Col : agent.color::Col
@@ -654,6 +654,89 @@ $(TYPEDSIGNATURES)
        draw_agent3dgraph(vis, agent, model, graph, scl, frame, frame, node_size, w, l, h)
     end
 end
+
+#########################
+
+function _get_vert_pos3d_isolated_graph(graph, vert)
+    if haskey(graph.nodesprops[vert], :pos3)
+        x,y,z = graph.nodesprops[vert].pos3
+        vert_pos = GeometryBasics.Vec(Float64(x),y,z)
+    else
+        x,y,z = graph.nodesprops[vert]._extras._pos3
+        vert_pos = GeometryBasics.Vec(Float64(x),y,z)
+    end
+    return vert_pos
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function draw_graph3d(graph)
+    if typeof(graph)<:SimpleGraph
+        graph = static_simple_graph(graph)
+    end
+    if typeof(graph)<:SimpleDiGraph
+        graph = static_dir_graph(graph)
+    end
+    verts = sort!(collect(vertices(graph)))
+    if length(verts)==0
+        return 
+    end
+
+    if !is_digraph(graph)
+        structure = graph.structure
+        if !is_static(graph)
+            graph = convert_type(graph, Static)
+        end
+    else
+        if !is_static(graph)
+            graph = convert_type(graph, Static)
+        end
+        structure = Dict{Int, Vector{Int}}()
+        for node in verts
+            structure[node] = unique!(sort!(vcat(graph.in_structure[node], graph.out_structure[node])))
+        end
+    end
+
+    first_vert = verts[1]
+    if !(first_vert in keys(graph.nodesprops))
+        graph.nodesprops[first_vert] = ContainerDataDict()
+    end
+    if !haskey(graph.nodesprops[first_vert], :pos3) && !haskey(graph.nodesprops[first_vert]._extras, :_pos3) ##?##
+        locs_x, locs_y, locs_z = spring_layout3d(structure)
+        for (i,vt) in enumerate(verts)
+            if !(vt in keys(graph.nodesprops))
+                graph.nodesprops[vt] = ContainerDataDict()
+            end
+            graph.nodesprops[vt]._extras._pos3 = (locs_x[i], locs_y[i], locs_z[i])
+        end
+    end
+
+    xlen = gparams3d.xlen+0.0
+    ylen = gparams3d.ylen+0.0
+    zlen = gparams3d.zlen+0.0
+    w = xlen/gsize
+    l = ylen/gsize
+    h = zlen/gsize
+
+    vis = Visualizer()
+
+    directed = is_digraph(graph)
+
+    for vert in verts
+        vert_pos = _get_vert_pos3d_isolated_graph(graph, vert)
+        vert_col = _get_vert_col_isolated_graph(graph, vert)
+        vert_size = _get_vert_size_isolated_graph(graph, vert, node_size)
+        out_structure = out_links(graph, vert)
+        neighs_pos = [_get_vert_pos_isolated_graph(graph, nd) for nd in out_structure]
+        neighs_sizes = [_get_vert_size_isolated_graph(graph, nd, node_size) for nd in out_structure]
+        edge_cols =  [_get_edge_col_isolated_graph(graph, vert, nd) for nd in out_structure]
+        draw_vert_interact_frame(vis, vert, vert_pos, vert_col, vert_size, out_structure, neighs_pos, neighs_sizes, directed, edge_cols, w, l, h)
+    end
+
+end
+
+#########################
 
 
 

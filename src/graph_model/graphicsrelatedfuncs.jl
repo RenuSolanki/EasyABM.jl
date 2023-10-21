@@ -576,7 +576,7 @@ $(TYPEDSIGNATURES)
     if haskey(graph.nodesprops[vert], :color)
         vert_col = graph.nodesprops[vert].color::Col
     else 
-        vert_col = Col("white")
+        vert_col = _default_vert_color
     end
     return vert_col
 end
@@ -588,7 +588,7 @@ $(TYPEDSIGNATURES)
     if haskey(graph.edgesprops[(vert,nd)], :color)
         vert_col = graph.edgesprops[(vert,nd)].color::Col
     else 
-        vert_col = Col("black")
+        vert_col = _default_edge_color
     end
     return vert_col
 end

@@ -112,8 +112,16 @@ function create_graph_model(agents::Vector{GraphAgent{A, B}},
             graph.nodesprops[vt] = ContainerDataDict()# has a pos
         end
 
-        if graphics && !haskey(graph.nodesprops[vt], :pos) && !haskey(graph.nodesprops[vt]._extras, :_pos)
-            graph.nodesprops[vt]._extras._pos =  vis_space=="2d" ? (locs_x[i], locs_y[i]) : (locs_x[i], locs_y[i], locs_z[i]) 
+        if graphics    
+            if (vis_space=="2d")
+                if !haskey(graph.nodesprops[vt], :pos) && !haskey(graph.nodesprops[vt]._extras, :_pos)
+                    graph.nodesprops[vt]._extras._pos =  (locs_x[i], locs_y[i]) 
+                end
+            else 
+                if !haskey(graph.nodesprops[vt], :pos3) && !haskey(graph.nodesprops[vt]._extras, :_pos3)
+                    graph.nodesprops[vt]._extras._pos3 =  (locs_x[i], locs_y[i], locs_z[i]) 
+                end
+            end
         end
 
         _node_extra_props!(graph, vt)

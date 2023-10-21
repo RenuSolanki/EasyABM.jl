@@ -201,9 +201,20 @@ function add_node!(model::GraphModelDynGrTop; kwargs...)
     model.parameters._extras._num_verts::Int +=1
     model.parameters._extras._num_all_verts::Int+=1
     model.parameters._extras._max_node_id::Int = node
-    if model.graphics && !haskey(model.graph.nodesprops[node], :pos)
-        model.graph.nodesprops[node]._extras._pos = (model.parameters._extras._vis_space == "2d") ? (rand()*gsize, rand()*gsize) : (rand()*gsize, rand()*gsize, rand()*gsize)
+    
+
+    if model.graphics    
+        if (model.parameters._extras._vis_space == "2d")
+            if !haskey(model.graph.nodesprops[node], :pos) 
+                model.graph.nodesprops[node]._extras._pos =  (rand()*gsize, rand()*gsize)
+            end
+        else 
+            if !haskey(model.graph.nodesprops[node], :pos3)
+                model.graph.nodesprops[node]._extras._pos3 =  (rand()*gsize, rand()*gsize, rand()*gsize)
+            end
+        end
     end
+
     if length(model.record.nprops)>0
         node_dict = unwrap(model.graph.nodesprops[node])
         node_data = unwrap_data(model.graph.nodesprops[node])
@@ -798,7 +809,7 @@ function recompute_graph_layout(model::GraphModel)
     else
         locs_x, locs_y, locs_z = spring_layout3d(structure)
         for (i,vt) in enumerate(verts)
-            model.graph.nodesprops[vt]._extras._pos = (locs_x[i], locs_y[i], locs_z[i]) # nodesprops contains properties of all nodes dead or alive
+            model.graph.nodesprops[vt]._extras._pos3 = (locs_x[i], locs_y[i], locs_z[i]) # nodesprops contains properties of all nodes dead or alive
         end
     end
 
