@@ -335,7 +335,7 @@ function draw_agent3dgraph(vis, agent, model, graph, scl, index, frame, node_siz
     #end
 end
 
-function draw_vert3d(vis, graph, vert, pos, col, sc, outs, neighs_pos, neighs_sizes, edge_cols, w, l, h)
+function draw_vert3d(vis, graph, vert, pos, col, sc, outs, all_outs, neighs_pos, neighs_sizes, edge_cols, w, l, h)
     # sc = (:size in record) ? agent_data[:size][index]::Union{Int, <:Float64}/(agent_data[:size][1]::Union{Int, <:Float64})  : 1.0 # scale
 
     posx,posy,posz = pos
@@ -358,29 +358,36 @@ function draw_vert3d(vis, graph, vert, pos, col, sc, outs, neighs_pos, neighs_si
     setvisible!(vis["nodes"]["$vert"][string(col)], true) 
 
     outs=collect(outs)
+    all_outs=collect(all_outs)
 
-    for ind in 1:length(neighs_pos)
-        edge = (vert, outs[ind])
-        v = neighs_pos[ind]
-        posvx, posvy, posvz = v
-        vx, vy, vz = w*posvx, l*posvy, h*posvz 
-        ecols = graph.edgesprops[edge]._extras._colors
-        sca = sqrt((x-vx)^2+(y-vy)^2+(z-vz)^2) #rotation_between can't have zero vecs
-        if sca< 0.00001
-            vx = x + 0.001
-            sca = 0.001
+    for nd in all_outs
+        if nd in outs
+            ind = findfirst(x->x==nd, outs)
+            edge = (vert, nd)
+            v = neighs_pos[ind]
+            posvx, posvy, posvz = v
+            vx, vy, vz = w*posvx, l*posvy, h*posvz 
+            ecols = graph.edgesprops[edge]._extras._colors
+            sca = sqrt((x-vx)^2+(y-vy)^2+(z-vz)^2) #rotation_between can't have zero vecs
+            if sca< 0.00001
+                vx = x + 0.001
+                sca = 0.001
+            end
+            trans = Translation(x, y, z) ∘ LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1.0), MeshCat.Vec(vx-x,vy-y,vz-z)))
+            for clr in ecols
+                setvisible!(vis["edges"]["$edge"][string(clr)], false) 
+            end
+            settransform!(vis["edges"]["$edge"], trans)
+            setprop!(vis["edges"]["$edge"], "scale", MeshCat.Vec(sca, sca, sca)) 
+            setvisible!(vis["edges"]["$edge"][string(edge_cols[ind])], true)
+        else
+            edge = (vert, nd)
+            ecols = graph.edgesprops[edge]._extras._colors
+            for clr in ecols
+                setvisible!(vis["edges"]["$edge"][string(clr)], false) 
+            end
         end
-        trans = Translation(x, y, z) ∘ LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1.0), MeshCat.Vec(vx-x,vy-y,vz-z)))
-        for clr in ecols
-            setvisible!(vis["edges"]["$edge"][string(clr)], false) 
-        end
-        settransform!(vis["edges"]["$edge"], trans)
-        setprop!(vis["edges"]["$edge"], "scale", MeshCat.Vec(sca, sca, sca)) 
-        setvisible!(vis["edges"]["$edge"][string(edge_cols[ind])], true)
-
     end
-    
-
 end
 ##############
 @inline function draw_agent_interact_frame(vis, agent::GraphAgent, model::GraphModel, graph, node_size, index::Int, frame, w, l, h)
@@ -574,7 +581,7 @@ function _draw_da_vert3d(vis, graph::AbstractPropGraph{MortalType}, vert, frame,
     neighs_pos = [_get_vert_pos3d(graph, nd, frame, nprops) for nd in active_out_structure]
     neighs_sizes = [_get_vert_size_ratio(graph, nd, frame, nprops) for nd in active_out_structure]
     edge_cols = [_get_edge_col(graph, vert, active_out_structure[i], indices[i], eprops) for i in 1:length(indices)]
-    draw_vert3d(vis,graph, vert, vert_pos, vert_col, vert_size, active_out_structure, neighs_pos, neighs_sizes, edge_cols, w, l, h)
+    draw_vert3d(vis,graph, vert, vert_pos, vert_col, vert_size, active_out_structure,out_structure, neighs_pos, neighs_sizes, edge_cols, w, l, h)
 end
 
 function _draw_da_vert3d(vis, graph::AbstractPropGraph{StaticType}, vert, frame, nprops, eprops, w, l, h)
@@ -587,17 +594,29 @@ function _draw_da_vert3d(vis, graph::AbstractPropGraph{StaticType}, vert, frame,
     neighs_pos = [_get_vert_pos3d(graph, nd, frame, nprops) for nd in out_structure]
     neighs_sizes = [_get_vert_size_ratio(graph, nd, frame, nprops) for nd in out_structure]
     edge_cols = [_get_edge_col(graph, vert, nd, frame, eprops) for nd in out_structure] 
-    draw_vert3d(vis,graph, vert, vert_pos, vert_col, vert_size, out_structure, neighs_pos, neighs_sizes, edge_cols, w, l, h)
+    draw_vert3d(vis,graph, vert, vert_pos, vert_col, vert_size, out_structure, out_structure, neighs_pos, neighs_sizes, edge_cols, w, l, h)
 end
 
 """
 $(TYPEDSIGNATURES)
 """
 function _draw_graph3d(vis, graph::AbstractPropGraph{MortalType}, verts, frame, nprops, eprops, w, l, h)
-    alive_verts = verts[[(graph.nodesprops[nd]._extras._birth_time::Int <=frame)&&(frame<=graph.nodesprops[nd]._extras._death_time::Int) for nd in verts]]
-    for vert in alive_verts
-        _draw_da_vert3d(vis, graph, vert, frame, nprops, eprops, w, l, h) 
+    # alive_verts = verts[[(graph.nodesprops[nd]._extras._birth_time::Int <=frame)&&(frame<=graph.nodesprops[nd]._extras._death_time::Int) for nd in verts]]
+    # for vert in alive_verts
+    #     _draw_da_vert3d(vis, graph, vert, frame, nprops, eprops, w, l, h) 
+    # end
+
+    for vert in verts
+        if (graph.nodesprops[vert]._extras._birth_time::Int <=frame)&&(frame<=graph.nodesprops[vert]._extras._death_time::Int)
+            _draw_da_vert3d(vis, graph, vert, frame, nprops, eprops, w, l, h) 
+        else
+            clrs = graph.nodesprops[vert]._extras._colors
+            for clr in clrs
+                setvisible!(vis["nodes"]["$vert"][string(clr)], false) 
+            end
+        end
     end
+
 end
 
 
@@ -630,6 +649,16 @@ function draw_agents_and_graph3d(vis, model::GraphModelDynAgNum, graph, verts, f
     for agent in all_agents
         if (agent._extras._birth_time::Int <= frame)&&(frame<= agent._extras._death_time::Int)
             draw_agent3dgraph(vis, agent, model, graph, scl, frame - agent._extras._birth_time::Int + 1, frame, node_size, w, l, h)
+        else
+            #if haskey(agent._extras, :_shapes) && haskey(agent._extras, :_colors) # this will be true if all agents are drawn initially which is true for animate_sim and create_interactive_app
+            clrs = agent._extras._colors::Vector{Col}
+            shps = agent._extras._shapes::Vector{Symbol}
+            for sh in shps
+                for cl in clrs
+                    setvisible!(vis["agents"]["$(getfield(agent, :id))"*string(sh)][string(cl)], false)
+                end
+            end
+        #end
         end
     end
 end
@@ -870,6 +899,7 @@ function create_interactive_app3d(model::GraphModel; initialiser::Function = nul
 
     node_size = Ref(_get_node_size(model.parameters._extras._num_verts::Int))
 
+
     init_model!(model, initialiser=initialiser, props_to_record = props_to_record)
 
     #copy_agents = deepcopy(model.agents)
@@ -906,6 +936,8 @@ function create_interactive_app3d(model::GraphModel; initialiser::Function = nul
         push!(lblsp, lbl)
         push!(condsp, cond)
     end
+
+
 
     function _init_interactive_model(ufun::Function = x -> nothing)
         ufun(model)
@@ -955,7 +987,7 @@ function create_interactive_app3d(model::GraphModel; initialiser::Function = nul
 
     _live_interactive_app(model, frames, no_graphics, _save_sim, _init_interactive_model, 
     _run_interactive_model, _draw_interactive_frame, agent_controls, model_controls, 
-    agent_df, ()->nothing, patch_df, node_df, model_df)
+    agent_df, _render_trivial, patch_df, node_df, model_df)
 
 end
 

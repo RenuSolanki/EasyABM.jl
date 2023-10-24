@@ -294,6 +294,21 @@ $(TYPEDSIGNATURES)
 @inline function _if_alive_draw_agent(vis, agent, model, frame, scl, tail_length::Int, tail_condition::Function, w, l, h)
     if (agent._extras._birth_time<= frame)&&(frame<= agent._extras._death_time)
         draw_agent(vis, agent, model, frame - agent._extras._birth_time::Int +1, scl, tail_length, tail_condition, w, l, h)
+    else
+    #if haskey(agent._extras, :_shapes) && haskey(agent._extras, :_colors) # this will be true if all agents are drawn initially which is true for animate_sim and create_interactive_app
+        clrs = agent._extras._colors::Vector{Col}
+        shps = agent._extras._shapes::Vector{Symbol}
+        for sh in shps
+            for cl in clrs
+                setvisible!(vis["agents"]["$(getfield(agent, :id))"*string(sh)][string(cl)], false)
+            end
+        end
+        if tail_condition(agent)
+            for i in 1:tail_length
+                setvisible!(vis["tails"]["$(getfield(agent, :id))"]["$i"], false)
+            end
+        end
+    #end
     end
 end
 
