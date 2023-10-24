@@ -75,8 +75,6 @@ using Colors: RGBA, RGB
 using DocStringExtensions
 using Interact
 using Scratch
-#using Thebes
-using Blink
 using Base.Threads
 
 

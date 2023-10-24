@@ -472,7 +472,7 @@ function _live_interactive_app(model::Union{AbstractSpaceModel, AbstractGraphMod
     
     end
     
-    # For a blink window do following 
+    # For a blink window do following
     # w=Window()
     # body!(w, lay) #where lay is the layout defined in if else block
 
