@@ -176,18 +176,23 @@ function _interactive_app(model::Union{AbstractSpaceModel, AbstractGraphModel}, 
             if check[] ==0 
                 check[] = 1
             end
+            if run[]%2==1
+                run[]=0
+            end
             sleep(0.03)
         end
+
         gfun() = begin
-            #run.val = 1
-            if (timeS[]<fr)&&(check[]==0)
+            if (timeS[]<fr)&&(check[]==0)&&(run[]%2==1) #without last condition alongwith a similar if statement attached with stop, double clicking of run leads to unwanted results.
+                #check[]=1 #imp
                 sleep(0.03)
                 timeS[]+=1
                 run[]=run[]
-            elseif check[] ==1
+            elseif check[]==1 # has been stopped
                 check[] = 0
             end
         end
+
         sfun() = begin
             if checkS[]==0
                 checkS[] = 1
@@ -198,6 +203,7 @@ function _interactive_app(model::Union{AbstractSpaceModel, AbstractGraphModel}, 
             end
             checkS[]=0
         end
+
         lis_stop = on(stop) do val
             @async ffun()
         end
@@ -338,6 +344,9 @@ function _live_interactive_app(model::Union{AbstractSpaceModel, AbstractGraphMod
         if check[] ==0 
             check[] = 1
         end
+        if run[]%2==1
+            run[]=0
+        end
         sleep(0.05)#yield()
     end
 
@@ -349,7 +358,7 @@ function _live_interactive_app(model::Union{AbstractSpaceModel, AbstractGraphMod
     end
 
     gfun() = begin
-        if (timeS[]<fr)&&(check[]==0)
+        if (timeS[]<fr)&&(check[]==0)&&(run[]%2==1) #without last condition alongwith a similar if statement attached with stop, double clicking of run leads to unwanted results.
             @sync donecessarystuff()
             sleep(0.05)
             run[] = run[]
