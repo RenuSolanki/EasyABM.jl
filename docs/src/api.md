@@ -71,6 +71,7 @@ hex_grid_graph
 square_grid_graph
 triangular_grid_graph
 double_triangular_grid_graph
+graph_from_dict
 draw_graph
 add_node!
 add_nodes!
@@ -80,7 +81,10 @@ kill_edge!
 kill_all_edges!
 flush_graph!
 is_digraph
+is_directed
 is_static
+vertices
+recompute_graph_layout
 ```
 
 ## Helper functions for agents
@@ -102,8 +106,6 @@ add_agent!
 ## Functions for getting neighbor agents.
 
 ```@docs
-neighbor_patches_moore
-neighbor_patches_neumann
 neighbors
 in_neighbors
 out_neighbors
@@ -123,6 +125,7 @@ get_patchprop
 set_patchprops!
 neighbor_nodes
 neighbor_patches_moore
+neighbor_patches_neumann
 in_neighbor_nodes
 out_neighbor_nodes
 get_nodes
@@ -131,6 +134,7 @@ get_edges
 num_edges
 get_patches
 num_patches
+get_random_patch
 random_empty_node
 random_empty_patch
 ```
@@ -142,6 +146,11 @@ dotprod
 veclength
 distance
 calculate_direction
+Col
+@cl_str
+moore_distance
+manhattan_distance
+set_window_size
 ```
 
 
