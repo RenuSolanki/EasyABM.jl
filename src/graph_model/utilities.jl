@@ -816,6 +816,13 @@ function graph_from_dict(dict::Dict)
         end
     end
 
+    if haskey(dict, "positions3d")
+        positions3 = dict["positions3d"]
+        for nd in 1:num_nodes
+            gr.nodesprops[nd].pos3 = positions3[nd]
+        end
+    end
+
     if haskey(dict,"colors")
         colors = dict["colors"]
         if length(colors)==0

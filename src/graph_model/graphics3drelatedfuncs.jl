@@ -712,6 +712,8 @@ function draw_graph3d(graph)
         return 
     end
 
+    node_size = _get_node_size(length(verts))
+
     if !is_digraph(graph)
         structure = graph.structure
         if !is_static(graph)
@@ -749,6 +751,7 @@ function draw_graph3d(graph)
     h = zlen/gsize
 
     vis = Visualizer()
+    _adjust_origin_and_draw_bounding_box_graph(vis)
 
     directed = is_digraph(graph)
 
@@ -757,11 +760,12 @@ function draw_graph3d(graph)
         vert_col = _get_vert_col_isolated_graph(graph, vert)
         vert_size = _get_vert_size_isolated_graph(graph, vert, node_size)
         out_structure = out_links(graph, vert)
-        neighs_pos = [_get_vert_pos_isolated_graph(graph, nd) for nd in out_structure]
+        neighs_pos = [_get_vert_pos3d_isolated_graph(graph, nd) for nd in out_structure]
         neighs_sizes = [_get_vert_size_isolated_graph(graph, nd, node_size) for nd in out_structure]
         edge_cols =  [_get_edge_col_isolated_graph(graph, vert, nd) for nd in out_structure]
         draw_vert_interact_frame(vis, vert, vert_pos, vert_col, vert_size, out_structure, neighs_pos, neighs_sizes, directed, edge_cols, w, l, h)
     end
+    render(vis)
 
 end
 
