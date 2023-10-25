@@ -32,7 +32,7 @@ export  Static, Mortal, PropDict, Vect,
         adjacency_matrix, add_node!, add_nodes!, kill_node!, 
         create_edge!, kill_edge!, kill_all_edges!, flush_graph!,
         is_digraph, is_directed, is_static,
-        vertices, recompute_graph_layout,
+        vertices, edges, recompute_graph_layout,
 
 
         #helpers 2d/3D

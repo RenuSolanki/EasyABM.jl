@@ -652,7 +652,7 @@ function create_interactive_app2d(model::GraphModel; initialiser::Function = nul
     end
 
     function _draw_interactive_frame_luxor(t, scl)
-        verts = getfield(model.graph, :_nodes)
+        verts = getfield(graph[], :_nodes)
         node_size = _get_node_size(model.parameters._extras._num_verts::Int)
         drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
         Luxor.origin()

@@ -84,6 +84,7 @@ is_digraph
 is_directed
 is_static
 vertices
+edges
 recompute_graph_layout
 ```
 

@@ -25,6 +25,9 @@ In this model we use NearestNeighbors.jl package to produce a kdtree of points w
 vecs = rand(2, n).* 10;
 
 function initialiser!(model)
+    for ed in collect(edges(model.graph))
+        kill_edge!(ed, model)
+    end
     for i in 1:n
         model.graph.nodesprops[i].pos = (vecs[1,i], vecs[2,i])
     end
