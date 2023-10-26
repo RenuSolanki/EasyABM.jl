@@ -836,7 +836,7 @@ $(TYPEDSIGNATURES)
     neighs_pos = [_get_vert_pos(graph, nd, frame, nprops) for nd in active_out_structure]
     neighs_sizes = [_get_vert_size(graph, nd, frame, nprops, node_size) for nd in active_out_structure]
     edge_cols = [_get_edge_col(graph, vert, active_out_structure[i], indices[i], eprops) for i in 1:length(indices)]
-    draw_vert(vert, vert_pos, vert_col, vert_size, neighs_pos, neighs_sizes, is_digraph(graph), edge_cols, mark_nodes, tail_length, tail_cond, tail_points)
+    draw_vert(vert, vert_pos, vert_col, vert_size, neighs_pos, neighs_sizes, is_digraph(graph), edge_cols, mark_nodes, tail_cond, tail_points)
 end
 
 @inline function _draw_da_vert(graph::AbstractPropGraph{StaticType}, vert, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
@@ -855,7 +855,7 @@ end
     neighs_pos = [_get_vert_pos(graph, nd, frame, nprops) for nd in out_structure]
     neighs_sizes = [_get_vert_size(graph, nd, frame, nprops, node_size) for nd in out_structure]
     edge_cols = [_get_edge_col(graph, vert, nd, frame, eprops) for nd in out_structure] 
-    draw_vert(vert, vert_pos, vert_col, vert_size, neighs_pos, neighs_sizes, is_digraph(graph), edge_cols, mark_nodes, tail_length, tail_cond, tail_points)
+    draw_vert(vert, vert_pos, vert_col, vert_size, neighs_pos, neighs_sizes, is_digraph(graph), edge_cols, mark_nodes, tail_cond, tail_points)
 end
 
 """

@@ -478,7 +478,12 @@ function draw_vert_interact_frame(vis, vert, vert_pos, vert_col, vert_size, outs
         edge = (vert, outs[ind])
         v = neighs_pos[ind]
         posvx, posvy, posvz = v
-        vx, vy, vz = w*posvx, l*posvy, h*posvz 
+        vx, vy, vz = w*posvx, l*posvy, h*posvz   
+        sca = sqrt((x-vx)^2+(y-vy)^2+(z-vz)^2) #rotation_between can't have zero vecs
+        if sca< 0.00001
+            vx = x + 0.001
+            sca = 0.001
+        end
         ecol = edge_cols[ind]
         mat = LineBasicMaterial(color=ecol.val)
 
@@ -493,7 +498,6 @@ function draw_vert_interact_frame(vis, vert, vert_pos, vert_col, vert_size, outs
         end
         trans = Translation(x, y, z) ∘ LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1.0), MeshCat.Vec(vx-x,vy-y,vz-z)))
         settransform!(vis["edges"]["$edge"], trans)
-        sca = sqrt((x-vx)^2+(y-vy)^2+(z-vz)^2)
         setprop!(vis["edges"]["$edge"], "scale", MeshCat.Vec(sca, sca, sca)) 
 
     end
@@ -697,10 +701,16 @@ function _get_vert_pos3d_isolated_graph(graph, vert)
     return vert_pos
 end
 
+function _get_vert_pos3d_isolated_graph_internal(graph, vert)
+    x,y,z = graph.nodesprops[vert]._extras._pos3
+    vert_pos = GeometryBasics.Vec(Float64(x),y,z)
+    return vert_pos
+end
+
 """
 $(TYPEDSIGNATURES)
 """
-function draw_graph3d(graph)
+function draw_graph3d(graph; use_internal_layout=false)
     if typeof(graph)<:SimpleGraph
         graph = static_simple_graph(graph)
     end
@@ -743,6 +753,8 @@ function draw_graph3d(graph)
         end
     end
 
+    _function_for_pos = use_internal_layout ? _get_vert_pos3d_isolated_graph_internal : _get_vert_pos3d_isolated_graph
+
     xlen = gparams3d.xlen+0.0
     ylen = gparams3d.ylen+0.0
     zlen = gparams3d.zlen+0.0
@@ -756,7 +768,7 @@ function draw_graph3d(graph)
     directed = is_digraph(graph)
 
     for vert in verts
-        vert_pos = _get_vert_pos3d_isolated_graph(graph, vert)
+        vert_pos = _function_for_pos(graph, vert)
         vert_col = _get_vert_col_isolated_graph(graph, vert)
         vert_size = _get_vert_size_isolated_graph(graph, vert, node_size)
         out_structure = out_links(graph, vert)

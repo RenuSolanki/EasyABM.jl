@@ -73,6 +73,7 @@ triangular_grid_graph
 double_triangular_grid_graph
 graph_from_dict
 draw_graph
+draw_graph3d
 add_node!
 add_nodes!
 kill_node!

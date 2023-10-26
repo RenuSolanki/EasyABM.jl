@@ -185,73 +185,6 @@ end
 end
 
 
-# """
-# $(TYPEDSIGNATURES)
-# """
-# @inline function _get_graph_layout_info(model::GraphModelDynGrTop, graph, frame)
-#     verts = vertices(graph)
-#     alive_verts = Iterators.filter(nd-> (graph.nodesprops[nd]._extras._birth_time::Int <=frame)&&(frame<=graph.nodesprops[nd]._extras._death_time::Int), verts)
-#     verts_pos = Vector{GeometryBasics.Point2{Float64}}()
-#     verts_dir = Vector{GeometryBasics.Vec2{Float64}}()
-#     verts_color = Vector{Col}()
-#     for vert in alive_verts
-#         index = frame-graph.nodesprops[vert]._extras._birth_time::Int + 1
-#         out_structure = collect(out_links(graph, vert))
-#         active_out_structure, indices = _get_active_out_structure(graph, vert, out_structure, frame)
-#         pos = _get_vert_pos(graph, vert, frame, model.record.nprops)
-#         pos_p = GeometryBasics.Point(pos)
-#         vert_col = cl"black"
-#         if haskey(graph.nodesprops[vert], :color)
-#             vert_col = (:color in model.record.nprops) ? unwrap_data(graph.nodesprops[vert])[:color][index]::Col : graph.nodesprops[vert].color::Col
-#         end
-#         push!(verts_pos, pos_p)
-#         push!(verts_dir, GeometryBasics.Vec(0.0,0))
-#         push!(verts_color, vert_col)
-
-#         for x in active_out_structure
-#             push!(verts_pos, pos_p)
-#             pos_x = _get_vert_pos(graph, x, frame, model.record.nprops)
-#             push!(verts_dir, GeometryBasics.Vec(pos_x-pos_p))
-#             push!(verts_color, vert_col)
-#         end
-#     end
-
-#     return (verts_pos, verts_dir, verts_color)
-# end
-
-# """
-# $(TYPEDSIGNATURES)
-# """
-# @inline function _get_graph_layout_info(model::GraphModelFixGrTop, graph, frame)
-#     alive_verts = vertices(graph)
-#     verts_pos = Vector{GeometryBasics.Point2{Float64}}()
-#     verts_dir = Vector{GeometryBasics.Vec2{Float64}}()
-#     verts_color = Vector{Col}()
-#     index = frame
-#     for vert in alive_verts
-#         active_out_structure = out_links(graph, vert)
-#         pos = _get_vert_pos(graph, vert, frame, model.record.nprops)
-#         pos_p = GeometryBasics.Point(pos)
-
-#         vert_col = cl"black"
-#         if haskey(graph.nodesprops[vert], :color)
-#             vert_col = (:color in model.record.nprops) ? unwrap_data(graph.nodesprops[vert])[:color][index]::Col : graph.nodesprops[vert].color::Col
-#         end
-
-#         push!(verts_pos, pos_p)
-#         push!(verts_dir, GeometryBasics.Vec(0.0,0))
-#         push!(verts_color, vert_col)
-
-#         for x in active_out_structure
-#             push!(verts_pos, pos_p)
-#             pos_x = _get_vert_pos(graph, x, frame, model.record.nprops)
-#             push!(verts_dir, GeometryBasics.Vec(pos_x-pos_p))
-#             push!(verts_color, vert_col)
-#         end
-#     end
-#     return (verts_pos, verts_dir, verts_color)
-# end
-
 """
 $(TYPEDSIGNATURES)
 """
@@ -287,28 +220,11 @@ $(TYPEDSIGNATURES)
 end
 
 
-# """
-# $(TYPEDSIGNATURES)
-# """
-# @inline function _create_makie_frame(ax, model::GraphModel, points, markers, colors, rotations, sizes, verts_pos, verts_dir, verts_color, show_space)
-#     ax.aspect = DataAspect()
-#     xlims!(ax, 0.0, gsize)
-#     ylims!(ax, 0.0, gsize)
-#     if show_space
-#         scatter!(ax, verts_pos, marker=:circle, color = verts_color)
-#         arrowhead = is_digraph(model.graph) ? '△'  :  '.' #\bigtriangleup<tab>
-#         arrows!(ax, verts_pos, verts_dir, arrowhead=arrowhead)
-#     end
-    
-#     scatter!(ax, points, marker = markers, color = colors, rotations = rotations, markersize = sizes)
-#     return 
-# end
-
 """
 $(TYPEDSIGNATURES)
 """
 @inline function draw_vert(vert, pos, col, vert_size, neighs_pos, neighs_sizes, oriented::Bool, 
-    edge_cols, mark_vert=false, tail_length=1, tail_cond=false, tail_points=GeometryBasics.Vec2{Float64}[]) 
+    edge_cols, mark_vert=false, tail_cond=false, tail_points=GeometryBasics.Vec2{Float64}[]) 
 
     width = gparams.width
     height = gparams.height
@@ -568,6 +484,12 @@ end
     return vert_pos
 end
 
+@inline function _get_vert_pos_isolated_graph_internal(graph, vert)
+    x,y = graph.nodesprops[vert]._extras._pos
+    vert_pos = GeometryBasics.Vec(Float64(x),y)
+    return vert_pos
+end
+
 
 """
 $(TYPEDSIGNATURES)
@@ -593,6 +515,7 @@ $(TYPEDSIGNATURES)
     return vert_col
 end
 
+
 """
 $(TYPEDSIGNATURES)
 """
@@ -611,7 +534,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function draw_graph(graph; mark_nodes=false)
+function draw_graph(graph; mark_nodes=false, use_internal_layout=false)
     if typeof(graph)<:SimpleGraph
         graph = static_simple_graph(graph)
     end
@@ -651,13 +574,14 @@ function draw_graph(graph; mark_nodes=false)
             graph.nodesprops[vt]._extras._pos = (locs_x[i], locs_y[i])
         end
     end
+    _function_for_pos = use_internal_layout ? _get_vert_pos_isolated_graph_internal : _get_vert_pos_isolated_graph
 
     drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
     node_size = _get_node_size(length(verts))
     Luxor.origin()
     Luxor.background("white")
     for vert in verts
-        vert_pos = _get_vert_pos_isolated_graph(graph, vert)
+        vert_pos = _function_for_pos(graph, vert)
         vert_col = _get_vert_col_isolated_graph(graph, vert)
         vert_size = _get_vert_size_isolated_graph(graph, vert, node_size)
         out_structure = out_links(graph, vert)

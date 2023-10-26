@@ -500,7 +500,7 @@ function square_grid_graph(n, k; periodic = false, dynamic=false)
         for j in 1:n
             node = nodenum(i,j)
             gr.nodesprops[node] = ContainerDataDict()
-            gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
+            gr.nodesprops[node].pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
             if (i <k)&&(i>1)&&(j<n)&&(j>1)
                 _add_edge_f!(gr, nodenum(i,j),nodenum(i+1,j))
                 _add_edge_f!(gr, nodenum(i,j),nodenum(i-1,j))
@@ -581,13 +581,13 @@ function hex_grid_graph(n, k; dynamic=false)
             end
             node = nodenum(i,j)
             gr.nodesprops[node] = ContainerDataDict()
-            gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
+            gr.nodesprops[node].pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
             if nodenum(i,j+1) in gr.structure[nodenum(i,j)] || ((j==n)&&(i%2==0))
-                gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n + (gsize/n)*0.17)
+                gr.nodesprops[node].pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n + (gsize/n)*0.17)
             elseif (nodenum(i,j-1) in gr.structure[nodenum(i,j)]) || ((j==1)&&(i%2==0))
-                gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n - (gsize/n)*0.17)
+                gr.nodesprops[node].pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n - (gsize/n)*0.17)
             else
-                gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
+                gr.nodesprops[node].pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
             end
         end
     end
@@ -651,7 +651,7 @@ function triangular_grid_graph(n, k; dynamic=false)
         for j in 1:n
             node = nodenum(i,j)
             gr.nodesprops[node] = ContainerDataDict()
-            gr.nodesprops[node]._extras._pos = in_pos .+ ((i-1) .* x_vec) .+ ((j-1) .* y_vec) #((i-0.5)*gsize/k,(j-0.5)*gsize/n)
+            gr.nodesprops[node].pos = in_pos .+ ((i-1) .* x_vec) .+ ((j-1) .* y_vec) #((i-0.5)*gsize/k,(j-0.5)*gsize/n)
             if (i <k)&&(i>1)&&(j<n)&&(j>1)
                 _add_edge_f!(gr, nodenum(i,j),nodenum(i+1,j))
                 _add_edge_f!(gr, nodenum(i,j),nodenum(i-1,j))
@@ -729,7 +729,7 @@ function double_triangular_grid_graph(n, k; dynamic=false)
         for j in 1:n
             node = nodenum(i,j)
             gr.nodesprops[node] = ContainerDataDict()
-            gr.nodesprops[node]._extras._pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
+            gr.nodesprops[node].pos = ((i-0.5)*gsize/k,(j-0.5)*gsize/n)
             if (i <k)&&(i>1)&&(j<n)&&(j>1)
                 _add_edge_f!(gr, nodenum(i,j),nodenum(i+1,j))
                 _add_edge_f!(gr, nodenum(i,j),nodenum(i-1,j))
@@ -761,6 +761,102 @@ function double_triangular_grid_graph(n, k; dynamic=false)
     end
     return gr
 end
+
+########################
+########################
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function torus_graph(n, k; dynamic=false)
+    m = n*k
+    nodenum(i,j) = (j-1)*k+i
+    if dynamic
+        gr = dynamic_simple_graph(m)
+    else
+        gr = static_simple_graph(m)
+    end
+    if n>=2
+        _add_edge_f!(gr,nodenum(1,1),nodenum(1,2))
+        _add_edge_f!(gr,nodenum(k,1),nodenum(k,2))
+        _add_edge_f!(gr,nodenum(1,n),nodenum(1,n-1))
+        _add_edge_f!(gr,nodenum(k,n),nodenum(k,n-1))
+    end
+    if k>=2
+        _add_edge_f!(gr,nodenum(1,1),nodenum(2,1))
+        _add_edge_f!(gr,nodenum(1,n),nodenum(2,n))
+        _add_edge_f!(gr,nodenum(k,1),nodenum(k-1,1))
+        _add_edge_f!(gr,nodenum(k,n),nodenum(k-1,n))
+    end
+    
+    
+    if k==2
+        for j in 2:(n-1)
+            _add_edge_f!(gr, nodenum(1,j),nodenum(2,j))
+        end
+    end
+
+    if n==2
+        for i in 2:(k-1)
+            _add_edge_f!(gr, nodenum(i,1),nodenum(i,2))
+        end
+    end
+
+    theta = 2*pi/k
+    phi = 2*pi/n
+
+
+    trans = [gsize/2, gsize/2, gsize/2]
+
+
+    for i in 1:k
+        thetai = theta*(i-1)
+        roti = [1 0.0 0; 0 cos(thetai) -sin(thetai); 0 sin(thetai) cos(thetai)]
+        for j in 1:n
+            phij = phi*(j-1)
+            rotj = [cos(phij) -sin(phij); sin(phij) cos(phij)]
+            xinit, zinit = rotj*[0.2*gsize, 0]
+            xinit = xinit+gsize/4
+            yinit = 0 
+            x,y,z = (roti*[xinit, yinit, zinit]) .+ trans
+            node = nodenum(i,j)
+            gr.nodesprops[node] = ContainerDataDict() 
+            gr.nodesprops[node].pos3 = x, y, z 
+            if (i <k)&&(i>1)&&(j<n)&&(j>1)
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i+1,j))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i-1,j))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i,j+1))
+                _add_edge_f!(gr, nodenum(i,j),nodenum(i,j-1))
+            elseif ((i==1)||(i==k))&&(j>1)&&(j<n)
+                _add_edge_f!(gr,nodenum(i,j),nodenum(i,j-1))
+                _add_edge_f!(gr, nodenum(i,j), nodenum(i,j+1))
+            elseif ((j==1)||(j==n))&&(i>1)&&(i<k)
+                _add_edge_f!(gr,nodenum(i,j),nodenum(i-1,j))
+                _add_edge_f!(gr, nodenum(i,j), nodenum(i+1,j))
+            end
+            if i==1 
+                _add_edge_f!(gr, nodenum(1,j), nodenum(k,j))
+            end
+            if j==1 
+                _add_edge_f!(gr, nodenum(i,1), nodenum(i,n))
+            end
+        end
+    end
+    for ed in edges(gr)
+        gr.edgesprops[ed] = PropDataDict()
+    end
+    return gr
+end
+
+
+
+
+
+
+
+
+###########################
+#######################
 
 
 
