@@ -69,6 +69,7 @@ dynamic_dir_graph
 convert_type
 hex_grid_graph
 square_grid_graph
+torus_graph
 triangular_grid_graph
 double_triangular_grid_graph
 graph_from_dict

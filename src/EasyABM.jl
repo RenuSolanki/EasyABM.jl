@@ -27,7 +27,7 @@ export  Static, Mortal, PropDict, Vect,
         #helpers graph
         static_simple_graph, static_dir_graph, 
         dynamic_simple_graph, dynamic_dir_graph, convert_type,
-        hex_grid_graph, square_grid_graph, triangular_grid_graph, 
+        hex_grid_graph, square_grid_graph, torus_graph, triangular_grid_graph, 
         double_triangular_grid_graph, graph_from_dict, draw_graph,
         draw_graph3d, adjacency_matrix, add_node!, add_nodes!, kill_node!, 
         create_edge!, kill_edge!, kill_all_edges!, flush_graph!,

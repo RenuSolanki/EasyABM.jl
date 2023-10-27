@@ -463,46 +463,50 @@ end
 
 ####################################
 
-function draw_vert_interact_frame(vis, vert, vert_pos, vert_col, vert_size, outs, neighs_pos, neighs_sizes, directed, edge_cols, w, l, h)
-    vert_col = _dim_vert_col(vert_col)
-    material = MeshPhongMaterial(color=vert_col.val)
-    sphere = HyperSphere(MeshCat.Point(0,0,0.0), vert_size)
-    setobject!(vis["nodes"]["$vert"],sphere,material)
+function draw_vert_interact_frame(vis, vert, vert_pos, vert_col, vert_size, outs, neighs_pos, neighs_sizes, directed, edge_cols, w, l, h, show_nodes=true, show_edges=true)
     posx,posy,posz = vert_pos
     x,y,z = posx*w, posy*l, posz*h
-    trans = Translation(x, y, z) 
-    settransform!(vis["nodes"]["$vert"],trans)
-
-    outs=collect(outs)
-    for ind in 1:length(neighs_pos)
-        edge = (vert, outs[ind])
-        v = neighs_pos[ind]
-        posvx, posvy, posvz = v
-        vx, vy, vz = w*posvx, l*posvy, h*posvz   
-        sca = sqrt((x-vx)^2+(y-vy)^2+(z-vz)^2) #rotation_between can't have zero vecs
-        if sca< 0.00001
-            vx = x + 0.001
-            sca = 0.001
-        end
-        ecol = edge_cols[ind]
-        mat = LineBasicMaterial(color=ecol.val)
-
-        if !(directed)
-            setobject!(vis["edges"]["$edge"],MeshCat.LineSegments([MeshCat.Point(0.0, 0, 0),MeshCat.Point(0, 0, 1.0)], mat)) 
-
-        else
-            setobject!(vis["edges"]["$edge"]["1"],MeshCat.LineSegments([MeshCat.Point(0.0, 0, 0),MeshCat.Point(0, 0, 1.0)], mat)) 
-            setobject!(vis["edges"]["$edge"]["2"],MeshCat.LineSegments([MeshCat.Point(-0.1, 0, 0.9),MeshCat.Point(0, 0, 1.0)], mat)) 
-            setobject!(vis["edges"]["$edge"]["3"],MeshCat.LineSegments([MeshCat.Point(0.1, 0, 0.9),MeshCat.Point(0, 0, 1.0)], mat)) 
-
-        end
-        trans = Translation(x, y, z) ∘ LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1.0), MeshCat.Vec(vx-x,vy-y,vz-z)))
-        settransform!(vis["edges"]["$edge"], trans)
-        setprop!(vis["edges"]["$edge"], "scale", MeshCat.Vec(sca, sca, sca)) 
-
+    if show_nodes
+        vert_col = _dim_vert_col(vert_col)
+        material = MeshPhongMaterial(color=vert_col.val)
+        sphere = HyperSphere(MeshCat.Point(0,0,0.0), vert_size)
+        setobject!(vis["nodes"]["$vert"],sphere,material)
+        trans = Translation(x, y, z) 
+        settransform!(vis["nodes"]["$vert"],trans)
     end
 
+    if show_edges
 
+        outs=collect(outs)
+
+        for ind in 1:length(neighs_pos)
+            edge = (vert, outs[ind])
+            v = neighs_pos[ind]
+            posvx, posvy, posvz = v
+            vx, vy, vz = w*posvx, l*posvy, h*posvz   
+            sca = sqrt((x-vx)^2+(y-vy)^2+(z-vz)^2) #rotation_between can't have zero vecs
+            if sca< 0.00001
+                vx = x + 0.001
+                sca = 0.001
+            end
+            ecol = edge_cols[ind]
+            mat = LineBasicMaterial(color=ecol.val)
+
+            if !(directed)
+                setobject!(vis["edges"]["$edge"],MeshCat.LineSegments([MeshCat.Point(0.0, 0, 0),MeshCat.Point(0, 0, 1.0)], mat)) 
+
+            else
+                setobject!(vis["edges"]["$edge"]["1"],MeshCat.LineSegments([MeshCat.Point(0.0, 0, 0),MeshCat.Point(0, 0, 1.0)], mat)) 
+                setobject!(vis["edges"]["$edge"]["2"],MeshCat.LineSegments([MeshCat.Point(-0.07, 0, 0.9),MeshCat.Point(0, 0, 1.0)], mat)) 
+                setobject!(vis["edges"]["$edge"]["3"],MeshCat.LineSegments([MeshCat.Point(0.07, 0, 0.9),MeshCat.Point(0, 0, 1.0)], mat)) 
+
+            end
+            trans = Translation(x, y, z) ∘ LinearMap(rotation_between(MeshCat.Vec(0, 0.0, 1.0), MeshCat.Vec(vx-x,vy-y,vz-z)))
+            settransform!(vis["edges"]["$edge"], trans)
+            setprop!(vis["edges"]["$edge"], "scale", MeshCat.Vec(sca, sca, sca)) 
+
+        end
+    end
 
 end
 
@@ -710,7 +714,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function draw_graph3d(graph; use_internal_layout=false)
+function draw_graph3d(graph; use_internal_layout=false, vis::Any=nothing, show_nodes=true, show_edges=true)
     if typeof(graph)<:SimpleGraph
         graph = static_simple_graph(graph)
     end
@@ -762,20 +766,35 @@ function draw_graph3d(graph; use_internal_layout=false)
     l = ylen/gsize
     h = zlen/gsize
 
-    vis = Visualizer()
+    if isnothing(vis)
+        vis=Visualizer()
+    end 
+
     _adjust_origin_and_draw_bounding_box_graph(vis)
 
     directed = is_digraph(graph)
 
+    vert_col = nothing
+    vert_size = nothing
+    out_structure = nothing
+    neighs_pos = nothing
+    neighs_sizes = nothing
+    edge_cols = nothing
+
+
     for vert in verts
         vert_pos = _function_for_pos(graph, vert)
-        vert_col = _get_vert_col_isolated_graph(graph, vert)
-        vert_size = _get_vert_size_isolated_graph(graph, vert, node_size)
-        out_structure = out_links(graph, vert)
-        neighs_pos = [_get_vert_pos3d_isolated_graph(graph, nd) for nd in out_structure]
-        neighs_sizes = [_get_vert_size_isolated_graph(graph, nd, node_size) for nd in out_structure]
-        edge_cols =  [_get_edge_col_isolated_graph(graph, vert, nd) for nd in out_structure]
-        draw_vert_interact_frame(vis, vert, vert_pos, vert_col, vert_size, out_structure, neighs_pos, neighs_sizes, directed, edge_cols, w, l, h)
+        if show_nodes
+            vert_col = _get_vert_col_isolated_graph(graph, vert)
+            vert_size = _get_vert_size_isolated_graph(graph, vert, node_size)
+        end
+        if show_edges
+            out_structure = out_links(graph, vert)
+            neighs_pos = [_get_vert_pos3d_isolated_graph(graph, nd) for nd in out_structure]
+            neighs_sizes = [_get_vert_size_isolated_graph(graph, nd, node_size) for nd in out_structure]
+            edge_cols =  [_get_edge_col_isolated_graph(graph, vert, nd) for nd in out_structure]
+        end
+        draw_vert_interact_frame(vis, vert, vert_pos, vert_col, vert_size, out_structure, neighs_pos, neighs_sizes, directed, edge_cols, w, l, h, show_nodes, show_edges)
     end
     render(vis)
 
@@ -795,7 +814,7 @@ function animate_sim3d(model::GraphModel, frames::Int=model.tick;
     node_plots::Dict{String, <:Function} = Dict{String, Function}(), 
     model_plots::Vector{Symbol} = Symbol[],
     plots_only = false, 
-    show_graph = true)
+    show_graph = true, vis::Any=nothing)
 
     ticks = getfield(model, :tick)[]
     model.parameters._extras._show_space = show_graph
@@ -813,7 +832,9 @@ function animate_sim3d(model::GraphModel, frames::Int=model.tick;
 
     _save_sim = _does_nothing
 
-    vis = Visualizer()
+    if isnothing(vis) 
+        vis=Visualizer()
+    end
 
     if !(no_graphics)
         _adjust_origin_and_draw_bounding_box_graph(vis, true)
@@ -872,7 +893,7 @@ function draw_frame3d(model::GraphModel; frame=model.tick, show_graph=true, vis:
     verts = getfield(graph, :_nodes)
     node_size = _get_node_size(model.parameters._extras._num_verts::Int)
     
-    if vis == nothing 
+    if isnothing(vis) 
         vis=Visualizer()
     end
     delete!(vis)
@@ -902,7 +923,7 @@ function create_interactive_app3d(model::GraphModel; initialiser::Function = nul
     node_plots::Dict{String, <:Function} = Dict{String, Function}(),
     model_plots::Vector{Symbol} = Symbol[],
     plots_only = false,
-    frames=200, show_graph=true) 
+    frames=200, show_graph=true, vis::Any=nothing) 
     
     # if !is_static(model.graph)
     #     combined_graph!(model.graph, model.dead_meta_graph)
@@ -931,12 +952,13 @@ function create_interactive_app3d(model::GraphModel; initialiser::Function = nul
 
     _save_sim = _does_nothing
 
-    vis = Visualizer()
+    if isnothing(vis) 
+        vis=Visualizer()
+    end
 
     if !(no_graphics)
         _adjust_origin_and_draw_bounding_box_graph(vis, true)
     end
-
 
 
     lblsa = String[]
@@ -971,9 +993,9 @@ function create_interactive_app3d(model::GraphModel; initialiser::Function = nul
 
         if !(no_graphics)
             delete!(vis["agents"])
-            delete!(vis["edges"])
-            delete!(vis["nodes"])
             if show_graph
+                delete!(vis["edges"])
+                delete!(vis["nodes"])
                 draw_nodes_and_edges_static(vis,model,graph[], verts, edges, node_size[])
             end
             all_agents = _get_all_agents(model)

@@ -231,7 +231,8 @@ function animate_sim(model::SpaceModel3D, frames::Int=model.tick;
     patch_plots::Dict{String, <:Function} = Dict{String, Function}(),
     model_plots::Vector{Symbol} = Symbol[],
     plots_only = false,
-    show_patches=false, tail=(1, agent->false))
+    show_patches=false, 
+    tail=(1, agent->false), vis::Any=nothing)
 
     ticks = getfield(model, :tick)[]
     model.parameters._extras._show_space = show_patches
@@ -245,7 +246,9 @@ function animate_sim(model::SpaceModel3D, frames::Int=model.tick;
 
     _save_sim = _does_nothing
     
-    vis = Visualizer()
+    if isnothing(vis)
+        vis=Visualizer()
+    end 
 
     if !(no_graphics)
         _adjust_origin_and_draw_bounding_box(vis, true)
@@ -339,7 +342,7 @@ Draws a specific frame.
 function draw_frame(model::SpaceModel3D; frame=model.tick, show_patches=false, vis::Any = nothing)
     frame = min(frame, model.tick)
 
-    if vis == nothing
+    if isnothing(vis)
         vis = Visualizer()
     end
 
@@ -370,7 +373,8 @@ function create_interactive_app(model::SpaceModel3D; initialiser::Function = nul
     patch_plots::Dict{String, <:Function} = Dict{String, Function}(),
     model_plots::Vector{Symbol} = Symbol[],
     plots_only = false,
-    frames=200, show_patches=false, tail=(1, agent->false)) 
+    frames=200, show_patches=false, 
+    tail=(1, agent->false), vis::Any=nothing) 
 
     model.parameters._extras._show_space = show_patches
 
@@ -391,7 +395,9 @@ function create_interactive_app(model::SpaceModel3D; initialiser::Function = nul
         nothing
     end
     
-    vis = Visualizer()
+    if isnothing(vis)
+        vis=Visualizer()
+    end 
 
     if !(no_graphics)
         _adjust_origin_and_draw_bounding_box(vis, true)
@@ -419,8 +425,8 @@ function create_interactive_app(model::SpaceModel3D; initialiser::Function = nul
         if !(no_graphics)
             delete!(vis["agents"])
             delete!(vis["tails"])
-            delete!(vis["patches"])
             if show_patches
+                delete!(vis["patches"])
                 draw_patches_static(vis,model)
             end
             all_agents = _get_all_agents(model)

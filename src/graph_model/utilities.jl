@@ -811,11 +811,11 @@ function torus_graph(n, k; dynamic=false)
 
     for i in 1:k
         thetai = theta*(i-1)
-        roti = [1 0.0 0; 0 cos(thetai) -sin(thetai); 0 sin(thetai) cos(thetai)]
+        roti = [cos(thetai) -sin(thetai) 0; sin(thetai) cos(thetai) 0; 0 0.0 1]
         for j in 1:n
             phij = phi*(j-1)
             rotj = [cos(phij) -sin(phij); sin(phij) cos(phij)]
-            xinit, zinit = rotj*[0.2*gsize, 0]
+            xinit, zinit = rotj*[0.15*gsize, 0]
             xinit = xinit+gsize/4
             yinit = 0 
             x,y,z = (roti*[xinit, yinit, zinit]) .+ trans
