@@ -1,5 +1,5 @@
 
-# Nearest neighbor graph generator
+# Nearest neighbor graph generator 3D
 
 We include the present model as an example of dynamic graphs in EasyABM.
 
@@ -9,27 +9,27 @@ using EasyABM
 
 ## Step 1: Create Model
 
-In this model we will work solely with the graph and won't require agents. We create a dynamic graph of n=500 vertices (and no edges) and create a model with this graph as base space. The model parameter `nns` is the number of nearest neighbors that each node will have edges with. 
+In this model we will work solely with the graph and won't require agents. We create a dynamic graph of n=100 vertices (and no edges) and create a model with this graph as base space. The model parameter `nns` is the number of nearest neighbors that each node will have edges with. 
 
 ```julia
 n=500
 graph = dynamic_simple_graph(n);  
-model = create_graph_model(graph, nns=10)
+model = create_graph_model(graph, nns=10, vis_space="3d")
 ```
 
 ## Step 2: Initialise the model
 
-In this model we use NearestNeighbors.jl package to produce a kdtree of points which will be used to get nearest neighbors in the step rule. We create a random 2xn matrix and initialise the positions of nodes with these vectors. 
+In this model we use NearestNeighbors.jl package to produce a kdtree of points which will be used to get nearest neighbors in the step rule. We create a random 3xn matrix and initialise the positions of nodes with these vectors. 
 
 ```julia
-vecs = rand(2, n).* 10;
+vecs = rand(3, n).* 10; # positions of nodes take values from 0 to 10 on all axes. 
 
 function initialiser!(model)
     for ed in collect(edges(model.graph))
         kill_edge!(ed, model)
     end
     for i in 1:n
-        model.graph.nodesprops[i].pos = (vecs[1,i], vecs[2,i])
+        model.graph.nodesprops[i].pos = (vecs[1,i], vecs[2,i], vecs[3,i])
     end
 end
 
@@ -68,7 +68,7 @@ In order to draw the model at a specific frame, say 4th, one can use `draw_frame
 animate_sim(model)
 ```
 
-![png](assets/NNG/NNGAnim1.png)
+![png](assets/NNG3D/NNG3DAnim1.png)
 
 
 After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
@@ -81,7 +81,7 @@ create_interactive_app(model, initialiser = initialiser!,
 )
 ```
 
-![png](assets/NNG/NNGIntApp.png)
+![png](assets/NNG3D/NNG3DIntApp.png)
 
 
 
@@ -94,7 +94,7 @@ In the present model we didn't record any data, however, since the model involve
 df = get_nums_edges(model, edge-> true, labels=["num edges"], plot_result = true)
 ```
 
-![png](assets/NNG/NNGPlot1.png)
+![png](assets/NNG3D/NNG3DPlot1.png)
 
 
 

@@ -22,6 +22,7 @@ makedocs(
                 "Simple Pendulum" => "simple_pendulum.md",
                 "Brownian Particle" => "BrownianParticle.md",
                 "Nearest Neighbor Graph" => "nearest_neighbor_graph.md",
+                "Nearest Neighbor Graph 3D" => "nearest_neighbor_graph_3dvis.md",
                 "Elementary Cellular Automaton" => "ElemCA.md",
                 "Abelian Sandpile" => "abelian_sandpile.md",
                 "Ising on a nearest neighbor graph" => "NNSIsing.md",

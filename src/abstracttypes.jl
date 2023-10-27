@@ -14,6 +14,7 @@ struct SimGType <: GType end
 
 const Static = StaticType()
 const Mortal = MortalType()
+const Dynamic = MortalType()
 const Periodic = PeriodicType()
 const NPeriodic = NPeriodicType()
 const DirG = DirGType()

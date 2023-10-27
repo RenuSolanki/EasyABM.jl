@@ -1,4 +1,4 @@
-# Ising model on a nearest neighbor random graph
+# Ising model on a nearest neighbor random graph 3D
 This is another example including Ising model where the underlying graph is a random nearest neighbor graph on plane. 
 
 
@@ -13,12 +13,12 @@ In this model we will work solely with the graph and won't need agents. We initi
 
 ```julia
 graph = dynamic_simple_graph(0) # in a dynamic graph nodes and edges can be added or deleted. 
-model = create_graph_model(graph, temp = 2.0, coupl = 2.5, nns = 5)
+model = create_graph_model(graph, temp = 2.0, coupl = 2.5, nns = 5, vis_space="3d")
 ```
 
 ## Step 2: Initialise the model
 
- In the `initialiser!` function we create a list of n = 500 random points in the plane and fill our graph with n nodes and set the position of ith node to the ith random point. We then link each node to its `nns` number of nearest neighbors and randomly set each node's color to either `cl"black"` or `cl"white"` and set spin value to +1 for `cl"black"` nodes and -1 for `cl"white"` nodes. In the `init_model!` function, the argument `props_to_record` specifies the nodes properties which we want to record during model run. 
+ In the `initialiser!` function we create a list of n = 100 random points in the plane and fill our graph with n nodes and set the position of ith node to the ith random point. We then link each node to its `nns` number of nearest neighbors and randomly set each node's color to either `cl"black"` or `cl"red"` and set spin value to +1 for `cl"black"` nodes and -1 for `cl"red"` nodes. In the `init_model!` function, the argument `props_to_record` specifies the nodes properties which we want to record during model run. 
 
  ```julia
 using NearestNeighbors
@@ -26,19 +26,19 @@ using NearestNeighbors
 
 
 ```julia
-const n=500;
+const n=100;
 ```
 
 
 ```julia
-vecs = rand(2, n) .* 10
+vecs = rand(3, n) .* 10
 kdtree = KDTree(vecs,leafsize=1)
     
 function initialiser!(model)
     flush_graph!(model) # deletes all nodes and edges
     add_nodes!(n, model, color = cl"black", spin =1) # adds n nodes to model's graph with all the nodes having color black and spin 1
     for i in 1:n 
-        model.graph.nodesprops[i].pos = (vecs[1,i], vecs[2,i]) # set positions of nodes in the 2d plane
+        model.graph.nodesprops[i].pos3 = (vecs[1,i], vecs[2,i], vecs[3,i]) # set positions of nodes in the 3d space
         indices, _ = knn(kdtree, vecs[:,i], model.parameters.nns, true) # indices of nearest neighboring vectors
         for j in indices
             if j!=i
@@ -50,7 +50,7 @@ function initialiser!(model)
             model.graph.nodesprops[i].color = cl"black"
         else
             model.graph.nodesprops[i].spin = -1
-            model.graph.nodesprops[i].color = cl"white"
+            model.graph.nodesprops[i].color = cl"red"
         end
     end
 end
@@ -85,7 +85,7 @@ function step_rule!(model)
         de = 2*model.parameters.coupl * de
         if (de < 0) || (rand() < exp(-de/model.parameters.temp))
             model.graph.nodesprops[random_node].spin = - spin
-            model.graph.nodesprops[random_node].color = spin == -1 ? cl"black" : cl"white"
+            model.graph.nodesprops[random_node].color = spin == -1 ? cl"black" : cl"red"
         end
     end
 end
@@ -105,7 +105,7 @@ In order to draw the model at a specific frame, say 4th, one can use `draw_frame
 animate_sim(model)
 ```
 
-![png](assets/NNSIsing/NNSIsingAnim1.png)
+![png](assets/NNS3DIsing/NNS3DIsingAnim1.png)
 
 After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
 
@@ -121,7 +121,7 @@ create_interactive_app(model, initialiser= initialiser!,
     frames=100) 
 ```
 
-![png](assets/NNSIsing/NNSIsingIntApp.png)
+![png](assets/NNS3DIsing/NNS3DIsingIntApp.png)
 
 ## Step 4: Fetch Data 
 
@@ -132,7 +132,7 @@ In this step we fetch the data of average spin of nodes (also called magnetisati
 df = get_nodes_avg_props(model, node -> node.spin, labels=["magnetisation"], plot_result = true)
 ```
 
-![png](assets/NNSIsing/NNSIsingPlot1.png)
+![png](assets/NNS3DIsing/NNS3DIsingPlot1.png)
 
 
 ```julia
