@@ -27,8 +27,11 @@ $(TYPEDSIGNATURES)
 """
 function calculate_direction(vel::Union{NTuple{2,T}, Vect{2, T}}) where T<:Real #for 2d and graph
     vx, vy = vel
-    if (vx ≈ 0.0)
+    if (vx ≈ 0.0) && (vy>0)
         return 0.0
+    end
+    if (vx ≈ 0.0) && (vy<0)
+        return pi
     end
     if (vx > 0)
         return 1.5*pi+atan(vy/vx)
@@ -36,6 +39,13 @@ function calculate_direction(vel::Union{NTuple{2,T}, Vect{2, T}}) where T<:Real 
     if (vx<0) 
         return 0.5*pi+atan(vy/vx)
     end 
+end
+
+"""
+$(TYPEDSIGNATURES)
+"""
+function vector_orientation(x::T) where T<:Real
+    return Vect(-sin(x), cos(x))
 end
 
 
@@ -46,7 +56,7 @@ function calculate_direction(vel::Union{NTuple{3,T}, Vect{3, T}}) where T<:Real
     vx, vy, vz = vel
     ln = sqrt(vx^2+vy^2+vz^2)
     if (ln ≈ 0.0)
-        return 0.0
+        return zeros_as(vel)
     end
     orientation = vel ./ ln
     return orientation

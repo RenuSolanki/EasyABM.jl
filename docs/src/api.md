@@ -149,6 +149,7 @@ dotprod
 veclength
 distance
 calculate_direction
+vector_orientation
 Col
 @cl_str
 moore_distance

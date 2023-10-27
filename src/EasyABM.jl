@@ -54,7 +54,7 @@ export  Static, Mortal, PropDict, Vect,
         neighbors, in_neighbors, out_neighbors, neighbors_moore, neighbors_neumann,
 
         #misc utilities
-        dotprod, veclength, distance, calculate_direction, Col, @cl_str, moore_distance,
+        dotprod, veclength, distance, calculate_direction, vector_orientation, Col, @cl_str, moore_distance,
         manhattan_distance, set_window_size
 
         #inbuilt models

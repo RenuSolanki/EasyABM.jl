@@ -57,3 +57,6 @@ Base.:*(x::Vect{N}, y::Union{Int, Float64}) where N = Vect(x.v .* y)
 Base.:/(x::Vect{N}, y::Union{Int, Float64}) where N = Vect(x.v ./ y)
 
 Base.isless(x::Vect{N}, y::Vect{N}) where N = isless(x.v, y.v)
+
+zeros_as(v::Vect{N,T}) where {N, T} = Vect(Tuple((zero(T) for _ in v)))
+zeros_as(v::NTuple{N,T}) where {N,T} = Tuple((zero(T) for _ in v))

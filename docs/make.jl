@@ -26,6 +26,7 @@ makedocs(
                 "Elementary Cellular Automaton" => "ElemCA.md",
                 "Abelian Sandpile" => "abelian_sandpile.md",
                 "Ising on a nearest neighbor graph" => "NNSIsing.md",
+                "Ising on a nearest neighbor graph 3D" => "NNS3DIsing.md",
             ],
          "Do's and Don'ts" => "tips.md",
          "API" => "api.md",
