@@ -819,7 +819,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _draw_da_vert(graph::AbstractPropGraph{MortalType}, vert, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
+@inline function _draw_da_vert(graph::AbstractPropGraph{MortalType}, vert, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false), show_nodes=true, show_edges=true)
     vert_pos = _get_vert_pos(graph, vert, frame, nprops)
     vert_col = _get_vert_col(graph, vert, frame, nprops)
     
@@ -836,10 +836,10 @@ $(TYPEDSIGNATURES)
     neighs_pos = [_get_vert_pos(graph, nd, frame, nprops) for nd in active_out_structure]
     neighs_sizes = [_get_vert_size(graph, nd, frame, nprops, node_size) for nd in active_out_structure]
     edge_cols = [_get_edge_col(graph, vert, active_out_structure[i], indices[i], eprops) for i in 1:length(indices)]
-    draw_vert(vert, vert_pos, vert_col, vert_size, neighs_pos, neighs_sizes, is_digraph(graph), edge_cols, mark_nodes, tail_cond, tail_points)
+    draw_vert(vert, vert_pos, vert_col, vert_size, neighs_pos, neighs_sizes, is_digraph(graph), edge_cols, mark_nodes, tail_cond, tail_points, show_nodes, show_edges)
 end
 
-@inline function _draw_da_vert(graph::AbstractPropGraph{StaticType}, vert, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
+@inline function _draw_da_vert(graph::AbstractPropGraph{StaticType}, vert, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false), show_nodes=true, show_edges=true)
     vert_pos = _get_vert_pos(graph, vert, frame, nprops)
     vert_col = _get_vert_col(graph, vert, frame, nprops)
     
@@ -855,16 +855,16 @@ end
     neighs_pos = [_get_vert_pos(graph, nd, frame, nprops) for nd in out_structure]
     neighs_sizes = [_get_vert_size(graph, nd, frame, nprops, node_size) for nd in out_structure]
     edge_cols = [_get_edge_col(graph, vert, nd, frame, eprops) for nd in out_structure] 
-    draw_vert(vert, vert_pos, vert_col, vert_size, neighs_pos, neighs_sizes, is_digraph(graph), edge_cols, mark_nodes, tail_cond, tail_points)
+    draw_vert(vert, vert_pos, vert_col, vert_size, neighs_pos, neighs_sizes, is_digraph(graph), edge_cols, mark_nodes, tail_cond, tail_points, show_nodes, show_edges)
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _draw_graph(graph::AbstractPropGraph{MortalType}, verts, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
+@inline function _draw_graph(graph::AbstractPropGraph{MortalType}, verts, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false), show_nodes=true, show_edges=true)
     alive_verts = verts[[(graph.nodesprops[nd]._extras._birth_time::Int <=frame)&&(frame<=graph.nodesprops[nd]._extras._death_time::Int) for nd in verts]]
     for vert in alive_verts
-        _draw_da_vert(graph, vert, node_size, frame, nprops, eprops,  mark_nodes, tail) 
+        _draw_da_vert(graph, vert, node_size, frame, nprops, eprops,  mark_nodes, tail, show_nodes, show_edges) 
     end
 end
 
@@ -872,18 +872,18 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function _draw_graph(graph::AbstractPropGraph{StaticType}, verts, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false))
+@inline function _draw_graph(graph::AbstractPropGraph{StaticType}, verts, node_size, frame, nprops, eprops, mark_nodes=false, tail = (1, node-> false), show_nodes=true, show_edges=true)
     for vert in verts
-        _draw_da_vert(graph, vert, node_size, frame, nprops, eprops, mark_nodes, tail) 
+        _draw_da_vert(graph, vert, node_size, frame, nprops, eprops, mark_nodes, tail, show_nodes, show_edges) 
     end
 end
 
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agents_and_graph(model::GraphModelDynAgNum, graph, verts, node_size, frame, scl, mark_nodes=false, tail = (1, node-> false), agent_path=(1, ag->false))
+@inline function draw_agents_and_graph(model::GraphModelDynAgNum, graph, verts, node_size, frame, scl, mark_nodes=false, tail = (1, node-> false), agent_path=(1, ag->false), show_nodes=true, show_edges=true)
     if model.parameters._extras._show_space::Bool
-        _draw_graph(graph, verts, node_size, frame, model.record.nprops, model.record.eprops, mark_nodes, tail)
+        _draw_graph(graph, verts, node_size, frame, model.record.nprops, model.record.eprops, mark_nodes, tail, show_nodes, show_edges)
     end
 
     all_agents = vcat(model.agents, model.agents_killed)
@@ -898,10 +898,10 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-@inline function draw_agents_and_graph(model::GraphModelFixAgNum, graph, verts, node_size, frame, scl, mark_nodes=false, tail = (1, node-> false), agent_path=(1, ag->false))
+@inline function draw_agents_and_graph(model::GraphModelFixAgNum, graph, verts, node_size, frame, scl, mark_nodes=false, tail = (1, node-> false), agent_path=(1, ag->false), show_nodes=true, show_edges=true)
 
     if model.parameters._extras._show_space::Bool
-        _draw_graph(graph, verts, node_size, frame, model.record.nprops, model.record.eprops, mark_nodes, tail)
+        _draw_graph(graph, verts, node_size, frame, model.record.nprops, model.record.eprops, mark_nodes, tail, show_nodes, show_edges)
     end
 
     for agent in model.agents

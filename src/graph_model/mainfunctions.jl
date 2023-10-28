@@ -388,7 +388,7 @@ $(TYPEDSIGNATURES)
 """
 function save_sim_luxor(model::GraphModel, frames::Int=model.tick, scl::Number=1.0; 
     path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_space = true, 
-    mark_nodes=false, tail = (1, node-> false), agent_path=(1, ag->false)) 
+    mark_nodes=false, tail = (1, node-> false), agent_path=(1, ag->false), show_nodes=true, show_edges=true) 
     if model.graphics
         graph = is_static(model.graph) ? model.graph : combined_graph(model.graph, model.dead_meta_graph)
         ticks = getfield(model, :tick)[]
@@ -407,7 +407,7 @@ function save_sim_luxor(model::GraphModel, frames::Int=model.tick, scl::Number=1
 
         push!(scene_array, Luxor.Scene(movie_abm, use_backdrop, 1:fr))
         for i in 1:fr
-            draw_all(scene, frame) = draw_agents_and_graph(model, graph, verts, node_size, frame,scl, mark_nodes, tail, agent_path)
+            draw_all(scene, frame) = draw_agents_and_graph(model, graph, verts, node_size, frame,scl, mark_nodes, tail, agent_path, show_nodes, show_edges)
 
             push!(scene_array, Luxor.Scene(movie_abm, draw_all, i:i))
         end
@@ -427,8 +427,8 @@ Creates and saves the gif of simulation from the data collected during model run
 """
 function save_sim(model::GraphModel, frames::Int=model.tick, scl::Number=1.0; 
     path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), show_space=true, 
-    mark_nodes=false, tail = (1, node -> false), agent_path=(1, ag->false))
-    save_sim_luxor(model, frames, scl, path= path , show_space= show_space, mark_nodes=mark_nodes, tail=tail, agent_path=agent_path)
+    mark_nodes=false, tail = (1, node -> false), agent_path=(1, ag->false), show_nodes=true, show_edges=true)
+    save_sim_luxor(model, frames, scl, path= path , show_space= show_space, mark_nodes=mark_nodes, tail=tail, agent_path=agent_path, show_nodes=show_nodes, show_edges=show_edges)
     println("Animation saved at ", path)
 end
 
@@ -446,7 +446,7 @@ function animate_sim2d(model::GraphModel, frames::Int=model.tick;
     plots_only = false, 
     path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), 
     show_graph = true, mark_nodes=false, tail = (1, node-> false),
-    agent_path=(1, ag->false))
+    agent_path=(1, ag->false), show_nodes=true, show_edges=true)
 
     ticks = getfield(model, :tick)[]
     model.parameters._extras._show_space = show_graph
@@ -461,13 +461,13 @@ function animate_sim2d(model::GraphModel, frames::Int=model.tick;
         drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
         Luxor.origin()
         Luxor.background("white")
-        draw_agents_and_graph(model,graph, verts, node_size, t, scl, mark_nodes, tail, agent_path) 
+        draw_agents_and_graph(model,graph, verts, node_size, t, scl, mark_nodes, tail, agent_path, show_nodes, show_edges) 
         finish()
         drawing
     end
 
     function _save_sim(scl)
-        save_sim(model, fr, scl, path= path, show_space=show_graph, mark_nodes=mark_nodes, tail=tail, agent_path=agent_path)
+        save_sim(model, fr, scl, path= path, show_space=show_graph, mark_nodes=mark_nodes, tail=tail, agent_path=agent_path, show_nodes=show_nodes, show_edges=show_edges)
     end
 
     function _does_nothing(t,scl::Number=1)
@@ -515,7 +515,7 @@ function animate_sim(model::GraphModel, frames::Int=model.tick;
     plots_only = false, 
     path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"), 
     show_graph = true, mark_nodes=false, tail = (1, node-> false),
-    agent_path=(1, ag->false))
+    agent_path=(1, ag->false), show_nodes=true, show_edges=true)
 
 
     if model.parameters._extras._vis_space == "2d"
@@ -526,14 +526,18 @@ function animate_sim(model::GraphModel, frames::Int=model.tick;
         plots_only = plots_only, 
         path= path, 
         show_graph = show_graph, mark_nodes=mark_nodes, tail = tail,
-        agent_path=agent_path)
+        agent_path=agent_path,
+        show_nodes=show_nodes,
+        show_edges=show_edges)
     else
         animate_sim3d(model, frames,
         agent_plots=agent_plots, 
         node_plots=node_plots, 
         model_plots=model_plots,
         plots_only = plots_only, 
-        show_graph = show_graph)
+        show_graph = show_graph,
+        show_nodes=show_nodes,
+        show_edges=show_edges)
     end
 end
 
@@ -544,7 +548,7 @@ $(TYPEDSIGNATURES)
 
 Draws a specific frame.
 """
-function draw_frame2d(model::GraphModel; frame=model.tick, show_graph=true, mark_nodes=false)
+function draw_frame2d(model::GraphModel; frame=model.tick, show_graph=true, mark_nodes=false, show_nodes=true, show_edges=true)
     frame = min(frame, model.tick)
     model.parameters._extras._show_space = show_graph
     graph = is_static(model.graph) ? model.graph : combined_graph(model.graph, model.dead_meta_graph)
@@ -554,7 +558,7 @@ function draw_frame2d(model::GraphModel; frame=model.tick, show_graph=true, mark
     if model.graphics
         Luxor.origin()
         Luxor.background("white")
-        draw_agents_and_graph(model,graph, verts, node_size, frame, 1.0, mark_nodes)
+        draw_agents_and_graph(model,graph, verts, node_size, frame, 1.0, mark_nodes, (1, node-> false), (1, ag->false), show_nodes, show_edges)
     end
     finish()
     drawing
@@ -565,13 +569,13 @@ $(TYPEDSIGNATURES)
 
 Draws a specific frame.
 """
-function draw_frame(model::GraphModel; frame=model.tick, show_graph=true, mark_nodes=false)
+function draw_frame(model::GraphModel; frame=model.tick, show_graph=true, mark_nodes=false, show_nodes=true, show_edges=true)
     if model.parameters._extras._vis_space == "2d"
         draw_frame2d(model, frame=frame,
-        show_graph=show_graph, mark_nodes=mark_nodes)
+        show_graph=show_graph, mark_nodes=mark_nodes, show_nodes=show_nodes, show_edges=show_edges)
     else
         draw_frame3d(model, frame=frame,
-        show_graph=show_graph)
+        show_graph=show_graph, show_nodes=show_nodes, show_edges=show_edges)
     end
 end
 
@@ -592,7 +596,7 @@ function create_interactive_app2d(model::GraphModel; initialiser::Function = nul
     plots_only = false,
     path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"),
     frames=200, show_graph=true, mark_nodes=false, tail = (1, node-> false),
-    agent_path=(1, ag->false)) 
+    agent_path=(1, ag->false), show_nodes=true, show_edges=true) 
     
     # if !is_static(model.graph)
     #     combined_graph!(model.graph, model.dead_meta_graph)
@@ -644,7 +648,7 @@ function create_interactive_app2d(model::GraphModel; initialiser::Function = nul
     agent_df, patch_df, node_df, model_df= DataFrame(), DataFrame(), DataFrame(), DataFrame() #_init_interactive_model()
 
     function _save_sim(scl)
-        save_sim(model, frames, scl, path= path, show_space=show_graph, mark_nodes=mark_nodes, tail=tail, agent_path=agent_path)
+        save_sim(model, frames, scl, path= path, show_space=show_graph, mark_nodes=mark_nodes, tail=tail, agent_path=agent_path, show_nodes=show_nodes, show_edges=show_edges)
     end
 
     function _does_nothing(t,scl::Number=1)
@@ -657,7 +661,7 @@ function create_interactive_app2d(model::GraphModel; initialiser::Function = nul
         drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
         Luxor.origin()
         Luxor.background("white")
-        draw_agents_and_graph(model,graph[], verts, node_size, t, scl, mark_nodes, tail, agent_path)
+        draw_agents_and_graph(model,graph[], verts, node_size, t, scl, mark_nodes, tail, agent_path, show_nodes, show_edges)
         finish()
         drawing
     end
@@ -691,7 +695,7 @@ function create_interactive_app(model::GraphModel; initialiser::Function = null_
     plots_only = false,
     path= joinpath(@get_scratch!("abm_anims"), "anim_graph.gif"),
     frames=200, show_graph=true, mark_nodes=false, tail = (1, node-> false),
-    agent_path=(1, ag->false)) 
+    agent_path=(1, ag->false), show_nodes=true, show_edges=true) 
 
     if model.parameters._extras._vis_space=="2d"
         create_interactive_app2d(model; initialiser=initialiser, 
@@ -705,7 +709,9 @@ function create_interactive_app(model::GraphModel; initialiser::Function = null_
         plots_only = plots_only,
         path= path,
         frames=frames, show_graph=show_graph, mark_nodes=mark_nodes, tail = tail,
-        agent_path=agent_path) 
+        agent_path=agent_path,
+        show_nodes=show_nodes,
+        show_edges=show_edges) 
     else
         create_interactive_app3d(model; initialiser=initialiser, 
         props_to_record=props_to_record,
@@ -716,7 +722,8 @@ function create_interactive_app(model::GraphModel; initialiser::Function = null_
         node_plots=node_plots,
         model_plots=model_plots,
         plots_only = plots_only,
-        frames=frames, show_graph=show_graph)
+        frames=frames, show_graph=show_graph,
+        show_nodes=show_nodes, show_edges=show_edges)
     end
 end
 

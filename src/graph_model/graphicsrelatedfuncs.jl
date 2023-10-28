@@ -224,7 +224,7 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function draw_vert(vert, pos, col, vert_size, neighs_pos, neighs_sizes, oriented::Bool, 
-    edge_cols, mark_vert=false, tail_cond=false, tail_points=GeometryBasics.Vec2{Float64}[]) 
+    edge_cols, mark_vert=false, tail_cond=false, tail_points=GeometryBasics.Vec2{Float64}[], show_nodes=true, show_edges=true) 
 
     width = gparams.width
     height = gparams.height
@@ -241,83 +241,122 @@ $(TYPEDSIGNATURES)
     y =  h*posy #-h/2
     cl = col.val
 
-    gsave()
-    translate(-width/2, height/2)
-    Luxor.transform([1 0 0 -1 0 0]) #reflects in xaxis
-    ##
-    translate(x,y)
-    setcolor(cl)
-    circle(Luxor.Point(0,0), vert_size, :fill)
-    setline(line_width)
-    setcolor(RGBA(0,0,0,1))
-    circle(Luxor.Point(0,0), vert_size, :stroke)
-    if mark_vert
+    if show_nodes
+        gsave()
+        translate(-width/2, height/2)
         Luxor.transform([1 0 0 -1 0 0]) #reflects in xaxis
-        if (cl.r+cl.g+cl.b)>0.2
-            setcolor(RGBA(0,0,0,1))
+        ##
+        translate(x,y)
+        setcolor(cl)
+        circle(Luxor.Point(0,0), vert_size, :fill)
+        setline(line_width)
+        setcolor(RGBA(0,0,0,1))
+        circle(Luxor.Point(0,0), vert_size, :stroke)
+        if mark_vert
+            Luxor.transform([1 0 0 -1 0 0]) #reflects in xaxis
+            if (cl.r+cl.g+cl.b)>0.2
+                setcolor(RGBA(0,0,0,1))
+            else
+                setcolor(RGBA(1,1,1,1))
+            end
+            fontface("Arial-Black")
+            num_digits = length(string(vert))
+            pwr = max(0, num_digits-3)
+            fnsize = vert_size/(1.5^pwr)
+            fontsize(fnsize)
+            text("$vert", halign = :center, valign = :middle)
+        end
+        grestore()
+    end
+
+    if show_edges && show_nodes
+
+        if oriented
+            for ind in 1:length(neighs_pos)
+                v = neighs_pos[ind]
+                col = edge_cols[ind]
+                posv_x, posv_y = v
+                x_v, y_v = w*posv_x, h*posv_y 
+                v1 = x_v-x
+                v2 = y_v-y
+                nrm = sqrt(v1^2+v2^2)
+                nbr_size = neighs_sizes[ind]
+                corr_vec1 = vert_size*v1/(nrm+0.00001)
+                corr_vec2 = vert_size*v2/(nrm+0.00001)
+                corr_nb_vec1 = nbr_size*v1/(nrm+0.00001)
+                corr_nb_vec2 = nbr_size*v2/(nrm+0.00001)
+                corr_point = Luxor.Point(corr_vec1, corr_vec2)
+                corr_point_nbr = Luxor.Point(corr_nb_vec1, corr_nb_vec2)
+                gsave()
+                translate(-(width/2), (height/2))
+                Luxor.transform([1 0 0 -1 0 0])
+                setcolor(col.val)
+                setline(line_width)
+                arrow(Luxor.Point(x,y)+corr_point, Luxor.Point(x_v, y_v)-corr_point_nbr, arrowheadlength= nbr_size*0.3)
+                grestore()
+            end
         else
-            setcolor(RGBA(1,1,1,1))
-        end
-        fontface("Arial-Black")
-        num_digits = length(string(vert))
-        pwr = max(0, num_digits-3)
-        fnsize = vert_size/(1.5^pwr)
-        fontsize(fnsize)
-        text("$vert", halign = :center, valign = :middle)
-    end
-    grestore()
-
-    if oriented
-        for ind in 1:length(neighs_pos)
-            v = neighs_pos[ind]
-            col = edge_cols[ind]
-            nbr_size = neighs_sizes[ind]
-            posv_x, posv_y = v
-            x_v, y_v = w*posv_x, h*posv_y 
-            v1 = x_v-x
-            v2 = y_v-y
-            nrm = sqrt(v1^2+v2^2)
-            corr_vec1 = vert_size*v1/(nrm+0.00001)
-            corr_vec2 = vert_size*v2/(nrm+0.00001)
-            corr_nb_vec1 = nbr_size*v1/(nrm+0.00001)
-            corr_nb_vec2 = nbr_size*v2/(nrm+0.00001)
-            corr_point = Luxor.Point(corr_vec1, corr_vec2)
-            corr_point_nbr = Luxor.Point(corr_nb_vec1, corr_nb_vec2)
-            gsave()
-            translate(-(width/2), (height/2))
-            Luxor.transform([1 0 0 -1 0 0])
-            setcolor(col.val)
-            setline(line_width)
-            arrow(Luxor.Point(x,y)+corr_point, Luxor.Point(x_v, y_v)-corr_point_nbr, arrowheadlength= nbr_size*0.3)
-            grestore()
-        end
-    else
-        for ind in 1:length(neighs_pos)
-            v = neighs_pos[ind]
-            col = edge_cols[ind]
-            nbr_size = neighs_sizes[ind]
-            posv_x, posv_y = v
-            x_v, y_v = w*posv_x, h*posv_y 
-            v1 = x_v-x
-            v2 = y_v-y
-            nrm = sqrt(v1^2+v2^2)
-            corr_vec1 = vert_size*v1/(nrm+0.00001)
-            corr_vec2 = vert_size*v2/(nrm+0.00001)
-            corr_nb_vec1 = nbr_size*v1/(nrm+0.00001)
-            corr_nb_vec2 = nbr_size*v2/(nrm+0.00001)
-            corr_point = Luxor.Point(corr_vec1, corr_vec2)
-            corr_point_nbr = Luxor.Point(corr_nb_vec1, corr_nb_vec2)
-            gsave()
-            translate(-(width/2), (height/2))
-            Luxor.transform([1 0 0 -1 0 0])
-            setcolor(col.val)
-            setline(line_width)
-            line(Luxor.Point(x,y)+corr_point, Luxor.Point(x_v, y_v)-corr_point_nbr, :stroke)
-            grestore()
+            for ind in 1:length(neighs_pos)
+                v = neighs_pos[ind]
+                col = edge_cols[ind]
+                nbr_size = neighs_sizes[ind]
+                posv_x, posv_y = v
+                x_v, y_v = w*posv_x, h*posv_y 
+                v1 = x_v-x
+                v2 = y_v-y
+                nrm = sqrt(v1^2+v2^2)
+                corr_vec1 = vert_size*v1/(nrm+0.00001)
+                corr_vec2 = vert_size*v2/(nrm+0.00001)
+                corr_nb_vec1 = nbr_size*v1/(nrm+0.00001)
+                corr_nb_vec2 = nbr_size*v2/(nrm+0.00001)
+                corr_point = Luxor.Point(corr_vec1, corr_vec2)
+                corr_point_nbr = Luxor.Point(corr_nb_vec1, corr_nb_vec2)
+                gsave()
+                translate(-(width/2), (height/2))
+                Luxor.transform([1 0 0 -1 0 0])
+                setcolor(col.val)
+                setline(line_width)
+                line(Luxor.Point(x,y)+corr_point, Luxor.Point(x_v, y_v)-corr_point_nbr, :stroke)
+                grestore()
+            end
         end
     end
 
-    if tail_cond # tail_condition must be dependent on some non-changing agent property. General conditons are not implemented due to performance constraints
+    if show_edges && !(show_nodes)
+
+        if oriented
+            for ind in 1:length(neighs_pos)
+                v = neighs_pos[ind]
+                col = edge_cols[ind]
+                nbr_size = neighs_sizes[ind]
+                posv_x, posv_y = v
+                x_v, y_v = w*posv_x, h*posv_y 
+                gsave()
+                translate(-(width/2), (height/2))
+                Luxor.transform([1 0 0 -1 0 0])
+                setcolor(col.val)
+                setline(line_width)
+                arrow(Luxor.Point(x,y), Luxor.Point(x_v, y_v), arrowheadlength= nbr_size*0.3)
+                grestore()
+            end
+        else
+            for ind in 1:length(neighs_pos)
+                v = neighs_pos[ind]
+                col = edge_cols[ind]
+                posv_x, posv_y = v
+                x_v, y_v = w*posv_x, h*posv_y 
+                gsave()
+                translate(-(width/2), (height/2))
+                Luxor.transform([1 0 0 -1 0 0])
+                setcolor(col.val)
+                setline(line_width)
+                line(Luxor.Point(x,y), Luxor.Point(x_v, y_v), :stroke)
+                grestore()
+            end
+        end
+    end
+
+    if show_nodes && tail_cond # tail_condition must be dependent on some non-changing agent property. General conditons are not implemented due to performance constraints
         gsave()
         translate(-(width/2), (height/2))
         Luxor.transform([1 0 0 -1 0 0]) 
@@ -534,7 +573,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function draw_graph(graph; mark_nodes=false, use_internal_layout=false)
+function draw_graph(graph; mark_nodes=false, use_internal_layout=false, show_nodes=true, show_edges=true)
     if typeof(graph)<:SimpleGraph
         graph = static_simple_graph(graph)
     end
@@ -588,7 +627,7 @@ function draw_graph(graph; mark_nodes=false, use_internal_layout=false)
         neighs_pos = [_get_vert_pos_isolated_graph(graph, nd) for nd in out_structure]
         neighs_sizes = [_get_vert_size_isolated_graph(graph, nd, node_size) for nd in out_structure]
         edge_cols =  [_get_edge_col_isolated_graph(graph, vert, nd) for nd in out_structure]
-        draw_vert(vert, vert_pos, vert_col, vert_size, neighs_pos, neighs_sizes, is_digraph(graph), edge_cols, mark_nodes)
+        draw_vert(vert, vert_pos, vert_col, vert_size, neighs_pos, neighs_sizes, is_digraph(graph), edge_cols, mark_nodes, false, GeometryBasics.Vec2{Float64}[], show_nodes, show_edges)
     end
     finish()
     drawing
