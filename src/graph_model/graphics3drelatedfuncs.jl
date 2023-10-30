@@ -924,7 +924,7 @@ $(TYPEDSIGNATURES)
 
 Creates an interactive app for the model.
 """
-function create_interactive_app3d(model::GraphModel; initialiser::Function = null_init!, 
+function create_interactive_app3d(inmodel::GraphModel; initialiser::Function = null_init!, 
     props_to_record::Dict{String, Set{Symbol}} = Dict{String, Set{Symbol}}("agents"=>Set{Symbol}([]), "nodes"=>Set{Symbol}([]), "edges"=>Set{Symbol}([]), "model"=>Set{Symbol}([])),
     step_rule::Function=model_null_step!,
     agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
@@ -934,29 +934,20 @@ function create_interactive_app3d(model::GraphModel; initialiser::Function = nul
     model_plots::Vector{Symbol} = Symbol[],
     plots_only = false,
     frames=200, show_graph=true, vis::Any=nothing, show_nodes=true, show_edges=true) 
-    
-    # if !is_static(model.graph)
-    #     combined_graph!(model.graph, model.dead_meta_graph)
-    #     empty!(model.dead_meta_graph)
-    # end
 
-    model.parameters._extras._show_space = show_graph
+    inmodel.parameters._extras._show_space = show_graph
 
-    no_graphics = plots_only || !(model.graphics)
+    no_graphics = plots_only || !(inmodel.graphics)
 
-    node_size = Ref(_get_node_size(model.parameters._extras._num_verts::Int))
+    node_size = Ref(_get_node_size(inmodel.parameters._extras._num_verts::Int))
 
-
-    init_model!(model, initialiser=initialiser, props_to_record = props_to_record)
-
-    #copy_agents = deepcopy(model.agents)
-    function _run_interactive_model(t)
+    function _run_interactive_model(model, t)
         run_model!(model, steps=t, step_rule=step_rule)
     end
 
-    graph = Ref(model.graph)
+    graph = Ref(inmodel.graph)
 
-    function _does_nothing(t,scl::Number=1)
+    function _does_nothing(m, t,scl::Number=1)
         nothing
     end
 
@@ -985,13 +976,13 @@ function create_interactive_app3d(model::GraphModel; initialiser::Function = nul
         push!(condsp, cond)
     end
 
-
-
     function _init_interactive_model(ufun::Function = x -> nothing)
+        model=deepcopy(inmodel)
         ufun(model)
         init_model!(model, initialiser=initialiser, props_to_record = props_to_record)
         ufun(model)
-        _run_interactive_model(frames)
+        _run_interactive_model(model, frames)
+        graph[]=model.graph
         if !is_static(model.graph)
             graph[] = combined_graph(model.graph, model.dead_meta_graph)
         else
@@ -1006,7 +997,7 @@ function create_interactive_app3d(model::GraphModel; initialiser::Function = nul
             if show_graph
                 delete!(vis["edges"])
                 delete!(vis["nodes"])
-                draw_nodes_and_edges_static(vis,model,graph[], verts, edges, node_size[], show_nodes, show_edges)
+                draw_nodes_and_edges_static(vis,model, graph[], verts, edges, node_size[], show_nodes, show_edges)
             end
             all_agents = _get_all_agents(model)
             draw_graph_agents_static(vis, model,graph[], all_agents, node_size[])
@@ -1014,12 +1005,12 @@ function create_interactive_app3d(model::GraphModel; initialiser::Function = nul
         agent_df = get_agents_avg_props(model, condsa..., labels= lblsa)
         node_df = get_nodes_avg_props(model, condsp..., labels= lblsp)
         model_df = get_model_data(model, model_plots).record
-        return agent_df, DataFrame(), node_df, model_df
+        return agent_df, DataFrame(), node_df, model_df, model
     end
 
-    agent_df, patch_df, node_df, model_df= DataFrame(), DataFrame(), DataFrame(), DataFrame() #_init_interactive_model()
+    agent_df, patch_df, node_df, model_df, model= _init_interactive_model() #DataFrame(), DataFrame(), DataFrame(), DataFrame() #_init_interactive_model()
 
-    function _draw_interactive_frame(t, scl)
+    function _draw_interactive_frame(model, t, scl)
         verts = getfield(graph[], :_nodes)
         draw_agents_and_graph3d(vis, model, graph[], verts, t, scl, node_size[], show_nodes, show_edges)
     end
@@ -1030,10 +1021,10 @@ function create_interactive_app3d(model::GraphModel; initialiser::Function = nul
 
     if no_graphics
         _draw_interactive_frame = _does_nothing
-        _render_trivial = _does_nothing
+        _render_trivial = (x)->nothing
     end
 
-    _live_interactive_app(model, frames, no_graphics, _save_sim, _init_interactive_model, 
+    _live_interactive_app(Ref(model), frames, no_graphics, _save_sim, _init_interactive_model, 
     _run_interactive_model, _draw_interactive_frame, agent_controls, model_controls, 
     agent_df, _render_trivial, patch_df, node_df, model_df)
 

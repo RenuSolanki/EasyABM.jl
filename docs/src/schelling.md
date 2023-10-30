@@ -86,9 +86,13 @@ animate_sim(model,agent_plots=Dict("happy"=> agent-> agent.mood == happy, "sad"=
 ![png](assets/Schelling/SchellingAnim1.png)
 
 
-After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
+After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as shown below. It is recommended to define a fresh model and not initialise it with `init_model!` or run with `run_model!` before creating interactive app. 
 
 ```julia
+agents = grid_2d_agents(200, pos = Vect(1,1), color = cl"green", mood = happy, keeps_record_of=Set([:pos, :mood]))
+
+model = create_2d_model(agents, agents_type = Static, space_type=NPeriodic, size = (20,20), min_alike = 4)
+
 create_interactive_app(model, 
     initialiser= initialiser!,
     step_rule=step_rule!,

@@ -270,7 +270,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function _live_interactive_app(model::Union{AbstractSpaceModel, AbstractGraphModel}, fr,
+function _live_interactive_app(model, fr,
     plots_only::Bool, _save_sim::Function, 
     _init_interactive_model::Function, _run_interactive_model::Function, 
     _draw_interactive_frame::Function, agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
@@ -300,7 +300,7 @@ function _live_interactive_app(model::Union{AbstractSpaceModel, AbstractGraphMod
             push!(ag_controls, dr)
         end
         lis = on(ag_controls[end]) do val
-            for agent in model.agents
+            for agent in model[].agents
                 if agent._extras._active
                     setproperty!(agent, a, val)
                 end
@@ -324,7 +324,7 @@ function _live_interactive_app(model::Union{AbstractSpaceModel, AbstractGraphMod
             push!(md_controls, dr)
         end
         lis = on(md_controls[end]) do val
-            setproperty!(model.parameters, a, val)
+            setproperty!(model[].parameters, a, val)
         end
         push!(md_listeners, lis)
     end
@@ -351,8 +351,8 @@ function _live_interactive_app(model::Union{AbstractSpaceModel, AbstractGraphMod
     end
 
     donecessarystuff() = begin
-        if timeS[]>model.tick
-            _run_interactive_model(timeS[]-model.tick)
+        if timeS[]>model[].tick
+            _run_interactive_model(timeS[]-model[].tick)
         end 
         timeS[]+=1
     end
@@ -368,7 +368,7 @@ function _live_interactive_app(model::Union{AbstractSpaceModel, AbstractGraphMod
     end
 
     ufun(md) = begin
-        model = md
+        model[] = md
         for cg in ag_controls
             cg[]=cg[]
         end
@@ -405,20 +405,20 @@ function _live_interactive_app(model::Union{AbstractSpaceModel, AbstractGraphMod
 
     rfun() = begin 
         check[] = 1
-        agent_df, patch_df, node_df, model_df = _init_interactive_model(ufun)
+        agent_df, patch_df, node_df, model_df, model[] = _init_interactive_model(ufun)
         _create_plots()
         timeS[]= 1
         check[] = 0
     end
 
     sfun() = begin
-        if fr >model.tick
-            _run_interactive_model(fr-model.tick)
+        if fr >model[].tick
+            _run_interactive_model(model[], fr-model[].tick)
         end 
         if checkS[]==0
             checkS[] = 1
             println("Saving animation as gif....")
-            _save_sim(scaleS[])
+            _save_sim(model[],scaleS[])
         else
             return
         end
@@ -444,7 +444,7 @@ function _live_interactive_app(model::Union{AbstractSpaceModel, AbstractGraphMod
     rst[] = rst[] #reset initially
     
     function _draw_a_frame(t, scl)
-        _draw_interactive_frame(t, scl)
+        _draw_interactive_frame(model[],t, scl)
     end
 
     Plots.gr(fmt=:png)
@@ -462,7 +462,7 @@ function _live_interactive_app(model::Union{AbstractSpaceModel, AbstractGraphMod
 
 
 
-    if (typeof(model)<:SpaceModel3D) || ((typeof(model)<:GraphModel) && (model.parameters._extras._vis_space=="3d"))
+    if (typeof(model[])<:SpaceModel3D) || ((typeof(model[])<:GraphModel) && (model[].parameters._extras._vis_space=="3d"))
         render3d = Interact.@map render_trivial(&emptyS)
         wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop, "rst"=>rst])
         return @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, vbox(ag_controls...), vbox(md_controls...), hbox(spc, :run, spc, :stop, spc, :rst)), render3d, spc, vbox(pls...) ) )  

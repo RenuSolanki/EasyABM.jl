@@ -358,7 +358,7 @@ $(TYPEDSIGNATURES)
 
 Creates an interactive app for the model.
 """
-function create_interactive_app(model::SpaceModel2D; initialiser::Function = null_init!, 
+function create_interactive_app(inmodel::SpaceModel2D; initialiser::Function = null_init!, 
     props_to_record::Dict{String, Set{Symbol}} = Dict{String, Set{Symbol}}("agents"=>Set{Symbol}([]), "patches"=>Set{Symbol}([]), "model"=>Set{Symbol}([])),
     step_rule::Function=model_null_step!,
     agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
@@ -370,14 +370,12 @@ function create_interactive_app(model::SpaceModel2D; initialiser::Function = nul
     path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"),
     frames=200, show_patches=false, tail =(1, agent-> false)) 
 
-    model.parameters._extras._show_space = show_patches
+    inmodel.parameters._extras._show_space = show_patches
 
-    no_graphics = plots_only || !(model.graphics)
-
-    init_model!(model, initialiser=initialiser, props_to_record = props_to_record)
+    no_graphics = plots_only || !(inmodel.graphics)
 
     
-    function _run_interactive_model(t)
+    function _run_interactive_model(model,t)
         run_model!(model, steps=t, step_rule=step_rule)
     end
 
@@ -396,28 +394,29 @@ function create_interactive_app(model::SpaceModel2D; initialiser::Function = nul
     end
 
     function _init_interactive_model(ufun::Function = x -> nothing)
+        model=deepcopy(inmodel)
         ufun(model) # will provide init with updated model parameters
         init_model!(model, initialiser=initialiser, props_to_record=props_to_record)
         ufun(model) # will override init if some parameters are changed inside it
-        _run_interactive_model(frames)
+        _run_interactive_model(model, frames)
         agent_df = get_agents_avg_props(model, condsa..., labels= lblsa)
         patch_df = get_patches_avg_props(model, condsp..., labels= lblsp)
         model_df = get_model_data(model, model_plots).record
-        return agent_df, patch_df, DataFrame(), model_df
+        return agent_df, patch_df, DataFrame(), model_df, model
     end
 
 
-   agent_df, patch_df, node_df, model_df = DataFrame(), DataFrame(), DataFrame(), DataFrame() #_init_interactive_model()
+   agent_df, patch_df, node_df, model_df, model = _init_interactive_model() #DataFrame(), DataFrame(), DataFrame(), DataFrame() #_init_interactive_model()
 
-    function _save_sim(scl)
+    function _save_sim(model, scl)
         save_sim(model, frames, scl, path= path, show_space=show_patches, tail = tail)
     end
 
-    function _does_nothing(t,scl::Number=1)
+    function _does_nothing(m, t,scl::Number=1)
         nothing
     end
 
-    function _draw_interactive_frame_luxor(t, scl)
+    function _draw_interactive_frame_luxor(model, t, scl)
         drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
         Luxor.origin()
         Luxor.background("white")
@@ -436,7 +435,7 @@ function create_interactive_app(model::SpaceModel2D; initialiser::Function = nul
         _save_sim = _does_nothing
     end
 
-    _live_interactive_app(model, frames, no_graphics, _save_sim, _init_interactive_model, _run_interactive_model, 
+    _live_interactive_app(Ref(model), frames, no_graphics, _save_sim, _init_interactive_model, _run_interactive_model, 
     _draw_interactive_frame, agent_controls, model_controls, agent_df, ()->nothing, patch_df, node_df, model_df)
 
 end

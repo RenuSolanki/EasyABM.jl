@@ -82,9 +82,15 @@ A model saved previously as jld2 file, can be fetched as follows
 model = open_model(model_name = "sun_planet_model", path = "/path/to/folder/sun_planet.jld2")
 ```
 
-Instead of first running the model, we can create an interactive app in Jupyter notebook to explore the model by setting different values of parameters, as shown below. Here, the `model_control` argument asks EasyABM to create a slider with values from 1 to 5 in steps of 0.2 for the model parameter `gravity`. The agent_controls argument creates a slider for the x component of planet's initial velocity. The tail argument attaches a tail of length 30 with the planet by selecting it with its color property which we previously set to `cl"blue"`. 
+Instead of first running the model, we can create an interactive app in Jupyter notebook to explore the model by setting different values of parameters, as shown below. It is recommended to define a fresh model and not initialise it with `init_model!` or run with `run_model!` before creating interactive app. The `model_control` argument asks EasyABM to create a slider with values from 1 to 5 in steps of 0.2 for the model parameter `gravity`. The agent_controls argument creates a slider for the x component of planet's initial velocity. The tail argument attaches a tail of length 30 with the planet by selecting it with its color property which we previously set to `cl"blue"`. 
 
 ```julia
+star = con_2d_agent( pos = Vect(5.0,5.0), size = 0.15, color = cl"yellow") 
+
+planet = con_2d_agent(pos = Vect(7.0,5.0), vel = Vect(0.0,1.0), size=0.05, color = cl"blue", keeps_record_of = Set([:pos, :vel])) 
+
+model = create_2d_model([star, planet], gravity = 3.0, dt=0.1)
+
 create_interactive_app(model, initialiser= initialiser!,
     step_rule= step_rule!,
     model_controls=[(:gravity, "slider", 1:0.2:5.0)], 

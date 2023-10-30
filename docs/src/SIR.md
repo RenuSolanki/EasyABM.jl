@@ -129,9 +129,19 @@ show_patches=true
 ![png](assets/SIR/SIRAnim1.png)
 
 
-After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
+After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as shown below. It is recommended to define a fresh model and not initialise it with `init_model!` or run with `run_model!` before creating interactive app.
 
 ```julia
+agents = grid_2d_agents(500, pos = Vect(1,1), color=cl"green", 
+        atype = susceptible, not_well_since = 0, 
+        keeps_record_of = Set([:atype, :color, :pos]));
+
+model = create_2d_model(agents, size=(50,50), 
+        agents_type = Static, 
+        space_type = Periodic, initially_sick = 10, 
+        sickness_duration = 21, infection_prob = 0.8, 
+        death_prob=0.05);
+
 create_interactive_app(model, initialiser= initialiser!,
     step_rule= step_rule!,
     model_controls=[(:initially_sick, "slider", 1:500), 

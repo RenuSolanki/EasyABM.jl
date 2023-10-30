@@ -75,10 +75,17 @@ animate_sim(model)
 
 ![png](assets/SimplePendulum/SimplePendulumAnim1.png)
 
-After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
+After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as shown below. It is recommended to define a fresh model and not initialise it with `init_model!` or run with `run_model!` before creating interactive app. 
 
 
 ```julia
+graph = graph_from_dict(Dict(
+    "num_nodes"=>2,
+    "edges"=>[(1,2)]
+))
+
+model = create_graph_model(gr, gravity = 9.0, dt=0.1, len= 4.0, in_angle=30.0)
+
 create_interactive_app(model, initialiser= initialiser!,
     props_to_record = Dict("nodes"=>Set([:pos])),
     step_rule= step_rule!,

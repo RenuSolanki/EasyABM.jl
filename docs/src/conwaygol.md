@@ -93,9 +93,11 @@ animate_sim(model, show_patches=true)
 ![png](assets/CGOL/CGOLAnim1.png)
 
 
-After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
+After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as shown below. It is recommended to define a fresh model and not initialise it with `init_model!` or run with `run_model!` before creating interactive app. 
 
 ```julia
+model = create_2d_model(size = (20,20), alive_percent = 0.4)
+
 create_interactive_app(model, initialiser= initialiser!,
     props_to_record=Dict("patches"=>Set([:color, :is_alive])),
     step_rule= step_rule!,

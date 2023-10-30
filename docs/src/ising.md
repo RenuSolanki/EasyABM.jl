@@ -81,9 +81,13 @@ animate_sim(model)
 
 Note that the scale slider is for changing the size of agents. As we have zero agents in the current model, this slider won't do anything. 
 
-After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
+After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as shown below. It is recommended to define a fresh model and not initialise it with `init_model!` or run with `run_model!` before creating interactive app. 
 
 ```julia
+graph = square_grid_graph(20,20); 
+
+model = create_graph_model(graph, temp = 0.1, coupl = 1.0)
+
 create_interactive_app(model, initialiser= initialiser!,
     props_to_record = Dict("nodes"=>Set([:color, :spin])),
     step_rule= step_rule!,

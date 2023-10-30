@@ -71,9 +71,15 @@ animate_sim(model)
 ![png](assets/NNG/NNGAnim1.png)
 
 
-After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
+After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as shown below. It is recommended to define a fresh model and not initialise it with `init_model!` or run with `run_model!` before creating interactive app. 
 
 ```julia
+n=500
+
+graph = dynamic_simple_graph(n);  
+
+model = create_graph_model(graph, nns=10)
+
 create_interactive_app(model, initialiser = initialiser!,
     step_rule = step_rule!,
     model_controls = [(:nns, "slider", 1:20)],

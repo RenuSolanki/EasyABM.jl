@@ -364,7 +364,7 @@ $(TYPEDSIGNATURES)
 
 Creates an interactive app for the model.
 """
-function create_interactive_app(model::SpaceModel3D; initialiser::Function = null_init!, 
+function create_interactive_app(inmodel::SpaceModel3D; initialiser::Function = null_init!, 
     props_to_record::Dict{String, Set{Symbol}} = Dict{String, Set{Symbol}}("agents"=>Set{Symbol}([]), "patches"=>Set{Symbol}([]), "model"=>Set{Symbol}([])),
     step_rule::Function=model_null_step!,
     agent_controls=Vector{Tuple{Symbol, Symbol, AbstractArray}}(), 
@@ -376,22 +376,20 @@ function create_interactive_app(model::SpaceModel3D; initialiser::Function = nul
     frames=200, show_patches=false, 
     tail=(1, agent->false), vis::Any=nothing) 
 
-    model.parameters._extras._show_space = show_patches
+    inmodel.parameters._extras._show_space = show_patches
 
-    no_graphics = plots_only || !(model.graphics)
-
-    init_model!(model, initialiser=initialiser, props_to_record = props_to_record)
+    no_graphics = plots_only || !(inmodel.graphics)
 
 
-    function _run_interactive_model(t)
+    function _run_interactive_model(model, t)
         run_model!(model, steps=t, step_rule=step_rule)
     end
 
-    function _save_sim(scl)
+    function _save_sim(model, scl)
         save_sim(model, fr)
     end
 
-    function _does_nothing(t,scl::Number=1)
+    function _does_nothing(m, t,scl::Number=1)
         nothing
     end
     
@@ -418,10 +416,11 @@ function create_interactive_app(model::SpaceModel3D; initialiser::Function = nul
     end
 
     function _init_interactive_model(ufun::Function = x-> nothing)
+        model=deepcopy(inmodel)
         ufun(model)
         init_model!(model, initialiser=initialiser, props_to_record=props_to_record)
         ufun(model)
-        _run_interactive_model(frames)
+        _run_interactive_model(model, frames)
         if !(no_graphics)
             delete!(vis["agents"])
             delete!(vis["tails"])
@@ -435,12 +434,12 @@ function create_interactive_app(model::SpaceModel3D; initialiser::Function = nul
         agent_df = get_agents_avg_props(model, condsa..., labels= lblsa)
         patch_df = get_patches_avg_props(model, condsp..., labels= lblsp)
         model_df = get_model_data(model, model_plots).record
-        return agent_df, patch_df, DataFrame(), model_df
+        return agent_df, patch_df, DataFrame(), model_df, model
     end
 
-    agent_df, patch_df, node_df, model_df = DataFrame(), DataFrame(), DataFrame(), DataFrame() #_init_interactive_model()
+    agent_df, patch_df, node_df, model_df, model = _init_interactive_model() #DataFrame(), DataFrame(), DataFrame(), DataFrame() #_init_interactive_model()
 
-    function _draw_interactive_frame(t, scl)
+    function _draw_interactive_frame(model, t, scl)
         draw_agents_and_patches(vis, model, t, scl, tail...)
     end
 
@@ -451,10 +450,10 @@ function create_interactive_app(model::SpaceModel3D; initialiser::Function = nul
     if no_graphics
         _draw_interactive_frame = _does_nothing
         _save_sim = _does_nothing
-        _render_trivial = _does_nothing
+        _render_trivial = (s)->nothing
     end
 
-    _live_interactive_app(model, frames, no_graphics, _save_sim, _init_interactive_model, 
+    _live_interactive_app(Ref(model), frames, no_graphics, _save_sim, _init_interactive_model, 
     _run_interactive_model, _draw_interactive_frame, agent_controls, model_controls, 
     agent_df, _render_trivial, patch_df, node_df, model_df)
 

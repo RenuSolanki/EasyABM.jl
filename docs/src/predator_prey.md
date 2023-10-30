@@ -186,9 +186,25 @@ animate_sim(model, show_patches=true)
 ![png](assets/PPrey/PPreyAnim1.png)
 
 
-After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
+After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as shown below. It is recommended to define a fresh model and not initialise it with `init_model!` or run with `run_model!` before creating interactive app.  
 
 ```julia
+agents = grid_2d_agents(200, pos = Vect(1,1), color = cl"white", atype = sheep, 
+    energy = 10.0, keeps_record_of=Set([:pos, :energy ]))
+
+model = create_2d_model(agents, 
+    size = (20,20), #space size
+    agents_type = Mortal, # agents are mortal, can take birth or die
+    space_type = NPeriodic, # nonperiodic space
+    # below are all the model parameters
+    max_energy = 50, 
+    wolf_birth_rate = 0.01,
+    sheep_birth_rate = 0.1,
+    wolves_kill_ability = 0.2,
+    max_grass = 5,
+    initial_wolf_percent = 0.2,
+    grass_grow_prob = 0.2)
+    
 create_interactive_app(model, initialiser= initialiser!,
     step_rule= step_rule!,
     model_controls=[

@@ -77,9 +77,11 @@ animate_sim(model, show_patches=true) #since there are only patches and no agent
 ![png](assets/StonePaperScissor/SPSAnim1.png)
 
 
-After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
+After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as shown below. It is recommended to define a fresh model and not initialise it with `init_model!` or run with `run_model!` before creating interactive app.
 
 ```julia
+model = create_2d_model(size = (50,50), space_type = Periodic, threshold = 3)
+
 create_interactive_app(model, initialiser= initialiser!,
     props_to_record = Dict("patches" => Set([:color])),
     step_rule= step_rule!,

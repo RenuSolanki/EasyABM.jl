@@ -93,9 +93,17 @@ animate_sim(model)
 ![png](assets/Boids/BoidsAnim1.png)
 
 
-After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as 
+After defining the `step_rule!` function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as follows. It is recommended to define a fresh model and not initialise it with `init_model!` or run with `run_model!` before creating interactive app. 
 
 ```julia
+boids = con_2d_agents(200, shape = :arrow, pos = Vect(0.0,0.0), 
+    vel=Vect(0.0,0.0), orientation = 0.0, keeps_record_of = Set([:pos, :vel, :orientation]))
+    
+model = create_2d_model(boids,
+    agents_type=Static, space_type = Periodic, 
+    min_dis = 0.3, coh_fac = 0.05, 
+    sep_fac = 0.5, dt= 0.1, vis_range = 2.0, aln_fac = 0.35)
+
 create_interactive_app(model, initialiser= initialiser!,
     step_rule= step_rule!,
     model_controls=[(:min_dis, "slider", 0.01:0.1:1.0),
