@@ -195,7 +195,7 @@ end
 # graph_agents, con_3d_agent, con_3d_agents,
 # create_2d_model, create_graph_model, create_3d_model,
 # # initialise, run, visualise
-# init_model!, run_model!, run_model_epochs!, animate_sim, 
+# init_model!, run_model!, run_model_epochs, animate_sim, 
 # create_interactive_app, save_model, open_saved_model,
 
 # # data 

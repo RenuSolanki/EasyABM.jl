@@ -138,8 +138,8 @@ $(TYPEDSIGNATURES)
 Initiates the simulation with a user defined initialiser function which takes the model as its only argument. 
 Model parameters along with agent properties can be set (or modified) from within a user defined function and then sending it as `initialiser` 
 argument in `init_model!`. The properties of agents, patches and model that are to be recorded during time evolution can be specified through 
-the dictionary argument `props_to_record`. List of agent properties to be recorded are specified with key "agents" and value the list of property 
-names as symbols. If a nonempty list of agents properties is specified, it will replace the `keeps_record_of` list of each agent. Properties of 
+the dictionary argument `props_to_record`. List of agent properties to be recorded are specified with key "agents" and value the set of property 
+names as symbols. If a nonempty set of agents properties is specified, it will override the `keeps_record_of` property of each agent. Properties of 
 patches and model are similarly specified with keys "patches" and "model" respectively.
 """
 function init_model!(model::SpaceModel3D; initialiser::Function = null_init!, 
@@ -184,18 +184,17 @@ end
 $(TYPEDSIGNATURES)
 
 Runs the simulation for `num_epochs` number of epochs where each epoch consists of `steps_per_epoch` number of steps.
-The model is saved as .jld2 file and the model.tick is reset to 1 at the end of each epoch.
+The model for each epoch is a deepcopy of the input model and is saved as .jld2 file.
 """
-function run_model_epochs!(model::SpaceModel3D; steps_per_epoch = 1, num_epochs=1, 
+function run_model_epochs(inmodel::SpaceModel3D; steps_per_epoch = 1, num_epochs=1, 
     step_rule::Function=model_null_step!, save_to_folder=_default_folder[])
     
-    for epoch in num_epochs
+    models = [deepcopy(inmodel) for i in 1:num_epochs]
+
+    @threads for epoch in 1:num_epochs
+        model=models[epoch]
         run_model!(model, steps=steps_per_epoch, step_rule = step_rule)
         save_model(model, model_name = "model", save_as = "run"*string(epoch)*".jld2", folder = save_to_folder)
-        getfield(model, :tick)[] = 1
-        _init_agents!(model)
-        _init_patches!(model)
-        _init_model_record!(model)
     end
 
 end

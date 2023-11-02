@@ -13,7 +13,7 @@ export  Static, Mortal, PropDict, Vect,
         create_2d_model, create_graph_model, create_3d_model,
         
         # initialise, run, visualise
-        init_model!, run_model!, run_model_epochs!, 
+        init_model!, run_model!, run_model_epochs, 
         draw_frame, animate_sim, set_screen!, 
         create_interactive_app, save_model, open_model,
 
