@@ -292,7 +292,7 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function num_nodes(model::GraphModel)
-    return model.parameters._extras._num_verts::Int # number of active verts
+    return model.properties._extras._num_verts::Int # number of active verts
 end
 
 
@@ -324,7 +324,7 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function num_edges(model::GraphModel)
-    return model.parameters._extras._num_edges::Int # num of active edges
+    return model.properties._extras._num_edges::Int # num of active edges
 end
 
 """
@@ -403,7 +403,7 @@ $(TYPEDSIGNATURES)
 Returns agent having given id.
 """
 function agent_with_id(i::Int, model::GraphModel{T, MortalType}) where T<:MType
-    m = model.parameters._extras._len_model_agents::Int
+    m = model.properties._extras._len_model_agents::Int
 
     if i<=m  
         for j in i:-1:1 # will work if the list of model agents has not been shuffled

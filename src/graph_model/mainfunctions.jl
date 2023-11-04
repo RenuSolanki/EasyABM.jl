@@ -40,7 +40,7 @@ Creates a model with
 - `graphics` : if true properties of pos, shape, color, orientation will be assigned to each agent by default, if not already assigned by user.
 - `agents_type` : Set it to Static if number of agents is fixed during model run. Otherwise set it to Mortal. 
 - `random_positions` : If this property is true, each agent will be assigned a random node on the graph. 
-- `kwargs` : Keyword argments used as model parameters. 
+- `kwargs` : Keyword argments used as model properties. 
 """
 function create_graph_model(agents::Vector{GraphAgent{A, B}}, 
     graph::AbstractPropGraph{S, G}; agents_type::T = Static,
@@ -69,7 +69,7 @@ function create_graph_model(agents::Vector{GraphAgent{A, B}},
     
 
     dict_parameters = Dict{Symbol, Any}(kwargs)
-    parameters = PropDataDict(dict_parameters)
+    properties = PropDataDict(dict_parameters)
 
     if length(getfield(graph, :_nodes)) == 0
         _add_vertex!(graph, 1)
@@ -87,21 +87,21 @@ function create_graph_model(agents::Vector{GraphAgent{A, B}},
         end
     end
 
-    parameters._extras._random_positions = random_positions
-    parameters._extras._num_verts = num_verts # number of active verts - change when node killed / added
-    parameters._extras._num_all_verts = num_verts # num of all verts alive or dead - change when node added / permanently removed
-    parameters._extras._max_node_id = num_verts # largest of the number tags of nodes - change when node added / permanently removed
-    parameters._extras._num_edges = count(x->true,edges(graph)) # number of active edges
-    parameters._extras._num_agents = n # number of active agents
-    parameters._extras._len_model_agents = n #number of agents in model.agents
-    parameters._extras._show_space = true
-    parameters._extras._vis_space = vis_space
+    properties._extras._random_positions = random_positions
+    properties._extras._num_verts = num_verts # number of active verts - change when node killed / added
+    properties._extras._num_all_verts = num_verts # num of all verts alive or dead - change when node added / permanently removed
+    properties._extras._max_node_id = num_verts # largest of the number tags of nodes - change when node added / permanently removed
+    properties._extras._num_edges = count(x->true,edges(graph)) # number of active edges
+    properties._extras._num_agents = n # number of active agents
+    properties._extras._len_model_agents = n #number of agents in model.agents
+    properties._extras._show_space = true
+    properties._extras._vis_space = vis_space
 
     if graphics && (vis_space=="2d")
         locs_x, locs_y = spring_layout(structure)
     elseif graphics && (vis_space=="3d")
         locs_x, locs_y, locs_z = spring_layout3d(structure)
-    else
+    elseif graphics
         println("Graphics vis_space = $vis_space is not supported. Please choose 2d or 3d.")
         return
     end
@@ -156,7 +156,7 @@ function create_graph_model(agents::Vector{GraphAgent{A, B}},
     dead_meta_graph =  _create_dead_meta_graph(graph)
     
 
-    model = GraphModel{S,T, G}(graph, dead_meta_graph, agents, Ref(n), graphics, parameters, (aprops=Set{Symbol}([]), nprops=Set{Symbol}([]), eprops=Set{Symbol}([]), mprops=Set{Symbol}([])), Ref(1))
+    model = GraphModel{S,T, G}(graph, dead_meta_graph, agents, Ref(n), graphics, properties, (aprops=Set{Symbol}([]), nprops=Set{Symbol}([]), eprops=Set{Symbol}([]), mprops=Set{Symbol}([])), Ref(1))
 
     for (i, agent) in enumerate(agents)
         setfield!(agent, :id, i)
@@ -296,7 +296,7 @@ function _init_agents!(model::GraphModelDynAgNum)
     _permanently_remove_inactive_agents!(model) #removes from model.agents and agents_added
     empty!(model.agents_killed)
     commit_add_agents!(model)
-    len = model.parameters._extras._len_model_agents::Int
+    len = model.properties._extras._len_model_agents::Int
     getfield(model,:max_id)[] = len > 0 ? getfield(model.agents[len], :id) : 0
     for agent in model.agents
         agent._extras._birth_time = 1
@@ -319,7 +319,7 @@ end
 $(TYPEDSIGNATURES)
 
 Initiates the simulation with a user defined initialiser function which takes the model as its only argument. 
-Model parameters along with agent and graph properties can be set (or modified) from within a user defined function and then sending 
+Model properties along with agent and graph properties can be set (or modified) from within a user defined function and then sending 
 it as `initialiser` argument in `init_model!`. The properties of 
 agents, nodes, edges and the model that are to be recorded during time evolution can be specified through the dictionary argument `props_to_record`. 
 List of agent properties to be recorded are specified with key "agents" and value the set of property names as symbols. If a nonempty set of 
@@ -391,12 +391,12 @@ function save_sim_luxor(model::GraphModel, frames::Int=model.tick, scl::Number=1
     if model.graphics
         graph = is_static(model.graph) ? model.graph : combined_graph(model.graph, model.dead_meta_graph)
         ticks = getfield(model, :tick)[]
-        model.parameters._extras._show_space = show_space
+        model.properties._extras._show_space = show_space
         fr = min(frames, ticks)
         movie_abm = Movie(gparams.width+gparams.border, gparams.height+gparams.border, "movie_abm", 1:fr)
         scene_array = Vector{Luxor.Scene}()
         verts = getfield(graph, :_nodes)
-        node_size = _get_node_size(model.parameters._extras._num_verts::Int)
+        node_size = _get_node_size(model.properties._extras._num_verts::Int)
     
         function use_backdrop(scene, frame)
             Luxor.background("white")
@@ -448,11 +448,11 @@ function animate_sim2d(model::GraphModel, frames::Int=model.tick;
     agent_path=(1, ag->false), show_nodes=true, show_edges=true)
 
     ticks = getfield(model, :tick)[]
-    model.parameters._extras._show_space = show_graph
+    model.properties._extras._show_space = show_graph
     graph = is_static(model.graph) ? model.graph : combined_graph(model.graph, model.dead_meta_graph)
     fr = min(frames, ticks)
     verts = getfield(graph, :_nodes)
-    node_size = _get_node_size(model.parameters._extras._num_verts::Int)
+    node_size = _get_node_size(model.properties._extras._num_verts::Int)
 
     no_graphics = plots_only || !(model.graphics)
 
@@ -517,7 +517,7 @@ function animate_sim(model::GraphModel, frames::Int=model.tick;
     agent_path=(1, ag->false), show_nodes=true, show_edges=true)
 
 
-    if model.parameters._extras._vis_space == "2d"
+    if model.properties._extras._vis_space == "2d"
         animate_sim2d(model, frames,
         agent_plots=agent_plots, 
         node_plots=node_plots, 
@@ -549,10 +549,10 @@ Draws a specific frame.
 """
 function draw_frame2d(model::GraphModel; frame=model.tick, show_graph=true, mark_nodes=false, show_nodes=true, show_edges=true)
     frame = min(frame, model.tick)
-    model.parameters._extras._show_space = show_graph
+    model.properties._extras._show_space = show_graph
     graph = is_static(model.graph) ? model.graph : combined_graph(model.graph, model.dead_meta_graph)
     verts = getfield(graph, :_nodes)
-    node_size = _get_node_size(model.parameters._extras._num_verts::Int)
+    node_size = _get_node_size(model.properties._extras._num_verts::Int)
     drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
     if model.graphics
         Luxor.origin()
@@ -569,7 +569,7 @@ $(TYPEDSIGNATURES)
 Draws a specific frame.
 """
 function draw_frame(model::GraphModel; frame=model.tick, show_graph=true, mark_nodes=false, show_nodes=true, show_edges=true)
-    if model.parameters._extras._vis_space == "2d"
+    if model.properties._extras._vis_space == "2d"
         draw_frame2d(model, frame=frame,
         show_graph=show_graph, mark_nodes=mark_nodes, show_nodes=show_nodes, show_edges=show_edges)
     else
@@ -602,7 +602,7 @@ function create_interactive_app2d(inmodel::GraphModel; initialiser::Function = n
     #     empty!(model.dead_meta_graph)
     # end
 
-    inmodel.parameters._extras._show_space = show_graph
+    inmodel.properties._extras._show_space = show_graph
 
     no_graphics = plots_only || !(inmodel.graphics)
 
@@ -655,7 +655,7 @@ function create_interactive_app2d(inmodel::GraphModel; initialiser::Function = n
 
     function _draw_interactive_frame_luxor(model, t, scl)
         verts = getfield(graph[], :_nodes)
-        node_size = _get_node_size(model.parameters._extras._num_verts::Int)
+        node_size = _get_node_size(model.properties._extras._num_verts::Int)
         drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
         Luxor.origin()
         Luxor.background("white")
@@ -695,7 +695,7 @@ function create_interactive_app(model::GraphModel; initialiser::Function = null_
     frames=200, show_graph=true, mark_nodes=false, tail = (1, node-> false),
     agent_path=(1, ag->false), show_nodes=true, show_edges=true) 
 
-    if model.parameters._extras._vis_space=="2d"
+    if model.properties._extras._vis_space=="2d"
         create_interactive_app2d(model; initialiser=initialiser, 
         props_to_record=props_to_record,
         step_rule=step_rule,

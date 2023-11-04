@@ -107,7 +107,7 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function num_agents(model::Union{AbstractSpaceModel, AbstractGraphModel })
-    return model.parameters._extras._num_agents::Int # number of active agents
+    return model.properties._extras._num_agents::Int # number of active agents
 end
 
 
@@ -292,5 +292,5 @@ $(TYPEDSIGNATURES)
 Returns number of patches satisfying given condition.
 """
 function num_patches(model::AbstractSpaceModel)
-    return model.parameters._extras._num_patches::Int
+    return model.properties._extras._num_patches::Int
 end

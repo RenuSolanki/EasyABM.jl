@@ -40,8 +40,8 @@ In this step, we define rule for the time evolution and then run the model. We d
 
 ```julia
 function step_rule!(model)
-    gravity = model.parameters.gravity
-    dt = model.parameters.dt
+    gravity = model.properties.gravity
+    dt = model.properties.dt
     star = model.agents[1]
     planet = model.agents[2]
     distance_vector = (star.pos - planet.pos)
@@ -82,7 +82,7 @@ A model saved previously as jld2 file, can be fetched as follows
 model = open_model(model_name = "sun_planet_model", path = "/path/to/folder/sun_planet.jld2")
 ```
 
-Instead of first running the model, we can create an interactive app in Jupyter notebook to explore the model by setting different values of parameters, as shown below. It is recommended to define a fresh model and not initialise it with `init_model!` or run with `run_model!` before creating interactive app. The `model_control` argument asks EasyABM to create a slider with values from 1 to 5 in steps of 0.2 for the model parameter `gravity`. The agent_controls argument creates a slider for the x component of planet's initial velocity. The tail argument attaches a tail of length 30 with the planet by selecting it with its color property which we previously set to `cl"blue"`. 
+Instead of first running the model, we can create an interactive app in Jupyter notebook to explore the model by setting different values of properties, as shown below. It is recommended to define a fresh model and not initialise it with `init_model!` or run with `run_model!` before creating interactive app. The `model_control` argument asks EasyABM to create a slider with values from 1 to 5 in steps of 0.2 for the model parameter `gravity`. The agent_controls argument creates a slider for the x component of planet's initial velocity. The tail argument attaches a tail of length 30 with the planet by selecting it with its color property which we previously set to `cl"blue"`. 
 
 ```julia
 star = con_2d_agent( pos = Vect(5.0,5.0), size = 0.15, color = cl"yellow") 

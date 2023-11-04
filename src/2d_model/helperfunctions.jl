@@ -90,14 +90,14 @@ $(TYPEDSIGNATURES)
 @inline function _set_parameters(grid_size, n, random_positions; kwargs...)
     xdim, ydim = grid_size
     dict_parameters = Dict{Symbol, Any}(kwargs)
-    parameters = PropDataDict(dict_parameters)
+    properties = PropDataDict(dict_parameters)
 
-    parameters._extras._random_positions = random_positions
-    parameters._extras._show_space = true
-    parameters._extras._num_agents = n # number of active agents
-    parameters._extras._len_model_agents = n #number of agents in model.agents
-    parameters._extras._num_patches = xdim*ydim
-    return parameters
+    properties._extras._random_positions = random_positions
+    properties._extras._show_space = true
+    properties._extras._num_agents = n # number of active agents
+    properties._extras._len_model_agents = n #number of agents in model.agents
+    properties._extras._num_patches = xdim*ydim
+    return properties
 end
 
 
@@ -155,7 +155,7 @@ function add_agent!(agent, model::SpaceModel2D{MortalType})
         _init_agent_record!(agent)
 
         getfield(model,:max_id)[] += 1
-        model.parameters._extras._num_agents::Int += 1
+        model.properties._extras._num_agents::Int += 1
     end
 end
 
@@ -253,7 +253,7 @@ $(TYPEDSIGNATURES)
     height = gparams.height
     w = width/xdim
     h = height/ydim
-    show_patches = model.parameters._extras._show_space::Bool
+    show_patches = model.properties._extras._show_space::Bool
     if show_patches
         if :color in model.record.pprops
             draw_patches(model, frame)
@@ -278,7 +278,7 @@ $(TYPEDSIGNATURES)
     height = gparams.height
     w = width/xdim
     h = height/ydim
-    show_patches = model.parameters._extras._show_space::Bool
+    show_patches = model.properties._extras._show_space::Bool
     if show_patches
         if :color in model.record.pprops
             draw_patches(model, frame)

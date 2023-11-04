@@ -154,7 +154,7 @@ This function is for use from within the module and is not exported.
                     deleteat!(newly_added, findfirst(m->getfield(m, :id)==aid, newly_added))
                 else
                     deleteat!(model.agents, findfirst(m->getfield(m, :id)==aid, model.agents))
-                    model.parameters._extras._len_model_agents::Int -= 1
+                    model.properties._extras._len_model_agents::Int -= 1
                 end     
             else
                 break
@@ -175,7 +175,7 @@ This function is for use from within the module and is not exported.
     agents_to_add = model.agents_added
     for ag in agents_to_add
         push!(model.agents, ag)
-        model.parameters._extras._len_model_agents::Int +=1
+        model.properties._extras._len_model_agents::Int +=1
     end
     empty!(model.agents_added)
 end
@@ -185,8 +185,8 @@ $(TYPEDSIGNATURES)
 """
 @inline function _init_model_record!(model::Union{AbstractSpaceModel, AbstractGraphModel})
     if length(model.record.mprops)>0
-        model_dict = unwrap(model.parameters)
-        model_data = unwrap_data(model.parameters)
+        model_dict = unwrap(model.properties)
+        model_data = unwrap_data(model.properties)
         for key in model.record.mprops
             model_data[key]= [model_dict[key]]
         end
@@ -198,8 +198,8 @@ $(TYPEDSIGNATURES)
 """
 @inline function _update_model_record!(model::Union{AbstractSpaceModel, AbstractGraphModel})
     if length(model.record.mprops)>0
-        model_dict = unwrap(model.parameters)
-        model_data = unwrap_data(model.parameters)
+        model_dict = unwrap(model.properties)
+        model_data = unwrap_data(model.properties)
         for key in model.record.mprops
             push!(model_data[key]::Vector, model_dict[key])
         end
@@ -230,7 +230,7 @@ $(TYPEDSIGNATURES)
     agent._extras._active = true
     agent._extras._birth_time = model.tick
     agent._extras._death_time = typemax(Int)
-    if model.parameters._extras._random_positions::Bool           
+    if model.properties._extras._random_positions::Bool           
         _set_pos!(agent, model.size...)
     end
 end
@@ -292,7 +292,7 @@ function _init_agents!(model::AbstractSpaceModel{MortalType})
     _permanently_remove_inactive_agents!(model)
     empty!(model.agents_killed)
     commit_add_agents!(model)
-    len = model.parameters._extras._len_model_agents::Int
+    len = model.properties._extras._len_model_agents::Int
     getfield(model,:max_id)[] = len > 0 ? getfield(model.agents[len], :id) : 0
     for agent in model.agents
         agent._extras._birth_time = 1
@@ -333,7 +333,7 @@ function kill_agent!(agent::AbstractAgent, model::AbstractSpaceModel{MortalType}
         id = getfield(agent, :id)
         deleteat!(model.patches[gloc...].agents, findfirst(m->m == id, model.patches[gloc...].agents))
         _kill_agent!(agent, model.agents_killed, model.tick)
-        model.parameters._extras._num_agents::Int -= 1
+        model.properties._extras._num_agents::Int -= 1
     end
 end
 
@@ -366,7 +366,7 @@ function kill_agent!(agent::AbstractAgent, model::AbstractGraphModel{T,MortalTyp
         id = getfield(agent, :id)
         deleteat!(model.graph.nodesprops[x].agents, findfirst(m->m==id, model.graph.nodesprops[x].agents))
         _kill_agent!(agent, model.agents_killed, model.tick)
-        model.parameters._extras._num_agents::Int -= 1
+        model.properties._extras._num_agents::Int -= 1
     end
 end
 

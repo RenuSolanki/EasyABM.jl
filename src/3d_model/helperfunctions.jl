@@ -94,14 +94,14 @@ $(TYPEDSIGNATURES)
 @inline function _set_parameters3d(grid_size, n, random_positions; kwargs...)
     xdim, ydim, zdim = grid_size
     dict_parameters = Dict{Symbol, Any}(kwargs)
-    parameters = PropDataDict(dict_parameters)
+    properties = PropDataDict(dict_parameters)
 
-    parameters._extras._random_positions = random_positions
-    parameters._extras._show_space = true
-    parameters._extras._num_agents = n # number of active agents
-    parameters._extras._len_model_agents = n #number of agents in model.agents
-    parameters._extras._num_patches = xdim*ydim*zdim
-    return parameters
+    properties._extras._random_positions = random_positions
+    properties._extras._show_space = true
+    properties._extras._num_agents = n # number of active agents
+    properties._extras._len_model_agents = n #number of agents in model.agents
+    properties._extras._num_patches = xdim*ydim*zdim
+    return properties
 end
 
 
@@ -160,7 +160,7 @@ function add_agent!(agent, model::SpaceModel3D{MortalType})
         _init_agent_record!(agent)
 
         getfield(model,:max_id)[] += 1
-        model.parameters._extras._num_agents::Int += 1
+        model.properties._extras._num_agents::Int += 1
     end
 end
 
@@ -317,7 +317,7 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function draw_agents_and_patches(vis, model::SpaceModel3D{MortalType}, frame, scl::Number=1.0, tail_length = 1, tail_condition = agent->false)
-    show_patches = model.parameters._extras._show_space
+    show_patches = model.properties._extras._show_space
     xlen = gparams3d.xlen+0.0
     ylen = gparams3d.ylen+0.0
     zlen = gparams3d.zlen+0.0
@@ -343,7 +343,7 @@ end
 $(TYPEDSIGNATURES)
 """
 @inline function draw_agents_and_patches(vis, model::SpaceModel3D{StaticType}, frame, scl::Number=1.0, tail_length = 1, tail_condition = agent->false)
-    show_patches = model.parameters._extras._show_space::Bool
+    show_patches = model.properties._extras._show_space::Bool
     xlen = gparams3d.xlen+0.0
     ylen = gparams3d.ylen+0.0
     zlen = gparams3d.zlen+0.0
@@ -376,7 +376,7 @@ end
 # @inline function draw_agents_and_patches(model::SpaceModel3D{MortalType}, frame, scl, ep, tail_length = 1, tail_condition = agent-> false)
 #     # eyepoint(Point3D(ep.xe,ep.ye,ep.ze))
 #     # perspective(ep.zoom)
-#     show_patches = model.parameters._extras._show_space::Bool
+#     show_patches = model.properties._extras._show_space::Bool
 #     if show_patches
 #         if :color in model.record.pprops
 #             draw_patches(model, frame)
@@ -397,7 +397,7 @@ end
 # @inline function draw_agents_and_patches(model::SpaceModel3D{StaticType}, frame, scl, ep, tail_length = 1, tail_condition = agent-> false)
 #     # eyepoint(Point3D(ep.xe,ep.ye,ep.ze))
 #     # perspective(ep.zoom)
-#     show_patches = model.parameters._extras._show_space::Bool
+#     show_patches = model.properties._extras._show_space::Bool
 #     if show_patches
 #         if :color in model.record.pprops
 #             draw_patches(model, frame)

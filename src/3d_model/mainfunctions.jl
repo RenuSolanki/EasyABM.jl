@@ -25,7 +25,7 @@ Each unit block of space is called a patch which like agents can be assigned
 its own properties.  
 - `random_positions` : If this property is true, each agent, will be assigned a random position. 
 - `space_type` : Set it to Periodic or NPeriodic depending upon if the space is periodic or not. 
-- `kwargs`` : Keyword argments used as model parameters. 
+- `kwargs`` : Keyword argments used as model properties. 
 """
 function create_3d_model(agents::Vector{Agent3D{S, A, B}}; 
     graphics=true, agents_type::T = Static, 
@@ -63,10 +63,10 @@ function create_3d_model(agents::Vector{Agent3D{S, A, B}};
     
     end
 
-    parameters = _set_parameters3d(size, n, random_positions; kwargs...)
+    properties = _set_parameters3d(size, n, random_positions; kwargs...)
 
 
-    model = SpaceModel3D{T, S, P}(size, patches, patch_locs, agents, Ref(n), graphics, parameters, (aprops = Set{Symbol}([]), pprops = Set{Symbol}([]), mprops = Set{Symbol}([])), Ref(1))
+    model = SpaceModel3D{T, S, P}(size, patches, patch_locs, agents, Ref(n), graphics, properties, (aprops = Set{Symbol}([]), pprops = Set{Symbol}([]), mprops = Set{Symbol}([])), Ref(1))
 
     for (i, agent) in enumerate(agents)
 
@@ -136,7 +136,7 @@ end
 $(TYPEDSIGNATURES)
 
 Initiates the simulation with a user defined initialiser function which takes the model as its only argument. 
-Model parameters along with agent properties can be set (or modified) from within a user defined function and then sending it as `initialiser` 
+Model properties along with agent properties can be set (or modified) from within a user defined function and then sending it as `initialiser` 
 argument in `init_model!`. The properties of agents, patches and model that are to be recorded during time evolution can be specified through 
 the dictionary argument `props_to_record`. List of agent properties to be recorded are specified with key "agents" and value the set of property 
 names as symbols. If a nonempty set of agents properties is specified, it will override the `keeps_record_of` property of each agent. Properties of 
@@ -234,7 +234,7 @@ function animate_sim(model::SpaceModel3D, frames::Int=model.tick;
     tail=(1, agent->false), vis::Any=nothing)
 
     ticks = getfield(model, :tick)[]
-    model.parameters._extras._show_space = show_patches
+    model.properties._extras._show_space = show_patches
     fr = min(frames, ticks)
 
     no_graphics = plots_only || !(model.graphics)
@@ -298,7 +298,7 @@ end
 
 # if model.graphics # this is one way to do animation using meshcat
 #     ticks = getfield(model, :tick)[]
-#     model.parameters._extras._show_space = show_patches
+#     model.properties._extras._show_space = show_patches
 #     fr = min(frames, ticks)
 #     vis = Visualizer()
 #     anim = Animation()
@@ -375,7 +375,7 @@ function create_interactive_app(inmodel::SpaceModel3D; initialiser::Function = n
     frames=200, show_patches=false, 
     tail=(1, agent->false), vis::Any=nothing) 
 
-    inmodel.parameters._extras._show_space = show_patches
+    inmodel.properties._extras._show_space = show_patches
 
     no_graphics = plots_only || !(inmodel.graphics)
 

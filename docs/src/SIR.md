@@ -1,7 +1,7 @@
 
 # SIR model
 
-In the agent-based modeling approach an epidemiological model, like SIR model can have a large number of parameters depending upon the requirements. Below we will implement a basic SIR model in EasyABM.
+In the agent-based modeling approach an epidemiological model, like SIR model can have a large number of properties depending upon the requirements. Below we will implement a basic SIR model in EasyABM.
 
 ```julia
 using EasyABM
@@ -9,7 +9,7 @@ using EasyABM
 
 ## Step 1: Create Agents and Model
 
-In our SIR model there will be four type of agents - susceptible, infectious, recovered, dead. We assume that the recovered agents become immune and do not get infected again. We create 500 2d agents all of type agentS (later in the initilisation step will set the type of some agents to be agentI). The `not_well_since` property of an agent is the time since the agent got infected. Our model has parameters `initially_sick` (number of agents initially sick), `sickness_duration` (duration of sickness), `infection_prob` (probability of infection when an infected agent comes in contact with a susceptible agent) and `death_prob` (the probability of death from infection). 
+In our SIR model there will be four type of agents - susceptible, infectious, recovered, dead. We assume that the recovered agents become immune and do not get infected again. We create 500 2d agents all of type agentS (later in the initilisation step will set the type of some agents to be agentI). The `not_well_since` property of an agent is the time since the agent got infected. Our model has properties `initially_sick` (number of agents initially sick), `sickness_duration` (duration of sickness), `infection_prob` (probability of infection when an infected agent comes in contact with a susceptible agent) and `death_prob` (the probability of death from infection). 
 
 ```julia
 
@@ -39,7 +39,7 @@ In the second step we initialise the agents by defining `initialiser!` function 
 ```julia
 function initialiser!(model)
     for (i,agent) in enumerate(model.agents)
-        if i<=model.parameters.initially_sick
+        if i<=model.properties.initially_sick
             agent.atype = infectious
             agent.color = cl"red"
         else 
@@ -90,15 +90,15 @@ function change_position(agent)
 end
 
 function step_rule!(model)
-    parameters = model.parameters
+    properties = model.properties
     for agent in model.agents
         nbrs = neighbors_moore(agent, model, 1) #immediate neighbors on grid
         if agent.atype == infectious
              agent.not_well_since +=1
-            if agent.not_well_since > parameters.sickness_duration
-                die_or_recover(agent, parameters.death_prob)
+            if agent.not_well_since > properties.sickness_duration
+                die_or_recover(agent, properties.death_prob)
             elseif agent.not_well_since>1
-                infect_neighbors(agent, nbrs, parameters.infection_prob)
+                infect_neighbors(agent, nbrs, properties.infection_prob)
             end   
         end
         if agent.atype !=dead

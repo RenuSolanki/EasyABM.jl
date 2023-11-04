@@ -22,7 +22,7 @@ In the second step we initialise the agents by defining `initialiser!` function 
 
 ```julia
 function initialiser!(model)
-    min_alike = model.parameters.min_alike
+    min_alike = model.properties.min_alike
     for agent in model.agents
         agent.color = [cl"red", cl"green"][rand(1:2)]
         x,y = random_empty_patch(model)   
@@ -53,7 +53,7 @@ In this step we implement the step logic of the Schelling's model in the `step_r
 
 ```julia
 function step_rule!(model)
-    min_alike = model.parameters.min_alike
+    min_alike = model.properties.min_alike
     for agent in model.agents
         count_alike = 0
         for nbr in neighbors_moore(agent, model,1)

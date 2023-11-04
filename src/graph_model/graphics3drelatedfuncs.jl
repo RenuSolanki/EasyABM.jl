@@ -657,7 +657,7 @@ function draw_agents_and_graph3d(vis, model::GraphModelDynAgNum, graph, verts, f
     l = ylen/gsize
     h = zlen/gsize
 
-    if model.parameters._extras._show_space::Bool
+    if model.properties._extras._show_space::Bool
         _draw_graph3d(vis, graph, verts, frame, model.record.nprops, model.record.eprops, w, l, h, show_nodes, show_edges)
     end
 
@@ -691,7 +691,7 @@ $(TYPEDSIGNATURES)
     l = ylen/gsize
     h = zlen/gsize
 
-    if model.parameters._extras._show_space::Bool
+    if model.properties._extras._show_space::Bool
         _draw_graph3d(vis, graph, verts, frame, model.record.nprops, model.record.eprops, w, l, h, show_nodes, show_edges)
     end
 
@@ -827,12 +827,12 @@ function animate_sim3d(model::GraphModel, frames::Int=model.tick;
     show_nodes=true, show_edges=true)
 
     ticks = getfield(model, :tick)[]
-    model.parameters._extras._show_space = show_graph
+    model.properties._extras._show_space = show_graph
     graph = is_static(model.graph) ? model.graph : combined_graph(model.graph, model.dead_meta_graph)
     fr = min(frames, ticks)
     verts = getfield(graph, :_nodes)
     edges = keys(graph.edgesprops)
-    node_size = _get_node_size(model.parameters._extras._num_verts::Int)
+    node_size = _get_node_size(model.properties._extras._num_verts::Int)
 
     no_graphics = plots_only || !(model.graphics)
 
@@ -898,10 +898,10 @@ Draws a specific frame.
 """
 function draw_frame3d(model::GraphModel; frame=model.tick, show_graph=true, vis::Any=nothing, show_nodes=true, show_edges=true)
     frame = min(frame, model.tick)
-    model.parameters._extras._show_space = show_graph
+    model.properties._extras._show_space = show_graph
     graph = is_static(model.graph) ? model.graph : combined_graph(model.graph, model.dead_meta_graph)
     verts = getfield(graph, :_nodes)
-    node_size = _get_node_size(model.parameters._extras._num_verts::Int)
+    node_size = _get_node_size(model.properties._extras._num_verts::Int)
     
     if isnothing(vis) 
         vis=Visualizer()
@@ -935,11 +935,11 @@ function create_interactive_app3d(inmodel::GraphModel; initialiser::Function = n
     plots_only = false,
     frames=200, show_graph=true, vis::Any=nothing, show_nodes=true, show_edges=true) 
 
-    inmodel.parameters._extras._show_space = show_graph
+    inmodel.properties._extras._show_space = show_graph
 
     no_graphics = plots_only || !(inmodel.graphics)
 
-    node_size = Ref(_get_node_size(inmodel.parameters._extras._num_verts::Int))
+    node_size = Ref(_get_node_size(inmodel.properties._extras._num_verts::Int))
 
     function _run_interactive_model(model, t)
         run_model!(model, steps=t, step_rule=step_rule)
@@ -988,7 +988,7 @@ function create_interactive_app3d(inmodel::GraphModel; initialiser::Function = n
         else
             graph[] = model.graph
         end
-        node_size[] = _get_node_size(model.parameters._extras._num_verts::Int)
+        node_size[] = _get_node_size(model.properties._extras._num_verts::Int)
         verts = getfield(graph[], :_nodes)
         edges = keys(graph[].edgesprops)
 

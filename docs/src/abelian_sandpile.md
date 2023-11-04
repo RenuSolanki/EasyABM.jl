@@ -56,7 +56,7 @@ function topple!(patch_loc, model, threshold)
 end
 
 function step_rule!(model)
-    threshold = model.parameters.threshold
+    threshold = model.properties.threshold
     for j in 1:model.size[2]
         for i in 1:model.size[1]
             if model.patches[i,j].sand>=threshold

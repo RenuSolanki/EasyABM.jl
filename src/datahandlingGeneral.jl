@@ -130,7 +130,7 @@ $(TYPEDSIGNATURES)
 function get_model_data(model::Union{AbstractSpaceModel, AbstractGraphModel}, props = model.record.mprops)
     datadict=Dict{Symbol,Any}()
     for key in props
-        datadict[key] = unwrap_data(model.parameters)[key]::Vector
+        datadict[key] = unwrap_data(model.properties)[key]::Vector
     end
     df = DataFrame(datadict)
     return (record=df,)  

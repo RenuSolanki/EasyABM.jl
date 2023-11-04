@@ -104,7 +104,7 @@ end
     w = xlen/xdim #patch x width 
     l = ylen/ydim #patch y width
     h = zlen/zdim #patch z width
-    offset = model.parameters._extras._offset::NTuple{3, Float64}
+    offset = model.properties._extras._offset::NTuple{3, Float64}
 
 
 
@@ -207,7 +207,7 @@ end
         ylen = gparams3d.ylen+0.0
         zlen = gparams3d.zlen+0.0
 
-        offset = model.parameters._extras._offset::NTuple{3, Float64}
+        offset = model.properties._extras._offset::NTuple{3, Float64}
 
         pos = (:pos in record) ? agent_data[:pos][index]::Vect{3, S} .+ offset : agent.pos .+ offset
         #nextpos = (:pos in record)&&(index<model.tick) ? agent_data[:pos][index+1]::Vect{3, S} .+ offset : agent.pos .+ offset
@@ -319,7 +319,7 @@ end
 @inline function draw_agent_interact_frame(vis, agent::Agent3D, model::SpaceModel3D{T, S}, index::Int, scl, w, l, h) where {T, S<:Union{Int, Float64}}
     record = agent._keeps_record_of::Set{Symbol}
     agent_data = unwrap_data(agent)
-    offset = model.parameters._extras._offset::NTuple{3, Float64}
+    offset = model.properties._extras._offset::NTuple{3, Float64}
     pos = (:pos in record) ? agent_data[:pos][index]::Vect{3, S}  .+ offset : agent.pos .+ offset
     orientation = (:orientation in record) ? agent_data[:orientation][index] : agent.orientation
     pclr = (:color in record) ? agent_data[:color][index]::Col : agent.color::Col

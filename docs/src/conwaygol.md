@@ -22,7 +22,7 @@ In the second step we initialise the patches by defining `initialiser!` function
 function initialiser!(model)
     for j in 1:model.size[2]
         for i in 1:model.size[1]
-            if rand()<model.parameters.alive_percent
+            if rand()<model.properties.alive_percent
                 model.patches[i,j].color = cl"green"
                 model.patches[i,j].is_alive = true
             else

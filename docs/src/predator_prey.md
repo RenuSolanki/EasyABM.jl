@@ -7,7 +7,7 @@ using EasyABM
 
 ## Step 1: Create Agents and Model
 
-We create 200 agents all of type `sheep` to begin with. Our model parameters are 
+We create 200 agents all of type `sheep` to begin with. Our model properties are 
 
 * `max_energy` : The maximum energy that an agent (sheep or wolf) can have. 
 * `wolf_birth_rate` : Probability of a wolf agent to reproduce once its energy is greater than max_energy/2.  
@@ -25,7 +25,7 @@ model = create_2d_model(agents,
     size = (20,20), #space size
     agents_type = Mortal, # agents are mortal, can take birth or die
     space_type = NPeriodic, # nonperiodic space
-    # below are all the model parameters
+    # below are all the model properties
     max_energy = 50, 
     wolf_birth_rate = 0.01,
     sheep_birth_rate = 0.1,
@@ -42,7 +42,7 @@ In the second step we initialise the patches and agents by defining `initialiser
 
 ```julia
 function initialiser!(model)
-    max_grass = model.parameters.max_grass
+    max_grass = model.properties.max_grass
     for j in 1:model.size[2]
         for i in 1:model.size[1]
             grass = rand(1:max_grass)
@@ -52,14 +52,14 @@ function initialiser!(model)
         end
     end
     for agent in model.agents
-        if rand()< model.parameters.initial_wolf_percent 
+        if rand()< model.properties.initial_wolf_percent 
             agent.atype = wolf
             agent.color = cl"black"
         else
             agent.atype = sheep
             agent.color = cl"white"
         end
-        agent.energy = rand(1:model.parameters.max_energy)+0.0
+        agent.energy = rand(1:model.properties.max_energy)+0.0
         agent.pos = Vect(rand(1:model.size[1]), rand(1:model.size[2]))
     end
             
@@ -99,8 +99,8 @@ function act_asa_wolf!(agent, model)
         return
     end
     energy = agent.energy
-    if energy > 0.5*model.parameters.max_energy
-        if rand()<model.parameters.wolf_birth_rate
+    if energy > 0.5*model.properties.max_energy
+        if rand()<model.properties.wolf_birth_rate
             reproduce!(agent, model)
         end
     elseif energy > 0 
@@ -109,7 +109,7 @@ function act_asa_wolf!(agent, model)
         if n>0
             nbr = nbrs[rand(1:n)]
             if (nbr.atype == sheep)&&(is_alive(nbr))
-                ability = model.parameters.wolves_kill_ability
+                ability = model.properties.wolves_kill_ability
                 (rand()<ability)&&(eat_sheep!(agent, nbr, model))
             end
         end
@@ -124,8 +124,8 @@ function act_asa_sheep!(agent, model)
         return
     end
     energy = agent.energy
-    if energy >0.5* model.parameters.max_energy
-        if rand()<model.parameters.sheep_birth_rate
+    if energy >0.5* model.properties.max_energy
+        if rand()<model.properties.sheep_birth_rate
             reproduce!(agent, model)
         end
         change_pos!(agent)
@@ -160,9 +160,9 @@ function step_rule!(model)
         for i in 1:model.size[1]
             patch = model.patches[i,j]
             grass = patch.grass
-            max_grass = model.parameters.max_grass 
+            max_grass = model.properties.max_grass 
             if grass < max_grass
-                if rand()<model.parameters.grass_grow_prob
+                if rand()<model.properties.grass_grow_prob
                     patch.grass+=1
                     hf = Int(ceil(max_grass/2))
                     patch.color = grass > hf ? cl"green" : (grass > 0 ? cl"yellow" : cl"grey")
@@ -196,7 +196,7 @@ model = create_2d_model(agents,
     size = (20,20), #space size
     agents_type = Mortal, # agents are mortal, can take birth or die
     space_type = NPeriodic, # nonperiodic space
-    # below are all the model parameters
+    # below are all the model properties
     max_energy = 50, 
     wolf_birth_rate = 0.01,
     sheep_birth_rate = 0.1,

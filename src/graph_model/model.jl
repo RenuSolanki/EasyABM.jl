@@ -7,7 +7,7 @@ struct GraphModel{S<:MType,T<:MType,G<:GType} <: AbstractGraphModel{S,T,G} #S gr
     agents_killed::Vector{GraphAgent{S, T}}
     max_id::Base.RefValue{Int64}
     graphics::Bool
-    parameters::PropDataDict{Symbol, Any}
+    properties::PropDataDict{Symbol, Any}
     record::NamedTuple{(:aprops, :nprops, :eprops, :mprops), Tuple{Set{Symbol}, Set{Symbol}, Set{Symbol}, Set{Symbol}}}
     tick::Base.RefValue{Int64}
 
@@ -19,17 +19,17 @@ struct GraphModel{S<:MType,T<:MType,G<:GType} <: AbstractGraphModel{S,T,G} #S gr
         agents_killed = Vector{GraphAgent{S, MortalType}}()
         max_id = Ref(1)
         graphics = true
-        parameters = PropDataDict()
+        properties = PropDataDict()
         record = (aprops=Set{Symbol}([]), nprops=Set{Symbol}([]), eprops=Set{Symbol}([]), mprops = Set{Symbol}([]))
         tick = Ref(1)
-        new{S,MortalType,SimGType}(graph, dead_meta_graph, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick) 
+        new{S,MortalType,SimGType}(graph, dead_meta_graph, agents, agents_added, agents_killed, max_id, graphics, properties, record, tick) 
     end
-    function GraphModel{S,T,G}(graph::AbstractPropGraph{S, G}, dead_meta_graph::AbstractPropGraph{S, G}, agents, max_id, graphics, parameters, record, tick) where {S<:MType, T<:MType, G<:GType} 
+    function GraphModel{S,T,G}(graph::AbstractPropGraph{S, G}, dead_meta_graph::AbstractPropGraph{S, G}, agents, max_id, graphics, properties, record, tick) where {S<:MType, T<:MType, G<:GType} 
     
         agents_added =  Vector{GraphAgent{S, T}}()
         agents_killed = Vector{GraphAgent{S, T}}()
         
-        new{S, T, G}(graph, dead_meta_graph, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick) 
+        new{S, T, G}(graph, dead_meta_graph, agents, agents_added, agents_killed, max_id, graphics, properties, record, tick) 
     end
 end
 

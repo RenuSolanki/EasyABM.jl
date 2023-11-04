@@ -13,7 +13,7 @@ mutable struct GrParams3D
     GrParams3D(;xlen::Int, ylen::Int, zlen::Int ) = new(xlen, ylen, zlen)
 end
 
-const gparams = GrParams(width=400,height=400,border=30, fps=12) # graphics parameters
+const gparams = GrParams(width=400,height=400,border=30, fps=12) # graphics properties
 const gparams3d = GrParams3D(xlen=10, ylen=10, zlen=10)
 const type_dict = Dict(:color => Col, :shape => Symbol, :pos => GeometryBasics.Vec2{Float64}, :orientation => Float64, :size => Union{Int, Float64})
 const makie_shape_dict = Dict(:circle => :circle, :star=>:star5, :arrow=>:utriangle, :diamond => :diamond, :square=>:rect, :box => 'B')
@@ -253,7 +253,7 @@ function _interactive_app(model::Union{AbstractSpaceModel, AbstractGraphModel}, 
             scaleS=spc
         end
 
-        if (typeof(model)<:SpaceModel3D) || ((typeof(model)<:GraphModel) && (model.parameters._extras._vis_space=="3d"))
+        if (typeof(model)<:SpaceModel3D) || ((typeof(model)<:GraphModel) && (model.properties._extras._vis_space=="3d"))
             render3d = Interact.@map render_trivial(&emptyS)
             wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop])
             return @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, hbox(spc, :run, spc, :stop)), render3d, spc, vbox(plots...) ) )  
@@ -324,7 +324,7 @@ function _live_interactive_app(model, fr,
             push!(md_controls, dr)
         end
         lis = on(md_controls[end]) do val
-            setproperty!(model[].parameters, a, val)
+            setproperty!(model[].properties, a, val)
         end
         push!(md_listeners, lis)
     end
@@ -462,7 +462,7 @@ function _live_interactive_app(model, fr,
 
 
 
-    if (typeof(model[])<:SpaceModel3D) || ((typeof(model[])<:GraphModel) && (model[].parameters._extras._vis_space=="3d"))
+    if (typeof(model[])<:SpaceModel3D) || ((typeof(model[])<:GraphModel) && (model[].properties._extras._vis_space=="3d"))
         render3d = Interact.@map render_trivial(&emptyS)
         wdg = Widget(["timeS"=>timeS,"scaleS"=>scaleS, "run"=>run, "stop"=>stop, "rst"=>rst])
         return @layout! wdg vbox( hbox( vbox(:timeS,:scaleS, vbox(ag_controls...), vbox(md_controls...), hbox(spc, :run, spc, :stop, spc, :rst)), render3d, spc, vbox(pls...) ) )  

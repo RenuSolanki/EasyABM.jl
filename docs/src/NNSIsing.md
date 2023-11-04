@@ -39,7 +39,7 @@ function initialiser!(model)
     add_nodes!(n, model, color = cl"black", spin =1) # adds n nodes to model's graph with all the nodes having color black and spin 1
     for i in 1:n 
         model.graph.nodesprops[i].pos = (vecs[1,i], vecs[2,i]) # set positions of nodes in the 2d plane
-        indices, _ = knn(kdtree, vecs[:,i], model.parameters.nns, true) # indices of nearest neighboring vectors
+        indices, _ = knn(kdtree, vecs[:,i], model.properties.nns, true) # indices of nearest neighboring vectors
         for j in indices
             if j!=i
                 create_edge!(i,j, model)
@@ -82,8 +82,8 @@ function step_rule!(model)
             nbr_spin = model.graph.nodesprops[node].spin
             de += spin*nbr_spin
         end
-        de = 2*model.parameters.coupl * de
-        if (de < 0) || (rand() < exp(-de/model.parameters.temp))
+        de = 2*model.properties.coupl * de
+        if (de < 0) || (rand() < exp(-de/model.properties.temp))
             model.graph.nodesprops[random_node].spin = - spin
             model.graph.nodesprops[random_node].color = spin == -1 ? cl"black" : cl"white"
         end

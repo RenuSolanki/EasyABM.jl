@@ -6,7 +6,7 @@ using EasyABM
 
 ## Step 1: Create Agents and Model
 
-Lets create 200 agents with properties `shape`, `pos`, `vel` and `orientation` (The `orientation` property is used internally by EasyABM to draw the direction agent is facing). The position `pos` is only accepted as a Vect which is an inbuilt vector type in EasyABM. It is also recommended for both convenience as well as performance to use Vect type for any vectorial properties in the model such as velocity and forces. The `keeps_record_of` argument is set of properties that the agent will record during time evolution. The model is defined with parameters:
+Lets create 200 agents with properties `shape`, `pos`, `vel` and `orientation` (The `orientation` property is used internally by EasyABM to draw the direction agent is facing). The position `pos` is only accepted as a Vect which is an inbuilt vector type in EasyABM. It is also recommended for both convenience as well as performance to use Vect type for any vectorial properties in the model such as velocity and forces. The `keeps_record_of` argument is set of properties that the agent will record during time evolution. The model is defined with properties:
 
 * `min_dis` : The distance between boids below which they start repelling each other.
 * `coh_fac` : The proportionality constant for the cohere force. 
@@ -53,9 +53,9 @@ In this step we implement the step logic of the flocking model in the `step_rule
 const ep = 0.00001
 
 function step_rule!(model)
-    dt = model.parameters.dt
+    dt = model.properties.dt
     for boid in model.agents
-        nbrs = neighbors(boid, model, model.parameters.vis_range)
+        nbrs = neighbors(boid, model, model.properties.vis_range)
         coh_force = Vect(0.0,0.0) # For a Vect all coordinates must be of same type
         sep_force = Vect(0.0,0.0) 
         aln_force = Vect(0.0,0.0)
@@ -64,15 +64,15 @@ function step_rule!(model)
             num+=1
             vec = nbr.pos - boid.pos
             coh_force += vec
-            if veclength(vec)< model.parameters.min_dis
+            if veclength(vec)< model.properties.min_dis
                 sep_force -= vec
             end
             aln_force += nbr.vel
         end
-        aln_force = num>0 ? (aln_force / num - boid.vel) * model.parameters.aln_fac : aln_force
+        aln_force = num>0 ? (aln_force / num - boid.vel) * model.properties.aln_fac : aln_force
         num = max(1, num)
-        coh_force *= (model.parameters.coh_fac / num)
-        sep_force *=  model.parameters.sep_fac
+        coh_force *= (model.properties.coh_fac / num)
+        sep_force *=  model.properties.sep_fac
         boid.vel  += (coh_force + sep_force) + aln_force
         boid.vel  /= (veclength(boid.vel)+ep)
         boid.orientation = calculate_direction(boid.vel)

@@ -16,7 +16,7 @@ graph = square_grid_graph(20,20);
 model = create_graph_model(graph, temp = 0.1, coupl = 1.0)
 ```
 
-The model has two parameters temperature `temp` and coupling `coupl`. 
+The model has two properties temperature `temp` and coupling `coupl`. 
 
 ## Step 2: Initialise the model
 
@@ -58,8 +58,8 @@ function step_rule!(model)
             nbr_spin = model.graph.nodesprops[node].spin
             de += spin*nbr_spin
         end
-        de = 2*model.parameters.coupl * de
-        if (de < 0) || (rand() < exp(-de/model.parameters.temp))
+        de = 2*model.properties.coupl * de
+        if (de < 0) || (rand() < exp(-de/model.properties.temp))
             model.graph.nodesprops[random_node].spin = - spin
             model.graph.nodesprops[random_node].color = spin == -1 ? cl"black" : cl"white"
         end

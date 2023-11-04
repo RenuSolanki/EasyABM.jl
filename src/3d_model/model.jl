@@ -8,7 +8,7 @@ struct SpaceModel3D{T, S<:Union{Int, Float64}, P<:SType} <:AbstractSpaceModel3D{
     agents_killed::Vector{Agent3D{S, P, T}}
     max_id::Base.RefValue{Int64}
     graphics::Bool
-    parameters::PropDataDict{Symbol, Any}
+    properties::PropDataDict{Symbol, Any}
     record::NamedTuple{(:aprops, :pprops, :mprops), Tuple{Set{Symbol}, Set{Symbol}, Set{Symbol}}}
     tick::Base.RefValue{Int64}
 
@@ -21,25 +21,25 @@ struct SpaceModel3D{T, S<:Union{Int, Float64}, P<:SType} <:AbstractSpaceModel3D{
         agents_killed = Vector{Agent3D{S, P, MortalType}}()
         max_id = Ref(1)
         graphics = true
-        parameters = PropDataDict()
+        properties = PropDataDict()
         record = (aprops=Set{Symbol}([]), pprops=Set{Symbol}([]), mprops = Set{Symbol}([]))
         tick = Ref(1)
-        new{MortalType,S,P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick) 
+        new{MortalType,S,P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, properties, record, tick) 
     end
 
-    function SpaceModel3D{T, S, P}(size, patches, patch_locs, agents, max_id, graphics, parameters, record, tick) where {T<:MType, S<:Float64, P} 
-        parameters._extras._offset = (0.0,0.0,0.0)
+    function SpaceModel3D{T, S, P}(size, patches, patch_locs, agents, max_id, graphics, properties, record, tick) where {T<:MType, S<:Float64, P} 
+        properties._extras._offset = (0.0,0.0,0.0)
         agents_added = Vector{Agent3D{S, P, T}}()
         agents_killed = Vector{Agent3D{S, P, T}}()
 
-        new{T, S, P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick)
+        new{T, S, P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, properties, record, tick)
     end
-    function SpaceModel3D{T, S, P}(size, patches, patch_locs, agents, max_id, graphics, parameters, record, tick) where {T<:MType, S<:Int, P} 
-        parameters._extras._offset = (-0.5,-0.5,-0.5)
+    function SpaceModel3D{T, S, P}(size, patches, patch_locs, agents, max_id, graphics, properties, record, tick) where {T<:MType, S<:Int, P} 
+        properties._extras._offset = (-0.5,-0.5,-0.5)
         agents_added = Vector{Agent3D{S, P, T}}()
         agents_killed = Vector{Agent3D{S, P, T}}()
 
-        new{T, S, P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, parameters, record, tick)
+        new{T, S, P}(size, patches, patch_locs, agents, agents_added, agents_killed, max_id, graphics, properties, record, tick)
     end
 end
 

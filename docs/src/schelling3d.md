@@ -35,7 +35,7 @@ function initialiser!(model)
                 num_same += 1
             end
         end
-        if num_same < model.parameters.min_alike
+        if num_same < model.properties.min_alike
             agent.mood = sad
         end
     end
@@ -51,7 +51,7 @@ In this step we implement the step logic of the Schelling's model in the `step_r
 
 ```julia
 function step_rule!(model)
-    min_alike = model.parameters.min_alike
+    min_alike = model.properties.min_alike
     for agent in model.agents
         num_alike = 0
         for nbr in neighbors_moore(agent, model,1)

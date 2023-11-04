@@ -8,7 +8,7 @@ using EasyABM
 
 ## Step 1: Create Model
 
-In this model we will work solely with the graph and won't need agents. We initially create a graph with two nodes, and then create our model with parameters `gravity`, `dt`, `len` and `in_angle` as follows. 
+In this model we will work solely with the graph and won't need agents. We initially create a graph with two nodes, and then create our model with properties `gravity`, `dt`, `len` and `in_angle` as follows. 
 
 
 ```julia
@@ -22,12 +22,12 @@ model = create_graph_model(gr, gravity = 9.0, dt=0.1, len= 4.0, in_angle=30.0)
 
 ## Step 2: Initialise the model
 
-In this step set initial values of position, angle and angular velocity. The nodes in a graph can have values of x and y coordinates in range 0 to 10. We set the position of first (fixed) node to be Vect(5, 8) and that of the second node (which represents the hanging mass) at a distance of model.parameters.len and angle (in degrees) of model.parameters.in_angle below the fixed node. 
+In this step set initial values of position, angle and angular velocity. The nodes in a graph can have values of x and y coordinates in range 0 to 10. We set the position of first (fixed) node to be Vect(5, 8) and that of the second node (which represents the hanging mass) at a distance of model.properties.len and angle (in degrees) of model.properties.in_angle below the fixed node. 
 
  ```julia
 function initialiser!(model)
-    len = model.parameters.len
-    theta = model.parameters.in_angle*pi/180
+    len = model.properties.len
+    theta = model.properties.in_angle*pi/180
     pos1 = Vect(5.0, 8.0)
     pos2 = pos1 + Vect(len*sin(theta), -len*cos(theta))
     model.graph.nodesprops[1].pos = pos1
@@ -48,9 +48,9 @@ In this step we implement the step logic of the simple pendulum and run the mode
 
 ```julia
 function step_rule!(model)
-    len = model.parameters.len
-    dt = model.parameters.dt
-    gravity = model.parameters.gravity
+    len = model.properties.len
+    dt = model.properties.dt
+    gravity = model.properties.gravity
     peg = model.graph.nodesprops[1].pos
     model.graph.nodesprops[2].angle += model.graph.nodesprops[2].ang_vel*dt
     theta =  model.graph.nodesprops[2].angle

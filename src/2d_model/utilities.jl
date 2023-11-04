@@ -510,7 +510,7 @@ $(TYPEDSIGNATURES)
 Returns agent having given id.
 """
 function agent_with_id(i::Int, model::SpaceModel2D{MortalType, S, P}) where {S<:Union{Int, Float64}, P<:SType}
-    m = model.parameters._extras._len_model_agents::Int
+    m = model.properties._extras._len_model_agents::Int
 
     if i<=m  
         for j in i:-1:1 # will work if the list of model agents has not been shuffled

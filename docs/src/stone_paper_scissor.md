@@ -57,7 +57,7 @@ function step_rule!(model)
                 count+=1
             end
         end
-        if count > model.parameters.threshold
+        if count > model.properties.threshold
             model.patches[i,j].color = winner_col
         end
     end

@@ -48,7 +48,7 @@ kdtree = KDTree(vecs,leafsize=1)
 function step_rule!(model)
     if model.tick <=n
         i = model.tick
-        indices, _ = knn(kdtree, vecs[:,i], model.parameters.nns, true)
+        indices, _ = knn(kdtree, vecs[:,i], model.properties.nns, true)
         for j in indices
             if j!=i
                 create_edge!(i,j, model)

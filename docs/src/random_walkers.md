@@ -32,7 +32,7 @@ init_model!(model, initialiser = initialiser!)
 ```julia
 function step_rule!(model)
     for agent in model.agents
-        agent.pos += Vect(0.5-rand(), 0.5-rand())*model.parameters.dt
+        agent.pos += Vect(0.5-rand(), 0.5-rand())*model.properties.dt
     end
 end
 ```

@@ -24,7 +24,7 @@ $(TYPEDSIGNATURES)
     end
     agent_data = unwrap_data(agent)
     index = t 
-    offset = model.parameters._extras._offset::Tuple{Float64, Float64}
+    offset = model.properties._extras._offset::Tuple{Float64, Float64}
     for i in max(1, index-tail_length):index
         v = agent_data[:pos][i] .+ offset
         push!(agent_tail, GeometryBasics.Vec(v...))
@@ -98,7 +98,7 @@ $(TYPEDSIGNATURES)
     record = agent._keeps_record_of::Set{Symbol}
     periodic = is_periodic(model)
     agent_data = unwrap_data(agent)
-    offset = model.parameters._extras._offset::Tuple{Float64, Float64}
+    offset = model.properties._extras._offset::Tuple{Float64, Float64}
 
     width = gparams.width
     height = gparams.height

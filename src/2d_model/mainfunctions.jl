@@ -32,7 +32,7 @@ Each unit block of space is called a patch which like agents can be assigned
 its own properties.  
 - `random_positions` : If this property is true, each agent, will be assigned a random position. 
 - `space_type` : Set it to Periodic or NPeriodic depending upon if the space is periodic or not. 
-- `kwargs`` : Keyword argments used as model parameters. 
+- `kwargs`` : Keyword argments used as model properties. 
 """
 
 function create_2d_model(agents::Vector{Agent2D{S, A, B}}; 
@@ -71,9 +71,9 @@ function create_2d_model(agents::Vector{Agent2D{S, A, B}};
         agents = agents_new
     end
 
-    parameters = _set_parameters(size, n, random_positions; kwargs...)
+    properties = _set_parameters(size, n, random_positions; kwargs...)
 
-    model = SpaceModel2D{T, S, P}(size, patches, patch_locs, agents, Ref(n), graphics, parameters, (aprops = Set{Symbol}([]), pprops = Set{Symbol}([]), mprops = Set{Symbol}([])), Ref(1))
+    model = SpaceModel2D{T, S, P}(size, patches, patch_locs, agents, Ref(n), graphics, properties, (aprops = Set{Symbol}([]), pprops = Set{Symbol}([]), mprops = Set{Symbol}([])), Ref(1))
 
     for (i, agent) in enumerate(agents)
 
@@ -150,7 +150,7 @@ end
 $(TYPEDSIGNATURES)
 
 Initiates the simulation with a user defined initialiser function which takes the model as its only argument. 
-Model parameters along with agent properties can be set (or modified) from within a user defined function and then sending it as `initialiser` argument in `init_model!`. The properties of 
+Model properties along with agent properties can be set (or modified) from within a user defined function and then sending it as `initialiser` argument in `init_model!`. The properties of 
 agents, patches and model that are to be recorded during time evolution can be specified through the dictionary argument `props_to_record`. 
 List of agent properties to be recorded are specified with key "agents" and value the list of property names as symbols. If a nonempty list of 
 agents properties is specified, it will replace the `keeps_record_of` list of each agent. Properties of patches and model are similarly specified
@@ -220,7 +220,7 @@ function save_sim_luxor(model::SpaceModel2D, frames::Int=model.tick, scl::Number
     show_space=true, tail = (1, agent->false))
     if model.graphics
         ticks = getfield(model, :tick)[]
-        model.parameters._extras._show_space = show_space
+        model.properties._extras._show_space = show_space
         fr = min(frames, ticks)
         movie_abm = Movie(gparams.width+gparams.border, gparams.height+gparams.border, "movie_abm", 1:fr)
         scene_array = Vector{Luxor.Scene}()
@@ -275,7 +275,7 @@ function animate_sim(model::SpaceModel2D, frames::Int=model.tick;
     path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"), show_patches=false, tail = (1, agent->false))
 
     ticks = getfield(model, :tick)[]
-    model.parameters._extras._show_space = show_patches
+    model.properties._extras._show_space = show_patches
     fr = min(frames, ticks)
     no_graphics = plots_only || !(model.graphics)
 
@@ -337,7 +337,7 @@ Draws a specific frame.
 """
 function draw_frame(model::SpaceModel2D; frame=model.tick, show_patches=false)
     frame = min(frame, model.tick)
-    model.parameters._extras._show_space = show_patches
+    model.properties._extras._show_space = show_patches
     drawing = Drawing(gparams.width+gparams.border, gparams.height+gparams.border, :png)
     if model.graphics
         Luxor.origin()
@@ -369,7 +369,7 @@ function create_interactive_app(inmodel::SpaceModel2D; initialiser::Function = n
     path= joinpath(@get_scratch!("abm_anims"), "anim_2d.gif"),
     frames=200, show_patches=false, tail =(1, agent-> false)) 
 
-    inmodel.parameters._extras._show_space = show_patches
+    inmodel.properties._extras._show_space = show_patches
 
     no_graphics = plots_only || !(inmodel.graphics)
 
@@ -394,9 +394,9 @@ function create_interactive_app(inmodel::SpaceModel2D; initialiser::Function = n
 
     function _init_interactive_model(ufun::Function = x -> nothing)
         model=deepcopy(inmodel)
-        ufun(model) # will provide init with updated model parameters
+        ufun(model) # will provide init with updated model properties
         init_model!(model, initialiser=initialiser, props_to_record=props_to_record)
-        ufun(model) # will override init if some parameters are changed inside it
+        ufun(model) # will override init if some properties are changed inside it
         _run_interactive_model(model, frames)
         agent_df = get_agents_avg_props(model, condsa..., labels= lblsa)
         patch_df = get_patches_avg_props(model, condsp..., labels= lblsp)

@@ -91,7 +91,7 @@ end
 
 function step_rule!(model)
     xdim, ydim = model.size
-    dw = model.parameters.dw
+    dw = model.properties.dw
     search_radius = model.agents[2].size # radius of the Brownian particle
     for i in 2:length(model.agents)
         agent=model.agents[i]
