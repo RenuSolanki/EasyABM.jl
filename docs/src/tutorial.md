@@ -1,5 +1,3 @@
-# Tutorial
-
 Studying an agents based model in EasyABM is basically a 5-step process. 
 
 1. Create agents and model. 

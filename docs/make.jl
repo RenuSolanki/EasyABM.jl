@@ -8,7 +8,7 @@ makedocs(
          format = Documenter.HTML(),
          pages = ["Introduction" => "index.md",
          "Getting started" => ["A simple example" => "tutorial.md",
-         "Types of models" => "cheatsheet.md",
+         "Working with different types of models" => "cheatsheet.md",
          ],
          "Examples" => [
                 "Schellings Segregation 2D" => "schelling.md",
