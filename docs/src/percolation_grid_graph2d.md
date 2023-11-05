@@ -23,15 +23,15 @@ model = create_graph_model(graph, open_nodes=Int[], percolated=false, prob=0.0)
 function initialiser!(model)
     model.properties.num_nodes=length(vertices(model.graph))
     for node in vertices(model.graph)
-        if node==model.properties.num_nodes
+        if node==model.properties.num_nodes #last node is open & has water
             model.graph.nodesprops[node].open=true
             model.graph.nodesprops[node].color=cl"blue"
-        else
+        else #all other nodes are closed
             model.graph.nodesprops[node].open=false
             model.graph.nodesprops[node].color=cl"black"
         end   
     end
-    push!(model.properties.open_nodes, model.properties.num_nodes) #last node is open & has water
+    push!(model.properties.open_nodes, model.properties.num_nodes) 
     model.properties.percolated=false
 end
 
@@ -137,7 +137,7 @@ function calculate_percolation_probability(;grid_graph_size=20, attempts=10)
     percolation_probs = Float64[]
     for _ in 1:attempts
         graph = square_grid_graph(n,n)
-        model = create_graph_model(graph, open_nodes=Int[], percolated=false, graphics=false, prob=0.0) 
+        model = create_graph_model(graph, graphics=false, open_nodes=Int[], percolated=false, prob=0.0) #don't need visualisation so set graphics=false
         init_model!(model, initialiser= initialiser!)
         run_model!(model, steps=frames, step_rule = step_rule! )
         if model.properties.percolated
@@ -148,7 +148,7 @@ function calculate_percolation_probability(;grid_graph_size=20, attempts=10)
 end 
 
 
-probs=calculate_percolation_probability(grid_size=20, attempts=80);
+probs=calculate_percolation_probability(grid_graph_size=20, attempts=80);
 sum(probs)/length(probs)
 0.5919687499999999
 ```

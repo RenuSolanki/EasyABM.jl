@@ -17,7 +17,7 @@ makedocs(
                 "Conways Game of Life" => "conwaygol.md",
                 "Random Walkers" => "random_walkers.md",
                 "Schellings Segregation 3D" => "schelling3d.md",
-                "Percolation on 2d grid graph" => "percolation_grid_graph2d.md",
+                "Percolation on a 2d grid graph" => "percolation_grid_graph2d.md",
                 "Flocking 3D" => "boids3d.md",
                 "Ising on a grid graph" => "ising.md",
                 "Simple Pendulum" => "simple_pendulum.md",
