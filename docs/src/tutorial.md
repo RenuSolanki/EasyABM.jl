@@ -15,8 +15,8 @@ We explain these steps below through a very simple model of a star-planet system
 In the first step we create the agents and the model. For the star-planet system, we need one agent for the star and one for the planet. We will assume that the star is stationary and the planet revolves around it. We set the position of the star to be Vect(5.0,5.0) which is the center point of the 2d space, as the default dimensions of 2d space in EasyABM is 10x10. The position `pos` is only accepted as a Vect which is an inbuilt vector type in EasyABM. It is also recommended for both convenience as well as performance to use Vect type for any vectorial properties in the model such as velocity and forces. We set the position of the planet to be Vect(7.0,5.0) and its velocity to be Vect(0.0,1.0). Since, the planet will change its position we require it to record its position and velocity during the model run. We specify this via `keeps_record_of` argument in the function for creating agent(s). We also have user defined model properties `gravity` and `dt` which stand for the force of gravity and small time interval between position and velocity updates respectively. 
 
 ```julia
-star = con_2d_agent( pos = Vect(5.0,5.0), size = 0.15, color = cl"yellow") # by default 2d space is 10x10, so that (5,5) is center.
-planet = con_2d_agent(pos = Vect(7.0,5.0), vel = Vect(0.0,1.0), size=0.05, color = cl"blue", keeps_record_of = Set([:pos, :vel])) 
+star = con_2d_agent( pos = Vect(5.0,5.0), size = 0.30, color = cl"yellow") # by default 2d space is 10x10, so that (5,5) is center.
+planet = con_2d_agent(pos = Vect(7.0,5.0), vel = Vect(0.0,1.0), size=0.15, color = cl"blue", keeps_record_of = Set([:pos, :vel])) 
 model = create_2d_model([star, planet], gravity = 3.0, dt=0.1)
 ```
 
