@@ -7,7 +7,9 @@ makedocs(
          modules  = [EasyABM],
          format = Documenter.HTML(),
          pages = ["Introduction" => "index.md",
-         "Tutorial" => "tutorial.md",
+         "Getting started" => ["A simple example" => "tutorial.md",
+         "Types of models" => "cheatsheet.md",
+         ],
          "Examples" => [
                 "Schellings Segregation 2D" => "schelling.md",
                 "Flocking 2D" => "boids.md",
