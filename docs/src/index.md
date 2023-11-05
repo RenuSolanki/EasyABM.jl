@@ -18,10 +18,10 @@ A lightweight and easy to use framework for agent-based modelling.
   
 |                                     |                                     |
 | ----------------------------------- | ----------------------------------- |
-|<img src="assets/gifs/vid2d.gif" width="430">  | ![png](assets/gifs/vidgraph.gif)  |
+|    ![gif](assets/gifs/vid2d.gif)    | ![gif](assets/gifs/vidgraph.gif)    |
 
 
-![png](assets/gifs/vid3d.gif)   
+![gif](assets/gifs/vid3d.gif)   
 
 
 
