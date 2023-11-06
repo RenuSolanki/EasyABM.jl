@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>SIR model · EasyABM.jl</title><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.044/juliamono.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img src="../assets/logo.png" alt="EasyABM.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../">EasyABM.jl</a></span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Introduction</a></li><li><span class="tocitem">Getting started</span><ul><li><a class="tocitem" href="../tutorial/">A simple example</a></li><li><a class="tocitem" href="../cheatsheet/">Working with different types of models</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../schelling/">Schellings Segregation 2D</a></li><li><a class="tocitem" href="../boids/">Flocking 2D</a></li><li><a class="tocitem" href="../stone_paper_scissor/">Rock-Paper-Scissor</a></li><li class="is-active"><a class="tocitem" href>SIR model</a><ul class="internal"><li><a class="tocitem" href="#Step-1:-Create-Agents-and-Model"><span>Step 1: Create Agents and Model</span></a></li><li><a class="tocitem" href="#Step-2:-Initialise-the-model"><span>Step 2: Initialise the model</span></a></li><li><a class="tocitem" href="#Step-3:-Defining-the-step_rule!-and-running-the-model"><span>Step 3: Defining the step_rule! and running the model</span></a></li><li><a class="tocitem" href="#Step-4:-Visualisation"><span>Step 4: Visualisation</span></a></li><li><a class="tocitem" href="#Step-5:-Fetch-Data"><span>Step 5: Fetch Data</span></a></li><li><a class="tocitem" href="#References"><span>References</span></a></li></ul></li><li><a class="tocitem" href="../predator_prey/">Predator-prey</a></li><li><a class="tocitem" href="../conwaygol/">Conways Game of Life</a></li><li><a class="tocitem" href="../random_walkers/">Random Walkers</a></li><li><a class="tocitem" href="../schelling3d/">Schellings Segregation 3D</a></li><li><a class="tocitem" href="../percolation_grid_graph2d/">Percolation on a 2d grid graph</a></li><li><a class="tocitem" href="../boids3d/">Flocking 3D</a></li><li><a class="tocitem" href="../ising/">Ising on a grid graph</a></li><li><a class="tocitem" href="../simple_pendulum/">Simple Pendulum</a></li><li><a class="tocitem" href="../BrownianParticle/">Brownian Particle</a></li><li><a class="tocitem" href="../nearest_neighbor_graph/">Nearest Neighbor Graph</a></li><li><a class="tocitem" href="../nearest_neighbor_graph_3dvis/">Nearest Neighbor Graph 3D</a></li><li><a class="tocitem" href="../ElemCA/">Elementary Cellular Automaton</a></li><li><a class="tocitem" href="../abelian_sandpile/">Abelian Sandpile</a></li><li><a class="tocitem" href="../NNSIsing/">Ising on a nearest neighbor graph</a></li><li><a class="tocitem" href="../NNS3DIsing/">Ising on a nearest neighbor graph 3D</a></li></ul></li><li><a class="tocitem" href="../tips/">Do&#39;s and Don&#39;ts</a></li><li><a class="tocitem" href="../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>SIR model</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>SIR model</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/RenuSolanki/EasyABM.jl/blob/main/docs/src/SIR.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="SIR-model"><a class="docs-heading-anchor" href="#SIR-model">SIR model</a><a id="SIR-model-1"></a><a class="docs-heading-anchor-permalink" href="#SIR-model" title="Permalink"></a></h1><p>In the agent-based modeling approach an epidemiological model, like SIR model can have a large number of properties depending upon the requirements. Below we will implement a basic SIR model in EasyABM.</p><pre><code class="language-julia hljs">using EasyABM</code></pre><h2 id="Step-1:-Create-Agents-and-Model"><a class="docs-heading-anchor" href="#Step-1:-Create-Agents-and-Model">Step 1: Create Agents and Model</a><a id="Step-1:-Create-Agents-and-Model-1"></a><a class="docs-heading-anchor-permalink" href="#Step-1:-Create-Agents-and-Model" title="Permalink"></a></h2><p>In our SIR model there will be four type of agents - susceptible, infectious, recovered, dead. We assume that the recovered agents become immune and do not get infected again. We create 500 2d agents all of type agentS (later in the initilisation step will set the type of some agents to be agentI). The <code>not_well_since</code> property of an agent is the time since the agent got infected. Our model has properties <code>initially_sick</code> (number of agents initially sick), <code>sickness_duration</code> (duration of sickness), <code>infection_prob</code> (probability of infection when an infected agent comes in contact with a susceptible agent) and <code>death_prob</code> (the probability of death from infection). </p><pre><code class="language-julia hljs">
+@enum agentstate begin
+    susceptible=1
+    infectious=2
+    recovered=3
+    dead=4
+end
+
+agents = grid_2d_agents(500, pos = Vect(1,1), color=cl&quot;green&quot;, 
+        atype = susceptible, not_well_since = 0, 
+        keeps_record_of = Set([:atype, :color, :pos]));
+
+model = create_2d_model(agents, size=(50,50), 
+        agents_type = Static, ## agents don&#39;t get removed from or added to the model
+        space_type = Periodic, initially_sick = 10, 
+        sickness_duration = 21, infection_prob = 0.8, 
+        death_prob=0.05);</code></pre><h2 id="Step-2:-Initialise-the-model"><a class="docs-heading-anchor" href="#Step-2:-Initialise-the-model">Step 2: Initialise the model</a><a id="Step-2:-Initialise-the-model-1"></a><a class="docs-heading-anchor-permalink" href="#Step-2:-Initialise-the-model" title="Permalink"></a></h2><p>In the second step we initialise the agents by defining <code>initialiser!</code> function and sending it as an argument to <code>init_model!</code>. In the <code>initialiser!</code> function we set first <code>initially_sick</code> number of agents to be in infectious state and set their color to <code>cl&quot;red&quot;</code>. All other agents are set to be in susceptible state with color <code>cl&quot;green&quot;</code>. We also set each agents position at the center of a randomly selected patch.  </p><pre><code class="language-julia hljs">function initialiser!(model)
+    for (i,agent) in enumerate(model.agents)
+        if i&lt;=model.properties.initially_sick
+            agent.atype = infectious
+            agent.color = cl&quot;red&quot;
+        else 
+            agent.atype = susceptible
+            agent.color = cl&quot;green&quot;
+        end
+        agent.not_well_since = 0 
+        x = rand(1:model.size[1])
+        y = rand(1:model.size[2])
+        agent.pos = Vect(x, y) # center of a random patch
+    end
+end
+init_model!(model, initialiser = initialiser!)</code></pre><h2 id="Step-3:-Defining-the-step_rule!-and-running-the-model"><a class="docs-heading-anchor" href="#Step-3:-Defining-the-step_rule!-and-running-the-model">Step 3: Defining the step_rule! and running the model</a><a id="Step-3:-Defining-the-step_rule!-and-running-the-model-1"></a><a class="docs-heading-anchor-permalink" href="#Step-3:-Defining-the-step_rule!-and-running-the-model" title="Permalink"></a></h2><p>In this step we implement the step logic of the SIR model in the <code>step_rule!</code> function and run the model for 100 steps. </p><pre><code class="language-julia hljs">function die_or_recover(agent, death_prob)
+    if rand()&lt;death_prob
+        agent.atype = dead
+        agent.color = cl&quot;black&quot;
+    else
+        agent.atype = recovered
+        agent.color = cl&quot;yellow&quot;
+    end
+    agent.not_well_since = 0 
+end
+
+function infect_neighbors(agent, nbrs, infection_prob)
+    for nbr in nbrs
+        if (nbr.atype ==susceptible) &amp;&amp; (rand()&lt; infection_prob)
+            nbr.atype = infectious
+            nbr.not_well_since = 0
+            nbr.color = cl&quot;red&quot;
+        end
+    end
+end
+
+function change_position(agent)
+    dx =rand(-1:1)
+    dy =rand(-1:1)
+    agent.pos += Vect(dx,dy)
+end
+
+function step_rule!(model)
+    properties = model.properties
+    for agent in model.agents
+        nbrs = neighbors_moore(agent, model, 1) #immediate neighbors on grid
+        if agent.atype == infectious
+             agent.not_well_since +=1
+            if agent.not_well_since &gt; properties.sickness_duration
+                die_or_recover(agent, properties.death_prob)
+            elseif agent.not_well_since&gt;1
+                infect_neighbors(agent, nbrs, properties.infection_prob)
+            end   
+        end
+        if agent.atype !=dead
+            change_position(agent)
+        end   
+    end
+end
+
+
+run_model!(model, steps=100, step_rule = step_rule! )</code></pre><h2 id="Step-4:-Visualisation"><a class="docs-heading-anchor" href="#Step-4:-Visualisation">Step 4: Visualisation</a><a id="Step-4:-Visualisation-1"></a><a class="docs-heading-anchor-permalink" href="#Step-4:-Visualisation" title="Permalink"></a></h2><p>In order to draw the model at a specific frame, say 4th, one can use <code>draw_frame(model, frame = 4)</code>. If one wants to see the animation of the model run, it can be done as </p><pre><code class="language-julia hljs">animate_sim(model, 
+agent_plots = Dict(
+        &quot;Susceptible&quot;=&gt; ag -&gt; ag.atype == susceptible ? 1 : 0, 
+        &quot;Infected&quot; =&gt; ag -&gt; ag.atype == infectious ? 1 : 0,
+        &quot;Recovered&quot; =&gt; ag -&gt; ag.atype == recovered ? 1 : 0
+        ),
+show_patches=true
+)</code></pre><p><img src="../assets/SIR/SIRAnim1.png" alt="png"/></p><p>After defining the <code>step_rule!</code> function we can also choose to create an interactive application (which currently works in Jupyter with WebIO installation) as shown below. It is recommended to define a fresh model and not initialise it with <code>init_model!</code> or run with <code>run_model!</code> before creating interactive app.</p><pre><code class="language-julia hljs">agents = grid_2d_agents(500, pos = Vect(1,1), color=cl&quot;green&quot;, 
+        atype = susceptible, not_well_since = 0, 
+        keeps_record_of = Set([:atype, :color, :pos]));
+
+model = create_2d_model(agents, size=(50,50), 
+        agents_type = Static, 
+        space_type = Periodic, initially_sick = 10, 
+        sickness_duration = 21, infection_prob = 0.8, 
+        death_prob=0.05);
+
+create_interactive_app(model, initialiser= initialiser!,
+    step_rule= step_rule!,
+    model_controls=[(:initially_sick, &quot;slider&quot;, 1:500), 
+        (:sickness_duration, &quot;slider&quot;, 5:25),
+        (:infection_prob, &quot;slider&quot;, 0.01:0.01:1.0),
+        (:death_prob, &quot;slider&quot;, 0.01:0.01:0.1)
+        ],
+    agent_plots = Dict(&quot;Susceptible&quot;=&gt; ag -&gt; ag.atype == susceptible ? 1 : 0, 
+        &quot;Infected&quot; =&gt; ag -&gt; ag.atype == infectious ? 1 : 0,
+        &quot;Recovered&quot; =&gt; ag -&gt; ag.atype == recovered ? 1 : 0
+        ),
+    frames=70,
+    show_patches=true)   </code></pre><p><img src="../assets/SIR/SIRIntApp.png" alt="png"/></p><h2 id="Step-5:-Fetch-Data"><a class="docs-heading-anchor" href="#Step-5:-Fetch-Data">Step 5: Fetch Data</a><a id="Step-5:-Fetch-Data-1"></a><a class="docs-heading-anchor-permalink" href="#Step-5:-Fetch-Data" title="Permalink"></a></h2><p>The following line of code fetches data of average number of susceptible, infectious and recovered agents. The function <code>get_agents_avg_props</code> averages over all agents the values returned by functions sent to it as arguments. </p><pre><code class="language-julia hljs">df = get_agents_avg_props(model, 
+    ag -&gt; ag.atype == susceptible ? 1 : 0,
+    ag -&gt; ag.atype == infectious ? 1 : 0, 
+    ag -&gt; ag.atype == recovered ? 1 : 0, 
+    labels = [&quot;Susceptible&quot;, &quot;Infected&quot;, &quot;Recovered&quot;],
+    plot_result = true
+)</code></pre><p><img src="../assets/SIR/SIRPlot1.png" alt="png"/></p><h2 id="References"><a class="docs-heading-anchor" href="#References">References</a><a id="References-1"></a><a class="docs-heading-anchor-permalink" href="#References" title="Permalink"></a></h2><p>1.) https://towardsdatascience.com/modelling-a-pandemic-eb94025f248f</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../stone_paper_scissor/">« Rock-Paper-Scissor</a><a class="docs-footer-nextpage" href="../predator_prey/">Predator-prey »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.19 on <span class="colophon-date" title="Monday 6 November 2023 12:00">Monday 6 November 2023</span>. Using Julia version 1.9.3.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
