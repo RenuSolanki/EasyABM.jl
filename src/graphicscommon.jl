@@ -27,7 +27,10 @@ end
 
 
 @inline function _draw_title(scene, frame)
+    gsave()
+    setcolor(RGBA(0,0,0,1))
     Luxor.text(string("frame $frame of $(scene.framerange.stop)"),  Luxor.Point(O.x, O.y-gparams.height*0.5-gparams.border*0.1),halign=:center)
+    grestore()
 end
 
 
