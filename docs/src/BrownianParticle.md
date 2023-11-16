@@ -107,7 +107,7 @@ run_model!(model, steps=200, step_rule = step_rule!)
 ## Step 4: Visualisation 
 
 ```julia
-animate_sim(model)
+animate_sim(model, tail=(200, agent-> agent.color==cl"blue"))
 ```
 
 ![png](assets/BrownianParticle/BrownianParticleAnim1.png)

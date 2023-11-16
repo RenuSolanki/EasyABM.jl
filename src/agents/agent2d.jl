@@ -28,7 +28,6 @@ $(TYPEDSIGNATURES)
 Creates a single 2d agent with properties specified as keyword arguments. 
 Following property names are reserved for some specific agent properties 
     - pos : position
-    - vel : velocity
     - shape : shape of agent
     - color : color of agent
     - size : size of agent
