@@ -1,6 +1,6 @@
 @testset "2d model" begin
     agents = con_2d_agents(5, color=Col("red"), is_sick = false, shape = :circle, keeps_record_of = Set([:color, :is_sick]))
-    model = create_2d_model(agents, grid_size = (5,5), agents_type=Mortal, space_type = Periodic, random_positions = true, model_property1 = 0.7, model_property2 = "nice_model")
+    model = create_2d_model(agents, size = (5,5), agents_type=Mortal, space_type = Periodic, random_positions = true, model_property1 = 0.7, model_property2 = "nice_model")
     function initialiser!(model)
         model.agents[1].shape = :box
         model.agents[5].is_sick = true
@@ -15,9 +15,10 @@
             kill_agent!(model.agents[rand(1:n)], model)
         end
     end
-    run_model!(model, steps=steps, step_rule= step_rule!)
+    @test run_model!(model, steps=steps, step_rule= step_rule!)==nothing
     data = get_agent_data(model.agents[1], model).record
     datam= get_model_data(model).record
+    animate_sim(model)
     @test length(data[!,:color])==steps+1 #initial data is also recorded
     @test length(data[!,:is_sick])==steps+1
     @test length(datam[!,:model_property1]) == steps+1

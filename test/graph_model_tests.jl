@@ -35,9 +35,10 @@
             create_edge!(3,7,model)
         end
     end
-    run_model!(model, steps=steps, step_rule= step_rule!)
+    @test run_model!(model, steps=steps, step_rule= step_rule!)==nothing
     data = get_agent_data(model.agents[1], model).record
     datam= get_model_data(model).record
+    animate_sim(model)
     @test length(data[!,:color])==steps+1 #initial data is also recorded
     @test length(data[!,:is_sick])==steps+1
     @test length(datam[!,:model_property1]) == steps+1
