@@ -11,7 +11,7 @@
             model.graph.nodesprops[vert].color = Col("red")
         end
     end
-    init_model!(model, initialiser=initialiser!, props_to_record = Dict("model"=> Set([:model_property1])))
+    @test init_model!(model, initialiser=initialiser!, props_to_record = Dict("model"=> Set([:model_property1]))) == nothing
     @test model.agents[1].shape == :box
     @test model.agents[5].is_sick == true
     @test model.graph.nodesprops[1].color == Col("red")
