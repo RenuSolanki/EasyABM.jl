@@ -1,4 +1,5 @@
 @testset "3d model A" begin
+    function mytests()
     agents = con_3d_agents(5, color=Col("red"), is_sick = false, shape = :sphere, keeps_record_of = Set([:color, :is_sick]))
     model = create_3d_model(agents, size = (4,4,4), agents_type = Mortal, space_type = Periodic, random_positions = true, model_property1 = 0.7, model_property2 = "nice_model")
     function initialiser!(model)
@@ -23,9 +24,13 @@
     @test length(data[!,:color])==steps+1 #initial data is also recorded
     @test length(data[!,:is_sick])==steps+1
     @test length(datam[!,:model_property1]) == steps+1
+    true
+    end
+    @test mytests()==true
 end
 
 @testset "3d model B" begin
+    function mytests()
     agents = grid_3d_agents(5, color=Col("red"), is_sick = false, shape = :sphere, keeps_record_of = Set([:color, :is_sick]))
     model = create_3d_model(agents, size = (4,4,4), agents_type = Static, space_type = NPeriodic, random_positions = true, model_property1 = 0.7, model_property2 = "nice_model")
     function initialiser!(model)
@@ -46,9 +51,13 @@ end
     @test length(data[!,:color])==steps+1 #initial data is also recorded
     @test length(data[!,:is_sick])==steps+1
     @test length(datam[!,:model_property1]) == steps+1
+    true
+    end
+    @test mytests()==true
 end
 
-@testset "3d model B" begin
+@testset "3d model C" begin
+    function mytests()
     agents = con_3d_agents(5, color=Col("red"), is_sick = false, shape = :sphere, keeps_record_of = Set([:color, :is_sick]))
     model = create_3d_model(agents, size = (4,4,4), agents_type = Static, space_type = NPeriodic, random_positions = true, model_property1 = 0.7, model_property2 = "nice_model")
     function initialiser!(model)
@@ -69,9 +78,13 @@ end
     @test length(data[!,:color])==steps+1 #initial data is also recorded
     @test length(data[!,:is_sick])==steps+1
     @test length(datam[!,:model_property1]) == steps+1
+    true
+    end
+    @test mytests()==true
 end
 
-@testset "3d model A" begin
+@testset "3d model D" begin
+    function mytests()
     agents = grid_3d_agents(5, color=Col("red"), is_sick = false, shape = :sphere, keeps_record_of = Set([:color, :is_sick]))
     model = create_3d_model(agents, size = (4,4,4), agents_type = Mortal, space_type = Periodic, random_positions = true, model_property1 = 0.7, model_property2 = "nice_model")
     function initialiser!(model)
@@ -96,4 +109,7 @@ end
     @test length(data[!,:color])==steps+1 #initial data is also recorded
     @test length(data[!,:is_sick])==steps+1
     @test length(datam[!,:model_property1]) == steps+1
+    true
+    end
+    @test mytests()==true
 end
