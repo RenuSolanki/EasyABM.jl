@@ -75,7 +75,7 @@ end
 """
 $(TYPEDSIGNATURES)
 """
-function latest_propvals(patch, model::AbstractSpaceModel, propname::Symbol, n::Int)
+function latest_propvals(patch::NTuple{N, Int} where N, model::AbstractSpaceModel, propname::Symbol, n::Int)
    return latest_propvals(model.patches[patch...], propname, n) 
 end
 

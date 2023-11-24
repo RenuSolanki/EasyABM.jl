@@ -1,5 +1,8 @@
 @testset "3d model A" begin
-    agents = con_3d_agents(5, color=Col("red"), is_sick = false, shape = :sphere, keeps_record_of = Set([:color, :is_sick]))
+	ag = con_3d_agent(color=cl"white")
+    ag1 = create_similar(ag, 2)
+    ag2 = create_similar(ag)
+    agents = con_3d_agents(5, color=Col("red"), is_sick = false, shape = :sphere, keeps_record_of = Set([:color, :pos, :is_sick]))
     model = create_3d_model(agents, size = (4,4,4), agents_type = Mortal, space_type = Periodic, random_positions = true, model_property1 = 0.7, model_property2 = "nice_model")
     function initialiser!(model)
         model.agents[1].shape = :box
@@ -23,10 +26,11 @@
     @test length(data[!,:color])==steps+1 #initial data is also recorded
     @test length(data[!,:is_sick])==steps+1
     @test length(datam[!,:model_property1]) == steps+1
+    neighbors(model.agents[1], model)
 end
 
 @testset "3d model B" begin
-    agents = grid_3d_agents(5, color=Col("red"), is_sick = false, shape = :sphere, keeps_record_of = Set([:color, :is_sick]))
+    agents = grid_3d_agents(5, color=Col("red"), is_sick = false, shape = :sphere, keeps_record_of = Set([:color, :pos, :is_sick]))
     model = create_3d_model(agents, size = (4,4,4), agents_type = Static, space_type = Periodic, random_positions = true, model_property1 = 0.7, model_property2 = "nice_model")
     function initialiser!(model)
         model.agents[1].shape = :box
@@ -46,6 +50,12 @@ end
     @test length(data[!,:color])==steps+1 #initial data is also recorded
     @test length(data[!,:is_sick])==steps+1
     @test length(datam[!,:model_property1]) == steps+1
+    neighbor_patches_moore((1,1,1), model)
+    neighbor_patches_moore(model.agents[1], model)
+    neighbor_patches_neumann((1,1,1), model)
+    neighbor_patches_neumann(model.agents[1], model)
+    neighbors_moore(model.agents[1], model)
+    neighbors_neumann(model.agents[1], model)
 end
 
 @testset "3d model C" begin
@@ -69,6 +79,7 @@ end
     @test length(data[!,:color])==steps+1 #initial data is also recorded
     @test length(data[!,:is_sick])==steps+1
     @test length(datam[!,:model_property1]) == steps+1
+    neighbors(model.agents[1], model)
 end
 
 @testset "3d model D" begin
@@ -96,6 +107,8 @@ end
     @test length(data[!,:color])==steps+1 #initial data is also recorded
     @test length(data[!,:is_sick])==steps+1
     @test length(datam[!,:model_property1]) == steps+1
+    neighbors_moore(model.agents[1], model)
+    neighbors_neumann(model.agents[1], model)
 end
 
 ############################################
@@ -125,6 +138,7 @@ end
     @test length(data[!,:color])==steps+1 #initial data is also recorded
     @test length(data[!,:is_sick])==steps+1
     @test length(datam[!,:model_property1]) == steps+1
+    neighbors(model.agents[1], model)
 end
 
 @testset "3d model F" begin
@@ -148,6 +162,8 @@ end
     @test length(data[!,:color])==steps+1 #initial data is also recorded
     @test length(data[!,:is_sick])==steps+1
     @test length(datam[!,:model_property1]) == steps+1
+    neighbors_moore(model.agents[1], model)
+    neighbors_neumann(model.agents[1], model)
 end
 
 @testset "3d model G" begin
@@ -171,6 +187,7 @@ end
     @test length(data[!,:color])==steps+1 #initial data is also recorded
     @test length(data[!,:is_sick])==steps+1
     @test length(datam[!,:model_property1]) == steps+1
+    neighbors(model.agents[1], model)
 end
 
 @testset "3d model H" begin
@@ -198,4 +215,6 @@ end
     @test length(data[!,:color])==steps+1 #initial data is also recorded
     @test length(data[!,:is_sick])==steps+1
     @test length(datam[!,:model_property1]) == steps+1
+    neighbors_moore(model.agents[1], model)
+    neighbors_neumann(model.agents[1], model)
 end

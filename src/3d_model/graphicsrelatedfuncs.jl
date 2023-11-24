@@ -252,7 +252,7 @@ end
         setvisible!(vis["agents"]["$(getfield(agent, :id))"*string(pshp)][string(pclr)], true)
         #end
 
-        if tail_condition(agent) && index>2 # tail_condition must be dependent on some non-changing agent property. General conditons are not implemented due to performance constraints
+        if tail_condition(agent) && index>2 && (:pos in record) # tail_condition must be dependent on some non-changing agent property. General conditons are not implemented due to performance constraints
             for i in 1:min(tail_length, index-2)
                 setvisible!(vis["tails"]["$(getfield(agent, :id))"]["$i"], false)
                 x,y,z = agent_data[:pos][index-i]::Vect{3, S} .+ offset

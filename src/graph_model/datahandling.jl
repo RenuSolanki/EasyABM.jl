@@ -100,7 +100,7 @@ end
 $(TYPEDSIGNATURES)
 """
 function get_edge_data(i::Int,j::Int, model::GraphModelFixGrTop, props = model.record.eprops)
-    i,j,condition = _get_edge_data_condition(i,j,model)
+    i,j,condition = _get_edge_data_condition(i,j,model.graph)
     if !condition
         println("edge ", (i,j), " does not exist!")
         return (record=DataFrame(),)
