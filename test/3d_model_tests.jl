@@ -1,5 +1,5 @@
 @testset "3d model A" begin
-	ag = con_3d_agent(color=cl"white")
+    ag = con_3d_agent(color=cl"white")
     ag1 = create_similar(ag, 2)
     ag2 = create_similar(ag)
     agents = con_3d_agents(5, color=Col("red"), is_sick = false, shape = :sphere, keeps_record_of = Set([:color, :pos, :is_sick]))
@@ -22,7 +22,8 @@
     @test run_model!(model, steps=steps, step_rule = step_rule!)==nothing
     data = get_agent_data(model.agents[1], model).record
     datam= get_model_data(model).record
-    animate_sim(model)
+    animate_sim(model, tail=(2,agent->agent.color==cl"red"))
+    create_interactive_app(model)
     @test length(data[!,:color])==steps+1 #initial data is also recorded
     @test length(data[!,:is_sick])==steps+1
     @test length(datam[!,:model_property1]) == steps+1
@@ -46,7 +47,7 @@ end
     @test run_model!(model, steps=steps, step_rule = step_rule!)==nothing
     data = get_agent_data(model.agents[1], model).record
     datam= get_model_data(model).record
-    animate_sim(model)
+    animate_sim(model, show_patches=true)
     @test length(data[!,:color])==steps+1 #initial data is also recorded
     @test length(data[!,:is_sick])==steps+1
     @test length(datam[!,:model_property1]) == steps+1

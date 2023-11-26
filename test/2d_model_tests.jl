@@ -1,5 +1,5 @@
 @testset "2d model A" begin
-	ag = con_2d_agent(color=cl"white")
+    ag = con_2d_agent(color=cl"white")
     ag1 = create_similar(ag, 2)
     ag2 = create_similar(ag)
     agents = con_2d_agents(5, color=Col("red"), is_sick = false, shape = :circle, keeps_record_of = Set([:color, :pos, :is_sick]))
@@ -37,6 +37,7 @@
     get_nums_agents(model, ag->ag.color==cl"red")
     get_agents_avg_props(model, ag-> (ag.is_sick ? 0 : 1))
     get_nums_agents(model, ag->ag.is_sick)
+
 end
 
 @testset "2d model B" begin
@@ -69,6 +70,7 @@ end
     get_patch_data((1,1), model)
     get_nums_patches(model, pt->pt.color==cl"white")
     get_patches_avg_props(model, pt->(pt.color==cl"white" ? 0 : 1))
+
 end
 
 @testset "2d model C" begin

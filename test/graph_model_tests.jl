@@ -1,6 +1,6 @@
 
 @testset "graph model A" begin
-	ag =graph_agent(color=cl"red")
+    ag =graph_agent(color=cl"red")
     create_similar(ag,1)
     create_similar(ag)
     mat = sparse([1,2,2,3,3,4,4,5,5,1],[2,1,3,2,4,3,5,4,1,5],[1,1,1,1,1,1,1,1,1,1]) # pentagon 1--2--3--4--5--1 #
@@ -32,7 +32,7 @@
             kill_agent!(ags[rand(1:n)], model)
         end
         if model.tick ==7
-            add_node!(model, color=cl"red")
+            add_node!(model,color=cl"red")
         end
         if model.tick == 8
             create_edge!(3,7,model)
@@ -41,7 +41,7 @@
     @test run_model!(model, steps=steps, step_rule= step_rule!)==nothing
     data = get_agent_data(model.agents[1], model).record
     datam= get_model_data(model).record
-    animate_sim(model)
+    animate_sim(model, agent_path=(2, ag->true), tail=(2, node->true))
     create_interactive_app(model)
     draw_frame(model,frame=2)
     @test length(data[!,:color])==steps+1 #initial data is also recorded
@@ -53,8 +53,7 @@
     get_nodes_avg_props(model, nd->(nd.color==cl"red" ? 0 : 1))
     get_nums_edges(model, edge->true)
     get_edges_avg_props(model, edge->1)
-    
-    
+
     gr=square_grid_graph(4,4)
     draw_graph(gr, mark_nodes=true)
     draw_graph3d(gr)
@@ -134,9 +133,8 @@
     EasyABM.static_dir_graph(mat)
     EasyABM.adjacency_matrix(graph)
     EasyABM.combined_graph!(graph, deepcopy(graph))
+    
 end
-
-
 
 @testset "graph model B" begin
     mat = sparse([1,2,2,3,3,4,4,5,5,1],[2,1,3,2,4,3,5,4,1,5],[1,1,1,1,1,1,1,1,1,1]) # pentagon 1--2--3--4--5--1 #
@@ -176,9 +174,8 @@ end
     get_nodes_avg_props(model, nd->(nd.color==cl"red" ? 0 : 1))
     get_nums_edges(model, edge->true)
     get_edges_avg_props(model, edge->1)
+
 end
-
-
 
 @testset "graph model C" begin
     mat = sparse([1,2,3,4,5],[2,3,4,5,1],[1,1,1,1,1])
@@ -292,3 +289,5 @@ end
     get_nums_edges(model, edge->true)
     get_edges_avg_props(model, edge->1)
 end
+
+
