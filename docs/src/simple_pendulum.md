@@ -22,7 +22,7 @@ model = create_graph_model(gr, gravity = 9.0, dt=0.1, len= 4.0, in_angle=30.0)
 
 ## Step 2: Initialise the model
 
-In this step set initial values of position, angle and angular velocity. The nodes in a graph can have values of x and y coordinates in range 0 to 10. We set the position of first (fixed) node to be Vect(5, 8) and that of the second node (which represents the hanging mass) at a distance of model.properties.len and angle (in degrees) of model.properties.in_angle below the fixed node. 
+In this step set initial values of position, angle and angular velocity. The nodes in a graph can have values of x and y coordinates in range 0 to 10. We set the position of the first (fixed) node to be Vect(5, 8) and that of the second node (which represents the hanging mass) at a distance of model.properties.len and angle (in degrees) of model.properties.in_angle below the fixed node. 
 
  ```julia
 function initialiser!(model)

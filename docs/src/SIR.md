@@ -164,7 +164,7 @@ create_interactive_app(model, initialiser= initialiser!,
 
 ## Step 5: Fetch Data 
 
-The following line of code fetches data of average number of susceptible, infectious and recovered agents. The function `get_agents_avg_props` averages over all agents the values returned by functions sent to it as arguments. 
+The following code fetches data of average number of susceptible, infectious and recovered agents. The function `get_agents_avg_props` averages over all agents the values returned by functions sent to it as arguments. 
 
 ```julia
 df = get_agents_avg_props(model, 

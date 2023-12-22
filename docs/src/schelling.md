@@ -110,7 +110,7 @@ create_interactive_app(model,
 
 ## Step 5: Fetch Data 
 
-In this step we fetch data of number of happy and sad agents at each time step as a dataframe using following line of code. 
+In this step we fetch data of number of happy and sad agents at each time step as a dataframe using the following lines of code. 
 
 ```julia
 df = get_nums_agents(model, 
